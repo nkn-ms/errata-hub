@@ -14,22 +14,22 @@ type BookData = {
   coverImageUrl: string;
 };
 
-type FeedbackType = "TYPO" | "ERRATA" | "READABILITY" | "OTHER";
+type ReportType = "TYPO" | "ERRATA" | "READABILITY" | "OTHER";
 type LocationType = "PAGE" | "KINDLE" | "OTHER";
 
-const typeLabels: Record<FeedbackType, string> = {
+const typeLabels: Record<ReportType, string> = {
   TYPO: "誤字脱字",
   ERRATA: "正誤情報",
   READABILITY: "読みにくい・わかりにくい",
   OTHER: "その他",
 };
 
-export function FeedbackForm() {
+export function ReportForm() {
   const router = useRouter();
   const [book, setBook] = useState<BookData | null>(null);
   const [edition, setEdition] = useState("");
   const [printing, setPrinting] = useState("");
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>("TYPO");
+  const [reportType, setReportType] = useState<ReportType>("TYPO");
   const [locationType, setLocationType] = useState<LocationType>("PAGE");
   const [page, setPage] = useState("");
   const [line, setLine] = useState("");
@@ -44,7 +44,7 @@ export function FeedbackForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const isErrataType = feedbackType === "TYPO" || feedbackType === "ERRATA";
+  const isErrataType = reportType === "TYPO" || reportType === "ERRATA";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,7 +57,7 @@ export function FeedbackForm() {
     setError("");
 
     try {
-      const res = await fetch(routes.api.feedbacks, {
+      const res = await fetch(routes.api.reports, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,7 +65,7 @@ export function FeedbackForm() {
           edition: edition ? parseInt(edition) : null,
           printing: printing ? parseInt(printing) : null,
           title,
-          type: feedbackType,
+          type: reportType,
           locationType,
           page: page ? parseInt(page) : null,
           line: line ? parseInt(line) : null,
@@ -147,13 +147,13 @@ export function FeedbackForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">種別</label>
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(typeLabels) as FeedbackType[]).map((t) => (
+            {(Object.keys(typeLabels) as ReportType[]).map((t) => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setFeedbackType(t)}
+                onClick={() => setReportType(t)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  feedbackType === t
+                  reportType === t
                     ? "bg-gray-900 text-white border-gray-900"
                     : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
                 }`}

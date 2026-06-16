@@ -8,38 +8,38 @@ import { Prisma } from "@/generated/prisma/client";
  * 各ページ（サーバーコンポーネント）はこの関数を直接 await して使う。
  * HTTP 越しの自前 API は挟まない（同一プロセスなら関数呼び出しの方が速くクリーン）。
  */
-export const feedbackInclude = {
+export const reportInclude = {
   book: { include: { publisher: true } },
   images: true,
   user: { select: { displayName: true } },
-} satisfies Prisma.FeedbackInclude;
+} satisfies Prisma.ReportInclude;
 
-export type FeedbackWithRelations = Prisma.FeedbackGetPayload<{
-  include: typeof feedbackInclude;
+export type ReportWithRelations = Prisma.ReportGetPayload<{
+  include: typeof reportInclude;
 }>;
 
 /** 最新順のフィードバック一覧。take で件数を絞れる（トップページは最新 N 件）。 */
-export function findRecentFeedbacks(take?: number) {
-  return prisma.feedback.findMany({
-    include: feedbackInclude,
+export function findRecentReports(take?: number) {
+  return prisma.report.findMany({
+    include: reportInclude,
     orderBy: { createdAt: "desc" },
     take,
   });
 }
 
 /** ID 指定で1件取得（存在しなければ null）。 */
-export function findFeedbackById(id: string) {
-  return prisma.feedback.findUnique({
+export function findReportById(id: string) {
+  return prisma.report.findUnique({
     where: { id },
-    include: feedbackInclude,
+    include: reportInclude,
   });
 }
 
 /** 特定ユーザーの投稿一覧（最新順）。 */
-export function findFeedbacksByUser(userId: string) {
-  return prisma.feedback.findMany({
+export function findReportsByUser(userId: string) {
+  return prisma.report.findMany({
     where: { userId },
-    include: feedbackInclude,
+    include: reportInclude,
     orderBy: { createdAt: "desc" },
   });
 }

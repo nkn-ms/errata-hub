@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { feedbackInclude } from "@/services/feedback";
-import { mapFeedback } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
+import { reportInclude } from "@/services/report";
+import { mapReport } from "@/utils/mappers";
+import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
@@ -17,8 +17,8 @@ export default async function BookDetailPage({ params }: Props) {
     where: { id },
     include: {
       publisher: true,
-      feedbacks: {
-        include: feedbackInclude,
+      reports: {
+        include: reportInclude,
         orderBy: { createdAt: "desc" },
       },
     },
@@ -26,7 +26,7 @@ export default async function BookDetailPage({ params }: Props) {
 
   if (!book) notFound();
 
-  const feedbacks = book.feedbacks.map(mapFeedback);
+  const reports = book.reports.map(mapReport);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,7 +57,7 @@ export default async function BookDetailPage({ params }: Props) {
         {/* フィードバック一覧 */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
-            フィードバック <span className="text-sm font-normal text-gray-500">{feedbacks.length}件</span>
+            フィードバック <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
           </h2>
           <Link
             href={routes.submit}
@@ -75,50 +75,50 @@ export default async function BookDetailPage({ params }: Props) {
           </span>
         </div>
 
-        {feedbacks.length === 0 ? (
+        {reports.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
             まだフィードバックはありません
           </div>
         ) : (
           <div className="space-y-3">
-            {feedbacks.map((feedback) => (
+            {reports.map((report) => (
               <Link
-                key={feedback.id}
-                href={routes.feedback(feedback.id)}
+                key={report.id}
+                href={routes.report(report.id)}
                 className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[feedback.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS_BY_LABEL[feedback.status]}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                        title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
                       >
-                        {feedback.status}
+                        {report.status}
                       </span>
                     </div>
-                    <p className="font-medium text-gray-900 truncate">{feedback.title}</p>
-                    {(feedback.wrong || feedback.correct) && (
+                    <p className="font-medium text-gray-900 truncate">{report.title}</p>
+                    {(report.wrong || report.correct) && (
                       <p className="text-sm text-gray-600 mt-0.5 truncate">
-                        {feedback.wrong} → {feedback.correct}
+                        {report.wrong} → {report.correct}
                       </p>
                     )}
-                    {feedback.content && !feedback.wrong && (
-                      <p className="text-sm text-gray-600 mt-0.5 truncate">{feedback.content}</p>
+                    {report.content && !report.wrong && (
+                      <p className="text-sm text-gray-600 mt-0.5 truncate">{report.content}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    {feedback.page && (
-                      <p className="text-sm text-gray-500">p.{feedback.page}</p>
+                    {report.page && (
+                      <p className="text-sm text-gray-500">p.{report.page}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-0.5">{feedback.createdAt}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
                   </div>
                 </div>
-                {feedback.status === "修正済み" && (feedback.fixedEdition || feedback.fixedPrinting) && (
+                {report.status === "修正済み" && (report.fixedEdition || report.fixedPrinting) && (
                   <p className="mt-2 text-xs text-green-700">
-                    ✅ {feedback.fixedEdition && `第${feedback.fixedEdition}版`}
-                    {feedback.fixedEdition && feedback.fixedPrinting && " "}
-                    {feedback.fixedPrinting && `第${feedback.fixedPrinting}刷`}
+                    ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
+                    {report.fixedEdition && report.fixedPrinting && " "}
+                    {report.fixedPrinting && `第${report.fixedPrinting}刷`}
                     より修正済み
                   </p>
                 )}

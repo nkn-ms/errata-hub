@@ -1,7 +1,7 @@
-import type { FeedbackStatus } from "@/generated/prisma/client";
+import type { ReportStatus } from "@/generated/prisma/client";
 
 // 管理画面・API 側: Prisma enum キーで参照
-export const STATUS_LABELS: Record<FeedbackStatus, string> = {
+export const STATUS_LABELS: Record<ReportStatus, string> = {
   PENDING: "未対応",
   FORWARDED: "出版社へ送信済み",
   IN_REVIEW: "出版社確認中",
@@ -21,7 +21,7 @@ const STATUS_COLOR_VALUES = {
   FIXED: "bg-green-200 text-green-800",
   NO_ACTION: "bg-red-100 text-red-700",
   DISMISSED: "bg-gray-200 text-gray-500",
-} as const satisfies Record<FeedbackStatus, string>;
+} as const satisfies Record<ReportStatus, string>;
 
 const STATUS_TOOLTIP_VALUES = {
   PENDING: "投稿を受け付けました。管理者が確認中です。",
@@ -32,16 +32,16 @@ const STATUS_TOOLTIP_VALUES = {
   FIXED: "重版・改訂版で修正されました。",
   NO_ACTION: "出版社が対応不要と判断しました。",
   DISMISSED: "管理者が無効な投稿と判断しました。",
-} as const satisfies Record<FeedbackStatus, string>;
+} as const satisfies Record<ReportStatus, string>;
 
 // Prisma enum キーで参照（管理画面・API 側）
-export const STATUS_COLORS: Record<FeedbackStatus, string> = STATUS_COLOR_VALUES;
-export const STATUS_TOOLTIPS: Record<FeedbackStatus, string> = STATUS_TOOLTIP_VALUES;
+export const STATUS_COLORS: Record<ReportStatus, string> = STATUS_COLOR_VALUES;
+export const STATUS_TOOLTIPS: Record<ReportStatus, string> = STATUS_TOOLTIP_VALUES;
 
 // 日本語ラベルで参照（公開側コンポーネント）
 export const STATUS_COLORS_BY_LABEL: Record<string, string> = Object.fromEntries(
-  (Object.keys(STATUS_LABELS) as FeedbackStatus[]).map((k) => [STATUS_LABELS[k], STATUS_COLOR_VALUES[k]])
+  (Object.keys(STATUS_LABELS) as ReportStatus[]).map((k) => [STATUS_LABELS[k], STATUS_COLOR_VALUES[k]])
 );
 export const STATUS_TOOLTIPS_BY_LABEL: Record<string, string> = Object.fromEntries(
-  (Object.keys(STATUS_LABELS) as FeedbackStatus[]).map((k) => [STATUS_LABELS[k], STATUS_TOOLTIP_VALUES[k]])
+  (Object.keys(STATUS_LABELS) as ReportStatus[]).map((k) => [STATUS_LABELS[k], STATUS_TOOLTIP_VALUES[k]])
 );

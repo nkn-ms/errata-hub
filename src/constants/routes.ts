@@ -1,8 +1,8 @@
 // アプリ内部のルート（URL）を一元管理する。
 // ベタ書きを避け、パス変更をこのファイルだけで完結させるための「縫い目」。
-// パラメータ付きのルートは関数で表現する（例: routes.feedback(id)）。
+// パラメータ付きのルートは関数で表現する（例: routes.report(id)）。
 //
-// 注意: App Router ではルートの実体はフォルダ名（app/feedbacks/[id]/page.tsx）が決める。
+// 注意: App Router ではルートの実体はフォルダ名（app/reports/[id]/page.tsx）が決める。
 // このファイルが集約するのは、その URL を「参照する側」（Link / fetch / redirect）だけ。
 // フォルダ自体のリネームは別途必要。
 export const routes = {
@@ -11,7 +11,7 @@ export const routes = {
   register: "/register",
   submit: "/submit",
 
-  feedback: (id: string) => `/feedbacks/${id}`,
+  report: (id: string) => `/reports/${id}`,
   book: (id: string) => `/books/${id}`,
   user: (id: string) => `/users/${id}`,
 
@@ -22,8 +22,8 @@ export const routes = {
   },
 
   admin: {
-    feedbacks: "/admin/feedbacks",
-    feedback: (id: string) => `/admin/feedbacks/${id}`,
+    reports: "/admin/reports",
+    report: (id: string) => `/admin/reports/${id}`,
     publishers: "/admin/publishers",
     publisherNew: "/admin/publishers/new",
     publisher: (id: string) => `/admin/publishers/${id}`,
@@ -33,8 +33,8 @@ export const routes = {
   },
 
   api: {
-    feedbacks: "/api/feedbacks",
-    feedback: (id: string) => `/api/feedbacks/${id}`,
+    reports: "/api/reports",
+    report: (id: string) => `/api/reports/${id}`,
     booksSearch: "/api/books/search",
     adminUser: (id: string) => `/api/admin/users/${id}`,
     adminUserPublishers: (id: string) => `/api/admin/users/${id}/publishers`,

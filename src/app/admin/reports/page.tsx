@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { STATUS_LABELS, STATUS_COLORS } from "@/constants/feedback-status";
+import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
 
 const TYPE_LABELS = {
@@ -10,8 +10,8 @@ const TYPE_LABELS = {
   OTHER: "その他",
 } as const;
 
-export default async function AdminFeedbacksPage() {
-  const feedbacks = await prisma.feedback.findMany({
+export default async function AdminReportsPage() {
+  const reports = await prisma.report.findMany({
     include: {
       book: { include: { publisher: true } },
       user: { select: { displayName: true } },
@@ -23,7 +23,7 @@ export default async function AdminFeedbacksPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">フィードバック一覧</h1>
-        <p className="mt-1 text-sm text-gray-500">全 {feedbacks.length} 件</p>
+        <p className="mt-1 text-sm text-gray-500">全 {reports.length} 件</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -40,14 +40,14 @@ export default async function AdminFeedbacksPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {feedbacks.length === 0 && (
+            {reports.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                   フィードバックがありません
                 </td>
               </tr>
             )}
-            {feedbacks.map((f) => (
+            {reports.map((f) => (
               <tr key={f.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <div className="font-medium text-gray-900 line-clamp-1 max-w-[180px]">{f.book.title}</div>
@@ -74,7 +74,7 @@ export default async function AdminFeedbacksPage() {
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={routes.admin.feedback(f.id)}
+                    href={routes.admin.report(f.id)}
                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                   >
                     詳細・編集

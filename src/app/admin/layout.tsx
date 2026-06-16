@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="text-gray-400 text-xs">管理画面</span>
           </div>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href={routes.admin.feedbacks} className="text-gray-300 hover:text-white transition-colors">
+            <Link href={routes.admin.reports} className="text-gray-300 hover:text-white transition-colors">
               フィードバック
             </Link>
             <Link href={routes.admin.publishers} className="text-gray-300 hover:text-white transition-colors">

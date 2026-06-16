@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { AdminFeedbackEditor } from "@/components/admin/feedback-editor";
+import { AdminReportEditor } from "@/components/admin/report-editor";
 
-export default async function AdminFeedbackDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const feedback = await prisma.feedback.findUnique({
+  const report = await prisma.report.findUnique({
     where: { id },
     include: {
       book: { include: { publisher: true } },
@@ -12,7 +12,7 @@ export default async function AdminFeedbackDetailPage({ params }: { params: Prom
     },
   });
 
-  if (!feedback) notFound();
+  if (!report) notFound();
 
   const TYPE_LABELS = {
     TYPO: "誤字脱字", ERRATA: "正誤情報", READABILITY: "読みにくい", OTHER: "その他",
@@ -21,20 +21,20 @@ export default async function AdminFeedbackDetailPage({ params }: { params: Prom
     PAGE: "ページ", KINDLE: "Kindle", OTHER: "その他",
   };
 
-  const locationText = feedback.locationType === "PAGE"
-    ? `p.${feedback.page}${feedback.line ? ` l.${feedback.line}` : ""}${feedback.hasMultiplePages ? " 他" : ""}`
-    : feedback.locationType === "KINDLE"
-    ? `Kindle ${feedback.kindleLocation}`
-    : feedback.locationNote ?? "-";
+  const locationText = report.locationType === "PAGE"
+    ? `p.${report.page}${report.line ? ` l.${report.line}` : ""}${report.hasMultiplePages ? " 他" : ""}`
+    : report.locationType === "KINDLE"
+    ? `Kindle ${report.kindleLocation}`
+    : report.locationNote ?? "-";
 
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">{feedback.title}</h1>
+        <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {feedback.book.title}
-          {feedback.edition && ` 第${feedback.edition}版`}
-          {feedback.printing && ` 第${feedback.printing}刷`}
+          {report.book.title}
+          {report.edition && ` 第${report.edition}版`}
+          {report.printing && ` 第${report.printing}刷`}
         </p>
       </div>
 
@@ -43,48 +43,48 @@ export default async function AdminFeedbackDetailPage({ params }: { params: Prom
         <h2 className="text-sm font-semibold text-gray-700">投稿内容</h2>
         <dl className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 text-sm">
           <dt className="text-gray-500">種別</dt>
-          <dd>{TYPE_LABELS[feedback.type]}</dd>
+          <dd>{TYPE_LABELS[report.type]}</dd>
 
           <dt className="text-gray-500">位置</dt>
           <dd>{locationText}</dd>
 
-          {feedback.locationNote && feedback.locationType === "PAGE" && (
+          {report.locationNote && report.locationType === "PAGE" && (
             <>
               <dt className="text-gray-500">位置備考</dt>
-              <dd>{feedback.locationNote}</dd>
+              <dd>{report.locationNote}</dd>
             </>
           )}
 
-          {feedback.wrong && (
+          {report.wrong && (
             <>
               <dt className="text-gray-500">誤</dt>
-              <dd className="whitespace-pre-wrap">{feedback.wrong}</dd>
+              <dd className="whitespace-pre-wrap">{report.wrong}</dd>
             </>
           )}
 
-          {feedback.correct && (
+          {report.correct && (
             <>
               <dt className="text-gray-500">正</dt>
-              <dd className="whitespace-pre-wrap">{feedback.correct}</dd>
+              <dd className="whitespace-pre-wrap">{report.correct}</dd>
             </>
           )}
 
-          {feedback.content && (
+          {report.content && (
             <>
               <dt className="text-gray-500">内容・提案</dt>
-              <dd className="whitespace-pre-wrap">{feedback.content}</dd>
+              <dd className="whitespace-pre-wrap">{report.content}</dd>
             </>
           )}
 
-          {feedback.note && (
+          {report.note && (
             <>
               <dt className="text-gray-500">備考</dt>
-              <dd className="whitespace-pre-wrap">{feedback.note}</dd>
+              <dd className="whitespace-pre-wrap">{report.note}</dd>
             </>
           )}
 
           <dt className="text-gray-500">投稿日</dt>
-          <dd>{feedback.createdAt.toISOString().split("T")[0]}</dd>
+          <dd>{report.createdAt.toISOString().split("T")[0]}</dd>
         </dl>
       </div>
 
@@ -93,35 +93,35 @@ export default async function AdminFeedbackDetailPage({ params }: { params: Prom
         <h2 className="text-sm font-semibold text-gray-700">書籍情報</h2>
         <dl className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 text-sm">
           <dt className="text-gray-500">書籍名</dt>
-          <dd>{feedback.book.title}</dd>
-          {feedback.book.author && (
+          <dd>{report.book.title}</dd>
+          {report.book.author && (
             <>
               <dt className="text-gray-500">著者</dt>
-              <dd>{feedback.book.author}</dd>
+              <dd>{report.book.author}</dd>
             </>
           )}
-          {feedback.book.publisher && (
+          {report.book.publisher && (
             <>
               <dt className="text-gray-500">出版社</dt>
-              <dd>{feedback.book.publisher.name}</dd>
+              <dd>{report.book.publisher.name}</dd>
             </>
           )}
-          {feedback.book.isbn && (
+          {report.book.isbn && (
             <>
               <dt className="text-gray-500">ISBN</dt>
-              <dd>{feedback.book.isbn}</dd>
+              <dd>{report.book.isbn}</dd>
             </>
           )}
         </dl>
       </div>
 
       {/* ステータス・出版社コメント編集 */}
-      <AdminFeedbackEditor
-        id={feedback.id}
-        currentStatus={feedback.status}
-        currentComment={feedback.publisherComment ?? ""}
-        currentFixedEdition={feedback.fixedEdition}
-        currentFixedPrinting={feedback.fixedPrinting}
+      <AdminReportEditor
+        id={report.id}
+        currentStatus={report.status}
+        currentComment={report.publisherComment ?? ""}
+        currentFixedEdition={report.fixedEdition}
+        currentFixedPrinting={report.fixedPrinting}
       />
     </div>
   );

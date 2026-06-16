@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { findFeedbacksByUser } from "@/services/feedback";
-import { mapFeedback } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
+import { findReportsByUser } from "@/services/report";
+import { mapReport } from "@/utils/mappers";
+import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
@@ -31,9 +31,9 @@ export default async function UserDetailPage({ params }: Props) {
 
   if (!profile) notFound();
 
-  const feedbacks = await findFeedbacksByUser(id);
+  const reports = await findReportsByUser(id);
 
-  const mapped = feedbacks.map(mapFeedback);
+  const mapped = reports.map(mapReport);
 
   const stats = {
     total: mapped.length,
@@ -118,40 +118,40 @@ export default async function UserDetailPage({ params }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {mapped.map((feedback) => (
+            {mapped.map((report) => (
               <Link
-                key={feedback.id}
-                href={routes.feedback(feedback.id)}
+                key={report.id}
+                href={routes.report(report.id)}
                 className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[feedback.type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {feedback.type}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[report.type] ?? "bg-gray-100 text-gray-600"}`}>
+                        {report.type}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[feedback.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS_BY_LABEL[feedback.status]}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                        title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
                       >
-                        {feedback.status}
+                        {report.status}
                       </span>
                     </div>
-                    <p className="font-medium text-gray-900 truncate">{feedback.title}</p>
+                    <p className="font-medium text-gray-900 truncate">{report.title}</p>
                     <p className="text-sm text-gray-500 mt-0.5 truncate">
-                      {feedback.bookTitle}
+                      {report.bookTitle}
                     </p>
-                    {(feedback.wrong || feedback.correct) && (
+                    {(report.wrong || report.correct) && (
                       <p className="text-sm text-gray-600 mt-0.5 truncate">
-                        {feedback.wrong} → {feedback.correct}
+                        {report.wrong} → {report.correct}
                       </p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    {feedback.page && (
-                      <p className="text-sm text-gray-500">p.{feedback.page}</p>
+                    {report.page && (
+                      <p className="text-sm text-gray-500">p.{report.page}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-0.5">{feedback.createdAt}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
                   </div>
                 </div>
               </Link>

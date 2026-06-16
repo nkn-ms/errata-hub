@@ -1,4 +1,4 @@
-import { FeedbackForm } from "@/components/feedback-form";
+import { ReportForm } from "@/components/report-form";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 
@@ -20,7 +20,7 @@ export default function SubmitPage() {
             書籍の誤字脱字・正誤情報・改善提案を投稿してください。
           </p>
         </div>
-        <FeedbackForm />
+        <ReportForm />
       </main>
     </div>
   );

@@ -1,6 +1,6 @@
-import { FeedbackTable } from "@/components/feedback-table";
-import { findRecentFeedbacks } from "@/services/feedback";
-import { mapFeedback } from "@/utils/mappers";
+import { ReportTable } from "@/components/report-table";
+import { findRecentReports } from "@/services/report";
+import { mapReport } from "@/utils/mappers";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/actions/auth";
 import Link from "next/link";
@@ -9,8 +9,8 @@ import { routes } from "@/constants/routes";
 const TOP_PAGE_LIMIT = 10;
 
 export default async function Home() {
-  const [rows, supabase] = await Promise.all([findRecentFeedbacks(TOP_PAGE_LIMIT), createClient()]);
-  const feedbacks = rows.map(mapFeedback);
+  const [rows, supabase] = await Promise.all([findRecentReports(TOP_PAGE_LIMIT), createClient()]);
+  const reports = rows.map(mapReport);
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
@@ -66,7 +66,7 @@ export default async function Home() {
           </span>
         </div>
 
-        <FeedbackTable data={feedbacks} />
+        <ReportTable data={reports} />
       </main>
     </div>
   );

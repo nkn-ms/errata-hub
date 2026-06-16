@@ -14,12 +14,12 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Feedback, FeedbackType } from "@/types/feedback";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
+import { Report, ReportType } from "@/types/report";
+import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
-const typeColors: Record<FeedbackType, string> = {
+const typeColors: Record<ReportType, string> = {
   誤字脱字: "bg-orange-100 text-orange-700",
   正誤情報: "bg-purple-100 text-purple-700",
   読みにくい: "bg-cyan-100 text-cyan-700",
@@ -34,25 +34,25 @@ function Badge({ label, className }: { label: string; className: string }) {
   );
 }
 
-function getLocationLabel(feedback: Feedback): string {
-  if (feedback.locationType === "Kindle") return `Kindle ${feedback.kindleLocation ?? ""}`;
-  if (feedback.locationType === "ページ") {
-    let label = `p.${feedback.page}`;
-    if (feedback.line) label += ` l.${feedback.line}`;
-    if (feedback.hasMultiplePages) label += " 他";
+function getLocationLabel(report: Report): string {
+  if (report.locationType === "Kindle") return `Kindle ${report.kindleLocation ?? ""}`;
+  if (report.locationType === "ページ") {
+    let label = `p.${report.page}`;
+    if (report.line) label += ` l.${report.line}`;
+    if (report.hasMultiplePages) label += " 他";
     return label;
   }
   return "";
 }
 
-function getErrataLabel(feedback: Feedback): string {
-  if (feedback.wrong && feedback.correct) {
-    return `${feedback.wrong} → ${feedback.correct}`;
+function getErrataLabel(report: Report): string {
+  if (report.wrong && report.correct) {
+    return `${report.wrong} → ${report.correct}`;
   }
-  return feedback.content ?? "";
+  return report.content ?? "";
 }
 
-const columns: ColumnDef<Feedback>[] = [
+const columns: ColumnDef<Report>[] = [
   {
     accessorKey: "bookTitle",
     header: "書籍名",
@@ -119,7 +119,7 @@ const columns: ColumnDef<Feedback>[] = [
     accessorKey: "type",
     header: "種別",
     cell: ({ getValue }) => {
-      const type = getValue() as FeedbackType;
+      const type = getValue() as ReportType;
       return <Badge label={type} className={typeColors[type]} />;
     },
     filterFn: (row, _, filterValue) =>
@@ -162,7 +162,7 @@ const columns: ColumnDef<Feedback>[] = [
   },
 ];
 
-export function FeedbackTable({ data }: { data: Feedback[] }) {
+export function ReportTable({ data }: { data: Report[] }) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -262,7 +262,7 @@ export function FeedbackTable({ data }: { data: Feedback[] }) {
               <tr
                 key={row.id}
                 className="hover:bg-blue-50 cursor-pointer transition-colors"
-                onClick={() => router.push(routes.feedback(row.original.id))}
+                onClick={() => router.push(routes.report(row.original.id))}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">

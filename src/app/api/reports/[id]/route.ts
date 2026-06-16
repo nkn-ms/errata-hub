@@ -18,26 +18,26 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { user, error } = await requireAdmin();
     if (error) return error;
 
-    const feedback = await prisma.feedback.findUnique({
+    const report = await prisma.report.findUnique({
       where: { id },
       include: { images: true },
     });
-    if (!feedback) {
+    if (!report) {
       return NextResponse.json({ error: "フィードバックが見つかりません" }, { status: 404 });
     }
 
-    // TODO(画像投稿機能の実装後): feedback.images の Supabase Storage 上のファイルも削除する。
-    // 現状アップロード未実装のためファイルは存在しない。DB の FeedbackImage 行は
-    // schema の onDelete: Cascade により feedback 削除時に自動で消える。
-    await prisma.feedback.delete({ where: { id } });
+    // TODO(画像投稿機能の実装後): report.images の Supabase Storage 上のファイルも削除する。
+    // 現状アップロード未実装のためファイルは存在しない。DB の ReportImage 行は
+    // schema の onDelete: Cascade により report 削除時に自動で消える。
+    await prisma.report.delete({ where: { id } });
 
     await createAuditLog({
       userId: user?.id,
       userEmail: user?.email,
-      action: "DELETE_FEEDBACK",
-      targetType: TARGET_TYPE.FEEDBACK,
+      action: "DELETE_REPORT",
+      targetType: TARGET_TYPE.REPORT,
       targetId: id,
-      before: feedback as Record<string, unknown>,
+      before: report as Record<string, unknown>,
     });
 
     return new Response(null, { status: 204 });
@@ -62,8 +62,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       );
     }
 
-    const before = await prisma.feedback.findUnique({ where: { id } });
-    const feedback = await prisma.feedback.update({
+    const before = await prisma.report.findUnique({ where: { id } });
+    const report = await prisma.report.update({
       where: { id },
       data: parsed.data,
     });
@@ -71,14 +71,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     await createAuditLog({
       userId: user?.id,
       userEmail: user?.email,
-      action: "UPDATE_FEEDBACK",
-      targetType: TARGET_TYPE.FEEDBACK,
+      action: "UPDATE_REPORT",
+      targetType: TARGET_TYPE.REPORT,
       targetId: id,
       before: { status: before?.status, publisherComment: before?.publisherComment },
-      after: { status: feedback.status, publisherComment: feedback.publisherComment },
+      after: { status: report.status, publisherComment: report.publisherComment },
     });
 
-    return NextResponse.json(feedback);
+    return NextResponse.json(report);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });

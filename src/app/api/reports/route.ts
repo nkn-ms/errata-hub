@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { toCanonicalIsbn } from "@/utils/isbn";
-import { FeedbackType, LocationType } from "@/generated/prisma/client";
+import { ReportType, LocationType } from "@/generated/prisma/client";
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。
 // 形式の正規化・検証は toCanonicalIsbn（ISBN-13 へ統一）で行う。
@@ -16,7 +16,7 @@ const BookSchema = z.object({
   coverImageUrl: z.string().optional(),
 });
 
-const FeedbackSchema = z.object({
+const ReportSchema = z.object({
   book: BookSchema,
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
@@ -34,7 +34,7 @@ const FeedbackSchema = z.object({
   note: z.string().nullable().optional(),
 });
 
-// 一覧取得はサーバーコンポーネントから services/feedback の findRecentFeedbacks を直接呼ぶため、
+// 一覧取得はサーバーコンポーネントから services/report の findRecentReports を直接呼ぶため、
 // ここに GET（HTTP 越しの自前 API）は置かない。
 
 export async function POST(request: Request) {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const parsed = FeedbackSchema.safeParse(body);
+    const parsed = ReportSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "入力内容が不正です", details: parsed.error.flatten().fieldErrors },
@@ -84,14 +84,14 @@ export async function POST(request: Request) {
       },
     });
 
-    const feedback = await prisma.feedback.create({
+    const report = await prisma.report.create({
       data: {
         userId: user.id,
         bookId: bookRecord.id,
         title,
         edition: edition ?? null,
         printing: printing ?? null,
-        type: type as FeedbackType,
+        type: type as ReportType,
         locationType: locationType as LocationType,
         page: page ?? null,
         line: line ?? null,
@@ -105,9 +105,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(feedback, { status: 201 });
+    return NextResponse.json(report, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to create feedback" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create report" }, { status: 500 });
   }
 }

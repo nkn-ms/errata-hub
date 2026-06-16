@@ -1,14 +1,14 @@
-import type { Feedback as PrismaFeedback, Book, Publisher, FeedbackImage, Profile } from "@/generated/prisma/client";
-import type { Feedback } from "@/types/feedback";
-import { STATUS_LABELS } from "@/constants/feedback-status";
+import type { Report as PrismaReport, Book, Publisher, ReportImage, Profile } from "@/generated/prisma/client";
+import type { Report } from "@/types/report";
+import { STATUS_LABELS } from "@/constants/report-status";
 
-type PrismaFeedbackWithRelations = PrismaFeedback & {
+type PrismaReportWithRelations = PrismaReport & {
   book: Book & { publisher: Publisher | null };
-  images: FeedbackImage[];
+  images: ReportImage[];
   user?: Pick<Profile, "displayName"> | null;
 };
 
-export function mapFeedback(f: PrismaFeedbackWithRelations): Feedback {
+export function mapReport(f: PrismaReportWithRelations): Report {
   return {
     id: f.id,
     bookId: f.bookId,
@@ -42,7 +42,7 @@ export function mapFeedback(f: PrismaFeedbackWithRelations): Feedback {
   };
 }
 
-function mapType(type: PrismaFeedback["type"]): Feedback["type"] {
+function mapType(type: PrismaReport["type"]): Report["type"] {
   const map = {
     TYPO: "誤字脱字",
     ERRATA: "正誤情報",
@@ -52,7 +52,7 @@ function mapType(type: PrismaFeedback["type"]): Feedback["type"] {
   return map[type];
 }
 
-function mapLocationType(type: PrismaFeedback["locationType"]): Feedback["locationType"] {
+function mapLocationType(type: PrismaReport["locationType"]): Report["locationType"] {
   const map = {
     PAGE: "ページ",
     KINDLE: "Kindle",
@@ -61,6 +61,6 @@ function mapLocationType(type: PrismaFeedback["locationType"]): Feedback["locati
   return map[type];
 }
 
-function mapStatus(status: PrismaFeedback["status"]): Feedback["status"] {
-  return STATUS_LABELS[status] as Feedback["status"];
+function mapStatus(status: PrismaReport["status"]): Report["status"] {
+  return STATUS_LABELS[status] as Report["status"];
 }

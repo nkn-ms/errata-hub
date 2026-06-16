@@ -1,4 +1,4 @@
-export type FeedbackType = "誤字脱字" | "正誤情報" | "読みにくい" | "その他";
+export type ReportType = "誤字脱字" | "正誤情報" | "読みにくい" | "その他";
 export type StatusType =
   | "未対応"
   | "出版社へ送信済み"
@@ -10,7 +10,7 @@ export type StatusType =
   | "却下";
 export type LocationType = "ページ" | "Kindle" | "その他";
 
-export type Feedback = {
+export type Report = {
   id: string;
   bookId: string;
   userId: string;
@@ -24,7 +24,7 @@ export type Feedback = {
   coverImage: string;
   edition?: number;
   printing?: number;
-  type: FeedbackType;
+  type: ReportType;
   locationType: LocationType;
   page?: number;
   line?: number;

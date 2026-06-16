@@ -1,6 +1,6 @@
-import { findFeedbackById } from "@/services/feedback";
-import { mapFeedback } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
+import { findReportById } from "@/services/report";
+import { mapReport } from "@/utils/mappers";
+import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
@@ -16,14 +16,14 @@ const typeColors: Record<string, string> = {
   その他: "bg-gray-100 text-gray-600",
 };
 
-export default async function FeedbackDetailPage({ params }: Props) {
+export default async function ReportDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const raw = await findFeedbackById(id);
+  const raw = await findReportById(id);
 
   if (!raw) notFound();
 
-  const feedback = mapFeedback(raw);
+  const report = mapReport(raw);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,11 +31,11 @@ export default async function FeedbackDetailPage({ params }: Props) {
         <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
           <span className="text-gray-300">/</span>
-          <Link href={routes.book(feedback.bookId)} className="text-sm text-blue-600 hover:underline truncate max-w-xs">
-            {feedback.bookTitle}
+          <Link href={routes.book(report.bookId)} className="text-sm text-blue-600 hover:underline truncate max-w-xs">
+            {report.bookTitle}
           </Link>
           <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-500 truncate max-w-xs">{feedback.title}</span>
+          <span className="text-sm text-gray-500 truncate max-w-xs">{report.title}</span>
         </div>
       </header>
 
@@ -52,94 +52,94 @@ export default async function FeedbackDetailPage({ params }: Props) {
           {/* タイトルとバッジ */}
           <div>
             <div className="flex flex-wrap gap-2 mb-2">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[feedback.type]}`}>
-                {feedback.type}
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[report.type]}`}>
+                {report.type}
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[feedback.status] ?? "bg-gray-100 text-gray-700"}`}
-                title={STATUS_TOOLTIPS_BY_LABEL[feedback.status]}
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
               >
-                {feedback.status}
+                {report.status}
               </span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">{feedback.title}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              <Link href={routes.user(feedback.userId)} className="hover:underline">
-                {feedback.userName} <span className="text-gray-400">@{feedback.userIdShort}</span>
+              <Link href={routes.user(report.userId)} className="hover:underline">
+                {report.userName} <span className="text-gray-400">@{report.userIdShort}</span>
               </Link>
-              {" · "}{feedback.createdAt}
+              {" · "}{report.createdAt}
             </p>
           </div>
 
           {/* 書籍情報 */}
           <div className="flex gap-4 p-4 bg-gray-50 rounded-md">
-            {feedback.coverImage && (
-              <img src={feedback.coverImage} alt={feedback.bookTitle} className="w-16 h-auto object-cover rounded shadow-sm" />
+            {report.coverImage && (
+              <img src={report.coverImage} alt={report.bookTitle} className="w-16 h-auto object-cover rounded shadow-sm" />
             )}
             <div>
-              <Link href={routes.book(feedback.bookId)} className="font-medium text-blue-700 hover:underline">
-                {feedback.bookTitle}
+              <Link href={routes.book(report.bookId)} className="font-medium text-blue-700 hover:underline">
+                {report.bookTitle}
               </Link>
-              {feedback.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{feedback.bookAuthor}</p>}
-              {feedback.publisher && <p className="text-sm text-gray-500">{feedback.publisher}</p>}
-              {feedback.isbn && <p className="text-xs text-gray-400 mt-1">ISBN: {feedback.isbn}</p>}
+              {report.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{report.bookAuthor}</p>}
+              {report.publisher && <p className="text-sm text-gray-500">{report.publisher}</p>}
+              {report.isbn && <p className="text-xs text-gray-400 mt-1">ISBN: {report.isbn}</p>}
             </div>
           </div>
 
           {/* 版・刷・位置情報 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-            {(feedback.edition || feedback.printing) && (
+            {(report.edition || report.printing) && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">版・刷</p>
                 <p className="text-gray-800">
-                  {feedback.edition && `第${feedback.edition}版`}
-                  {feedback.edition && feedback.printing && " "}
-                  {feedback.printing && `第${feedback.printing}刷`}
+                  {report.edition && `第${report.edition}版`}
+                  {report.edition && report.printing && " "}
+                  {report.printing && `第${report.printing}刷`}
                 </p>
               </div>
             )}
-            {feedback.locationType === "ページ" && feedback.page && (
+            {report.locationType === "ページ" && report.page && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">位置</p>
                 <p className="text-gray-800">
-                  p.{feedback.page}
-                  {feedback.line && ` l.${feedback.line}`}
-                  {feedback.hasMultiplePages && " 他"}
+                  p.{report.page}
+                  {report.line && ` l.${report.line}`}
+                  {report.hasMultiplePages && " 他"}
                 </p>
               </div>
             )}
-            {feedback.locationType === "Kindle" && feedback.kindleLocation && (
+            {report.locationType === "Kindle" && report.kindleLocation && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">Kindle位置</p>
-                <p className="text-gray-800">{feedback.kindleLocation}</p>
+                <p className="text-gray-800">{report.kindleLocation}</p>
               </div>
             )}
-            {feedback.locationNote && (
+            {report.locationNote && (
               <div className="col-span-2">
                 <p className="text-xs text-gray-500 mb-0.5">補足</p>
-                <p className="text-gray-800">{feedback.locationNote}</p>
+                <p className="text-gray-800">{report.locationNote}</p>
               </div>
             )}
           </div>
 
           {/* 誤り → 正しい表記 */}
-          {(feedback.wrong || feedback.correct) && (
+          {(report.wrong || report.correct) && (
             <div>
               <p className="text-xs text-gray-500 mb-2">正誤情報</p>
               <div className="flex items-center gap-3">
-                {feedback.wrong && (
+                {report.wrong && (
                   <div className="flex-1 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
                     <p className="text-xs text-red-500 mb-1">誤</p>
-                    {feedback.wrong}
+                    {report.wrong}
                   </div>
                 )}
-                {feedback.wrong && feedback.correct && (
+                {report.wrong && report.correct && (
                   <span className="text-gray-400 text-lg">→</span>
                 )}
-                {feedback.correct && (
+                {report.correct && (
                   <div className="flex-1 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
                     <p className="text-xs text-green-500 mb-1">正</p>
-                    {feedback.correct}
+                    {report.correct}
                   </div>
                 )}
               </div>
@@ -147,18 +147,18 @@ export default async function FeedbackDetailPage({ params }: Props) {
           )}
 
           {/* 内容 */}
-          {feedback.content && (
+          {report.content && (
             <div>
               <p className="text-xs text-gray-500 mb-1">詳細内容</p>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{feedback.content}</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.content}</p>
             </div>
           )}
 
           {/* 投稿者メモ */}
-          {feedback.note && (
+          {report.note && (
             <div>
               <p className="text-xs text-gray-500 mb-1">投稿者メモ</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{feedback.note}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{report.note}</p>
             </div>
           )}
 
@@ -181,20 +181,20 @@ export default async function FeedbackDetailPage({ params }: Props) {
           )}
 
           {/* 修正済み情報 */}
-          {feedback.status === "修正済み" && (feedback.fixedEdition || feedback.fixedPrinting) && (
+          {report.status === "修正済み" && (report.fixedEdition || report.fixedPrinting) && (
             <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-              ✅ {feedback.fixedEdition && `第${feedback.fixedEdition}版`}
-              {feedback.fixedEdition && feedback.fixedPrinting && " "}
-              {feedback.fixedPrinting && `第${feedback.fixedPrinting}刷`}
+              ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
+              {report.fixedEdition && report.fixedPrinting && " "}
+              {report.fixedPrinting && `第${report.fixedPrinting}刷`}
               より修正されました
             </div>
           )}
 
           {/* 出版社コメント */}
-          {feedback.publisherComment && (
+          {report.publisherComment && (
             <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3">
               <p className="text-xs text-blue-500 mb-1 font-medium">出版社コメント</p>
-              <p className="text-sm text-blue-900 whitespace-pre-wrap">{feedback.publisherComment}</p>
+              <p className="text-sm text-blue-900 whitespace-pre-wrap">{report.publisherComment}</p>
             </div>
           )}
         </div>
@@ -202,7 +202,7 @@ export default async function FeedbackDetailPage({ params }: Props) {
         <div className="mt-4 flex items-center justify-between">
           <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
           <div className="flex items-center gap-3">
-            <Link href={routes.book(feedback.bookId)} className="text-sm text-blue-600 hover:underline">
+            <Link href={routes.book(report.bookId)} className="text-sm text-blue-600 hover:underline">
               この本のフィードバック一覧
             </Link>
             <Link

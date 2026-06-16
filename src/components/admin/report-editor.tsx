@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { STATUS_LABELS } from "@/constants/feedback-status";
+import { STATUS_LABELS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
-import type { FeedbackStatus } from "@/generated/prisma/client";
+import type { ReportStatus } from "@/generated/prisma/client";
 
-type Status = FeedbackStatus;
+type Status = ReportStatus;
 
 type Props = {
   id: string;
@@ -17,7 +17,7 @@ type Props = {
   currentFixedPrinting?: number | null;
 };
 
-export function AdminFeedbackEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting }: Props) {
+export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>(currentStatus);
   const [comment, setComment] = useState(currentComment);
@@ -32,9 +32,9 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(routes.api.feedback(id), { method: "DELETE" });
+      const res = await fetch(routes.api.report(id), { method: "DELETE" });
       if (!res.ok) throw new Error();
-      router.push(routes.admin.feedbacks);
+      router.push(routes.admin.reports);
       router.refresh();
     } catch {
       setError("削除に失敗しました。");
@@ -47,7 +47,7 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
     setSaved(false);
     setError("");
     try {
-      const res = await fetch(routes.api.feedback(id), {
+      const res = await fetch(routes.api.report(id), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -144,7 +144,7 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
           </button>
           <button
             type="button"
-            onClick={() => router.push(routes.admin.feedbacks)}
+            onClick={() => router.push(routes.admin.reports)}
             className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
             一覧に戻る
