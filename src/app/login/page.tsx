@@ -12,7 +12,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900">ログイン</h1>
-          <p className="mt-2 text-sm text-gray-500">Book Feedback Hub</p>
+          <p className="mt-2 text-sm text-gray-500">Errata Hub</p>
         </div>
 
         <form action={action} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">

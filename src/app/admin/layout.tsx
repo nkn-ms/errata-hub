@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="bg-gray-900 text-white">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <span className="font-bold text-sm">Book Feedback Hub</span>
+            <span className="font-bold text-sm">Errata Hub</span>
             <span className="text-gray-400 text-xs">管理画面</span>
           </div>
           <nav className="flex items-center gap-4 text-sm">

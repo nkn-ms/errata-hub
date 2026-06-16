@@ -7,7 +7,7 @@ export default function SubmitPage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="text-lg font-bold text-gray-900 hover:text-gray-700 transition-colors">
-            Book Feedback Hub
+            Errata Hub
           </Link>
         </div>
       </header>
