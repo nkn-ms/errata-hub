@@ -54,10 +54,10 @@ export default async function BookDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* フィードバック一覧 */}
+        {/* 投稿一覧 */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
-            フィードバック <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
+            投稿 <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
           </h2>
           <Link
             href={routes.submit}
@@ -71,13 +71,13 @@ export default async function BookDetailPage({ params }: Props) {
         <div className="mb-4 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           <span className="mt-0.5 shrink-0">⚠️</span>
           <span>
-            掲載されているフィードバックは投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
+            掲載されている投稿は投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
           </span>
         </div>
 
         {reports.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
-            まだフィードバックはありません
+            まだ投稿はありません
           </div>
         ) : (
           <div className="space-y-3">

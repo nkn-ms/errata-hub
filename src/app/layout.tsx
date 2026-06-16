@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Errata Hub",
-  description: "技術書の正誤情報と「より良い表現」の提案を集める、公開フィードバック掲示板。",
+  description: "技術書の正誤情報と「より良い表現」の提案を集める、公開掲示板。",
 };
 
 export default function RootLayout({

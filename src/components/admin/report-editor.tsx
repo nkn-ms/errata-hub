@@ -28,7 +28,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [error, setError] = useState("");
 
   async function handleDelete() {
-    if (!confirm("このフィードバックを削除しますか？この操作は取り消せません。")) return;
+    if (!confirm("この投稿を削除しますか？この操作は取り消せません。")) return;
     setSaving(true);
     setError("");
     try {

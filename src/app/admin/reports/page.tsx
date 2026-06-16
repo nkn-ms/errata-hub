@@ -22,7 +22,7 @@ export default async function AdminReportsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">フィードバック一覧</h1>
+        <h1 className="text-xl font-bold text-gray-900">投稿一覧</h1>
         <p className="mt-1 text-sm text-gray-500">全 {reports.length} 件</p>
       </div>
 
@@ -43,7 +43,7 @@ export default async function AdminReportsPage() {
             {reports.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  フィードバックがありません
+                  投稿がありません
                 </td>
               </tr>
             )}

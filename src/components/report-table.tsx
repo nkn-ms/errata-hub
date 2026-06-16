@@ -275,7 +275,7 @@ export function ReportTable({ data }: { data: Report[] }) {
         </table>
         {table.getRowModel().rows.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">
-            該当するフィードバックがありません
+            該当する投稿がありません
           </div>
         )}
       </div>

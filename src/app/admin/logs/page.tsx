@@ -3,8 +3,8 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 
 const ACTION_LABELS: Record<string, string> = {
-  UPDATE_REPORT: "フィードバック更新",
-  DELETE_REPORT: "フィードバック削除",
+  UPDATE_REPORT: "投稿更新",
+  DELETE_REPORT: "投稿削除",
   UPDATE_USER_ROLE: "ロール変更",
   GRANT_PUBLISHER_ACCESS: "出版社アクセス付与",
   REVOKE_PUBLISHER_ACCESS: "出版社アクセス削除",

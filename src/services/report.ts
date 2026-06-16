@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 
 /**
- * フィードバックのクエリを集約するサービス層。
+ * 投稿のクエリを集約するサービス層。
  *
  * 一覧・詳細で共通して使う include 形（書籍・出版社・画像・投稿者名）をここで一元管理し、
  * 各ページ（サーバーコンポーネント）はこの関数を直接 await して使う。
@@ -18,7 +18,7 @@ export type ReportWithRelations = Prisma.ReportGetPayload<{
   include: typeof reportInclude;
 }>;
 
-/** 最新順のフィードバック一覧。take で件数を絞れる（トップページは最新 N 件）。 */
+/** 最新順の投稿一覧。take で件数を絞れる（トップページは最新 N 件）。 */
 export function findRecentReports(take?: number) {
   return prisma.report.findMany({
     include: reportInclude,

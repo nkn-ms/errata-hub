@@ -127,9 +127,9 @@ export function ReportForm() {
         </div>
       </section>
 
-      {/* フィードバック内容 */}
+      {/* 投稿内容 */}
       <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-        <h2 className="text-base font-semibold text-gray-900">フィードバック内容</h2>
+        <h2 className="text-base font-semibold text-gray-900">投稿内容</h2>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

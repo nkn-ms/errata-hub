@@ -44,7 +44,7 @@ export default async function ReportDetailPage({ params }: Props) {
         <div className="mb-6 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           <span className="mt-0.5 shrink-0">⚠️</span>
           <span>
-            このフィードバックは投稿者からの報告です。<strong>出版社による確認が完了していない情報を含みます。</strong>
+            この投稿は投稿者からの報告です。<strong>出版社による確認が完了していない情報を含みます。</strong>
           </span>
         </div>
 
@@ -203,7 +203,7 @@ export default async function ReportDetailPage({ params }: Props) {
           <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
           <div className="flex items-center gap-3">
             <Link href={routes.book(report.bookId)} className="text-sm text-blue-600 hover:underline">
-              この本のフィードバック一覧
+              この本の投稿一覧
             </Link>
             <Link
               href={routes.submit}

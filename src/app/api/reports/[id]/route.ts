@@ -23,7 +23,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       include: { images: true },
     });
     if (!report) {
-      return NextResponse.json({ error: "フィードバックが見つかりません" }, { status: 404 });
+      return NextResponse.json({ error: "投稿が見つかりません" }, { status: 404 });
     }
 
     // TODO(画像投稿機能の実装後): report.images の Supabase Storage 上のファイルも削除する。

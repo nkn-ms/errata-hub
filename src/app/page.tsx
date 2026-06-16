@@ -52,7 +52,7 @@ export default async function Home() {
       {/* メインコンテンツ */}
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">最新のフィードバック</h1>
+          <h1 className="text-2xl font-bold text-gray-900">最新の投稿</h1>
           <p className="mt-1 text-sm text-gray-500">
             読者から投稿された書籍の誤字脱字・正誤情報・改善提案の一覧です。（最新{TOP_PAGE_LIMIT}件）
           </p>
@@ -62,7 +62,7 @@ export default async function Home() {
         <div className="mb-4 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           <span className="mt-0.5 shrink-0">⚠️</span>
           <span>
-            掲載されているフィードバックは投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
+            掲載されている投稿は投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
           </span>
         </div>
 
