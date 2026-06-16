@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code local settings（個人のコマンド許可リスト。コミットしない）
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma

@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+generator erd {
+  provider                   = "prisma-erd-generator"
+  output                     = "../docs/erd.svg"
+  includeRelationFromFields  = true
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FeedbackType {
+  TYPO        // 誤字脱字
+  ERRATA      // 正誤情報
+  READABILITY // 読みにくい
+  OTHER       // その他
+}
+
+enum LocationType {
+  PAGE
+  KINDLE
+  OTHER
+}
+
+enum FeedbackStatus {
+  PENDING     // 受付済み（管理者未確認）
+  FORWARDED   // 出版社へ送信済み（未回答）
+  IN_REVIEW   // 出版社確認中（一次回答あり）
+  REPLIED     // 出版社回答済み
+  WILL_FIX    // 修正予定
+  FIXED       // 修正済み
+  NO_ACTION   // 対応なし
+  DISMISSED   // 却下（管理者が無効と判断）
+}
+
+enum Role {
+  ADMIN
+  PUBLISHER
+  USER
+}
+
+model Profile {
+  id             String           @id // Supabase auth.users の UUID と一致
+  email          String           @unique // auth.users削除後も操作履歴を追跡するための記録用（Auth側と二重管理は意図的）
+  displayName    String?          // 公開表示名（投稿者名として使用）
+  role           Role             @default(USER)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  publisherAccess PublisherAccess[]
+  feedbacks      Feedback[]
+}
+
+model Publisher {
+  id              String           @id @default(uuid())
+  name            String
+  email           String?
+  emailDomain     String?          // 自動権限付与用ドメイン (例: "oreilly.co.jp")
+  note            String?
+  createdAt       DateTime         @default(now())
+  books           Book[]
+  publisherAccess PublisherAccess[]
+}
+
+// ユーザーと出版社の多対多 — 管理者が手動で付与・剥奪できる
+model PublisherAccess {
+  id          String    @id @default(uuid())
+  profileId   String
+  publisherId String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  publisher   Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([profileId, publisherId])
+}
+
+model Book {
+  id            String     @id @default(uuid())
+  publisherId   String?
+  publisher     Publisher? @relation(fields: [publisherId], references: [id])
+  title         String
+  author        String?
+  isbn          String     @unique // ISBN-13 に正規化して保存（本の同一性の基準）
+  coverImageUrl String?
+  createdAt     DateTime   @default(now())
+  feedbacks     Feedback[]
+}
+
+model Feedback {
+  id               String         @id @default(uuid())
+  userId           String
+  user             Profile        @relation(fields: [userId], references: [id])
+  bookId           String
+  book             Book           @relation(fields: [bookId], references: [id])
+  title            String
+  edition          Int?
+  printing         Int?
+  type             FeedbackType
+  locationType     LocationType
+  page             Int?
+  line             Int?
+  hasMultiplePages Boolean        @default(false)
+  locationNote     String?
+  kindleLocation   String?
+  wrong            String?
+  correct          String?
+  content          String?
+  note             String?
+  publisherComment String?
+  status           FeedbackStatus @default(PENDING)
+  fixedEdition     Int?           // 修正済みの版（status=FIXEDの時に使用）
+  fixedPrinting    Int?           // 修正済みの刷（status=FIXEDの時に使用）
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  images           FeedbackImage[]
+}
+
+// 操作ログ — 誰が・いつ・何を・どう変えたかを記録
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  // 操作者のSupabase user UUID（システム操作はnull）
+  userEmail  String?  // 操作者のメール（ユーザー削除後も記録が残るよう非正規化）
+  action     String   // 例: "UPDATE_FEEDBACK_STATUS" "DELETE_FEEDBACK" "UPDATE_USER_ROLE"
+  targetType String   // 例: "Feedback" "Profile" "Publisher"
+  targetId   String   // 操作対象のID
+  before     Json?    // 変更前の値
+  after      Json?    // 変更後の値
+  createdAt  DateTime @default(now())
+}
+
+model FeedbackImage {
+  id         String   @id @default(uuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  createdAt  DateTime @default(now())
+}

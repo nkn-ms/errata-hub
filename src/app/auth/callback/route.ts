@@ -1,0 +1,58 @@
+/**
+ * 認証コールバックルート
+ *
+ * PKCE (RFC 7636: https://www.rfc-editor.org/rfc/rfc7636) に基づく認可コードフロー
+ * exchangeCodeForSession() で code をセッションに交換する
+ * code は1回限り有効・5分で失効
+ * 参考: https://supabase.com/docs/guides/auth/sessions/pkce-flow
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(request: NextRequest) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+
+  if (!code) {
+    return NextResponse.redirect(new URL("/auth/error", origin));
+  }
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error || !data.user) {
+    return NextResponse.redirect(new URL("/auth/error", origin));
+  }
+
+  const email = data.user.email ?? "";
+  const domain = email.split("@")[1] ?? "";
+  const displayName = (data.user.user_metadata?.display_name as string) || null;
+
+  const matchedPublishers = domain
+    ? await prisma.publisher.findMany({ where: { emailDomain: domain } })
+    : [];
+
+  const profile = await prisma.profile.upsert({
+    where: { id: data.user.id },
+    update: {},
+    create: {
+      id: data.user.id,
+      email,
+      displayName,
+      role: matchedPublishers.length > 0 ? "PUBLISHER" : "USER",
+    },
+  });
+
+  if (matchedPublishers.length > 0) {
+    await prisma.publisherAccess.createMany({
+      data: matchedPublishers.map((p) => ({
+        profileId: profile.id,
+        publisherId: p.id,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  return NextResponse.redirect(new URL("/", origin));
+}
