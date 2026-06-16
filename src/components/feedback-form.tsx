@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
+import { routes } from "@/constants/routes";
 
 type BookData = {
   googleBooksId: string;
@@ -56,7 +57,7 @@ export function FeedbackForm() {
     setError("");
 
     try {
-      const res = await fetch("/api/feedbacks", {
+      const res = await fetch(routes.api.feedbacks, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,7 +80,7 @@ export function FeedbackForm() {
       });
 
       if (!res.ok) throw new Error("投稿に失敗しました");
-      router.push("/");
+      router.push(routes.home);
     } catch {
       setError("投稿に失敗しました。もう一度お試しください。");
     } finally {
@@ -325,7 +326,7 @@ export function FeedbackForm() {
       <div className="flex gap-3 justify-end">
         <button
           type="button"
-          onClick={() => router.push("/")}
+          onClick={() => router.push(routes.home)}
           className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
         >
           キャンセル

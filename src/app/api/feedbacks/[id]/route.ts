@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
+import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdmin } from "@/services/auth";
 
 const PatchSchema = z.object({
@@ -34,7 +35,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       userId: user?.id,
       userEmail: user?.email,
       action: "DELETE_FEEDBACK",
-      targetType: "Feedback",
+      targetType: TARGET_TYPE.FEEDBACK,
       targetId: id,
       before: feedback as Record<string, unknown>,
     });
@@ -71,7 +72,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       userId: user?.id,
       userEmail: user?.email,
       action: "UPDATE_FEEDBACK",
-      targetType: "Feedback",
+      targetType: TARGET_TYPE.FEEDBACK,
       targetId: id,
       before: { status: before?.status, publisherComment: before?.publisherComment },
       after: { status: feedback.status, publisherComment: feedback.publisherComment },

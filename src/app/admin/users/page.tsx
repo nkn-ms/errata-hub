@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 const ROLE_LABELS = {
   ADMIN: "管理者",
@@ -65,7 +66,7 @@ export default async function AdminUsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/users/${p.id}`}
+                    href={routes.admin.user(p.id)}
                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                   >
                     編集

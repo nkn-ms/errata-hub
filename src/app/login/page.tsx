@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -60,7 +61,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-500">
             アカウントをお持ちでない方は
-            <Link href="/register" className="text-blue-600 hover:underline ml-1">
+            <Link href={routes.register} className="text-blue-600 hover:underline ml-1">
               会員登録
             </Link>
           </p>

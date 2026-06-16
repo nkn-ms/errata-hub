@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 export default async function AdminPublishersPage() {
   const publishers = await prisma.publisher.findMany({
@@ -15,7 +16,7 @@ export default async function AdminPublishersPage() {
           <p className="mt-1 text-sm text-gray-500">全 {publishers.length} 件</p>
         </div>
         <Link
-          href="/admin/publishers/new"
+          href={routes.admin.publisherNew}
           className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
         >
           + 新規追加
@@ -51,7 +52,7 @@ export default async function AdminPublishersPage() {
                 <td className="px-4 py-3 text-gray-600">{p._count.publisherAccess}</td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/publishers/${p.id}`}
+                    href={routes.admin.publisher(p.id)}
                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                   >
                     編集

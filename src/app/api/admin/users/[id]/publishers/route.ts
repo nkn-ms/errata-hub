@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { createAuditLog } from "@/services/audit";
+import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdmin } from "@/services/auth";
 
 const BodySchema = z.object({
@@ -31,7 +32,7 @@ export async function POST(
     userId: user?.id,
     userEmail: user?.email,
     action: "GRANT_PUBLISHER_ACCESS",
-    targetType: "PublisherAccess",
+    targetType: TARGET_TYPE.PUBLISHER_ACCESS,
     targetId: profileId,
     after: { publisherId: parsed.data.publisherId, publisherName: access.publisher.name },
   });
@@ -59,7 +60,7 @@ export async function DELETE(
     userId: user?.id,
     userEmail: user?.email,
     action: "REVOKE_PUBLISHER_ACCESS",
-    targetType: "PublisherAccess",
+    targetType: TARGET_TYPE.PUBLISHER_ACCESS,
     targetId: profileId,
     before: { publisherId, publisherName: publisher?.name },
   });

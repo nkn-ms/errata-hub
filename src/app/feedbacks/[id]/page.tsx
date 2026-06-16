@@ -3,6 +3,7 @@ import { mapFeedback } from "@/utils/mappers";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -28,9 +29,9 @@ export default async function FeedbackDetailPage({ params }: Props) {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href="/" className="text-lg font-bold text-gray-900">Errata Hub</Link>
+          <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
           <span className="text-gray-300">/</span>
-          <Link href={`/books/${feedback.bookId}`} className="text-sm text-blue-600 hover:underline truncate max-w-xs">
+          <Link href={routes.book(feedback.bookId)} className="text-sm text-blue-600 hover:underline truncate max-w-xs">
             {feedback.bookTitle}
           </Link>
           <span className="text-gray-300">/</span>
@@ -63,7 +64,7 @@ export default async function FeedbackDetailPage({ params }: Props) {
             </div>
             <h1 className="text-xl font-bold text-gray-900">{feedback.title}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              <Link href={`/users/${feedback.userId}`} className="hover:underline">
+              <Link href={routes.user(feedback.userId)} className="hover:underline">
                 {feedback.userName} <span className="text-gray-400">@{feedback.userIdShort}</span>
               </Link>
               {" · "}{feedback.createdAt}
@@ -76,7 +77,7 @@ export default async function FeedbackDetailPage({ params }: Props) {
               <img src={feedback.coverImage} alt={feedback.bookTitle} className="w-16 h-auto object-cover rounded shadow-sm" />
             )}
             <div>
-              <Link href={`/books/${feedback.bookId}`} className="font-medium text-blue-700 hover:underline">
+              <Link href={routes.book(feedback.bookId)} className="font-medium text-blue-700 hover:underline">
                 {feedback.bookTitle}
               </Link>
               {feedback.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{feedback.bookAuthor}</p>}
@@ -199,13 +200,13 @@ export default async function FeedbackDetailPage({ params }: Props) {
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+          <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
           <div className="flex items-center gap-3">
-            <Link href={`/books/${feedback.bookId}`} className="text-sm text-blue-600 hover:underline">
+            <Link href={routes.book(feedback.bookId)} className="text-sm text-blue-600 hover:underline">
               この本のフィードバック一覧
             </Link>
             <Link
-              href="/submit"
+              href={routes.submit}
               className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
             >
               この本に投稿する

@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { routes } from "@/constants/routes";
 
 export default async function VerifiedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect(routes.login);
   }
 
   return (
@@ -26,7 +27,7 @@ export default async function VerifiedPage() {
           </p>
           <p className="text-xs text-gray-400">{user.email}</p>
           <Link
-            href="/"
+            href={routes.home}
             className="block w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
             トップページへ

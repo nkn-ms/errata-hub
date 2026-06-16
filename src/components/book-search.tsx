@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { routes } from "@/constants/routes";
 
 type BookResult = {
   googleBooksId: string;
@@ -34,7 +35,7 @@ type Mode = "api" | "isbn";
 async function fetchGoogleCover(isbn: string): Promise<string> {
   if (!isbn) return "";
   try {
-    const res = await fetch(`/api/books/search?type=isbn&q=${encodeURIComponent(isbn)}`);
+    const res = await fetch(`${routes.api.booksSearch}?type=isbn&q=${encodeURIComponent(isbn)}`);
     if (!res.ok) return "";
     const data = await res.json();
     const thumbnail: string | undefined =
@@ -123,7 +124,7 @@ export function BookSearch({ onSelect }: Props) {
       setLoading(true);
       try {
         const res = await fetch(
-          `/api/books/search?q=${encodeURIComponent(value)}`
+          `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`
         );
         const data = await res.json();
         const items: GoogleBooksItem[] = data.items ?? [];

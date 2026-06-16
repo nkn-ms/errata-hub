@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 export default function AuthErrorPage() {
   return (
@@ -13,13 +14,13 @@ export default function AuthErrorPage() {
           </p>
           <div className="flex flex-col gap-2">
             <Link
-              href="/register"
+              href={routes.register}
               className="block w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
             >
               会員登録へ
             </Link>
             <Link
-              href="/login"
+              href={routes.login}
               className="block w-full py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               ログインページへ

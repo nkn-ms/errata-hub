@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Feedback, FeedbackType } from "@/types/feedback";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
+import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 const typeColors: Record<FeedbackType, string> = {
@@ -57,7 +58,7 @@ const columns: ColumnDef<Feedback>[] = [
     header: "書籍名",
     cell: ({ row }) => (
       <Link
-        href={`/books/${row.original.bookId}`}
+        href={routes.book(row.original.bookId)}
         className="font-medium text-sm text-blue-700 hover:underline whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}
       >
@@ -143,7 +144,7 @@ const columns: ColumnDef<Feedback>[] = [
     header: "投稿者",
     cell: ({ row }) => (
       <Link
-        href={`/users/${row.original.userId}`}
+        href={routes.user(row.original.userId)}
         className="block hover:underline"
         onClick={(e) => e.stopPropagation()}
       >
@@ -261,7 +262,7 @@ export function FeedbackTable({ data }: { data: Feedback[] }) {
               <tr
                 key={row.id}
                 className="hover:bg-blue-50 cursor-pointer transition-colors"
-                onClick={() => router.push(`/feedbacks/${row.original.id}`)}
+                onClick={() => router.push(routes.feedback(row.original.id))}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">

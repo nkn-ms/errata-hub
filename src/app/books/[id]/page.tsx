@@ -4,6 +4,7 @@ import { mapFeedback } from "@/utils/mappers";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/feedback-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -31,7 +32,7 @@ export default async function BookDetailPage({ params }: Props) {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href="/" className="text-lg font-bold text-gray-900">Errata Hub</Link>
+          <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
           <span className="text-gray-300">/</span>
           <span className="text-sm text-gray-500 truncate max-w-xs">{book.title}</span>
         </div>
@@ -59,7 +60,7 @@ export default async function BookDetailPage({ params }: Props) {
             フィードバック <span className="text-sm font-normal text-gray-500">{feedbacks.length}件</span>
           </h2>
           <Link
-            href="/submit"
+            href={routes.submit}
             className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
           >
             この本に投稿する
@@ -83,7 +84,7 @@ export default async function BookDetailPage({ params }: Props) {
             {feedbacks.map((feedback) => (
               <Link
                 key={feedback.id}
-                href={`/feedbacks/${feedback.id}`}
+                href={routes.feedback(feedback.id)}
                 className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -127,7 +128,7 @@ export default async function BookDetailPage({ params }: Props) {
         )}
 
         <div className="mt-6">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+          <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
         </div>
       </main>
     </div>

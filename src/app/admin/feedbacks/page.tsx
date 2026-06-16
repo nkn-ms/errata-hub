@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { STATUS_LABELS, STATUS_COLORS } from "@/constants/feedback-status";
+import { routes } from "@/constants/routes";
 
 const TYPE_LABELS = {
   TYPO: "誤字脱字",
@@ -73,7 +74,7 @@ export default async function AdminFeedbacksPage() {
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/feedbacks/${f.id}`}
+                    href={routes.admin.feedback(f.id)}
                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                   >
                     詳細・編集

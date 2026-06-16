@@ -4,6 +4,7 @@ import { mapFeedback } from "@/utils/mappers";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/actions/auth";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 const TOP_PAGE_LIMIT = 10;
 
@@ -30,16 +31,16 @@ export default async function Home() {
               </>
             ) : (
               <>
-                <Link href="/register" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                <Link href={routes.register} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                   会員登録
                 </Link>
-                <Link href="/login" className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-md hover:bg-gray-700 transition-colors">
+                <Link href={routes.login} className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-md hover:bg-gray-700 transition-colors">
                   ログイン
                 </Link>
               </>
             )}
             <Link
-              href="/submit"
+              href={routes.submit}
               className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
             >
               投稿する

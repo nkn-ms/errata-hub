@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/services/auth";
+import { routes } from "@/constants/routes";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // 多層防御: proxy.ts のエッジ判定に加え、配下の全 admin ページをここで再ガードする。
@@ -14,19 +15,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="text-gray-400 text-xs">管理画面</span>
           </div>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/admin/feedbacks" className="text-gray-300 hover:text-white transition-colors">
+            <Link href={routes.admin.feedbacks} className="text-gray-300 hover:text-white transition-colors">
               フィードバック
             </Link>
-            <Link href="/admin/publishers" className="text-gray-300 hover:text-white transition-colors">
+            <Link href={routes.admin.publishers} className="text-gray-300 hover:text-white transition-colors">
               出版社マスタ
             </Link>
-            <Link href="/admin/users" className="text-gray-300 hover:text-white transition-colors">
+            <Link href={routes.admin.users} className="text-gray-300 hover:text-white transition-colors">
               ユーザー管理
             </Link>
-            <Link href="/admin/logs" className="text-gray-300 hover:text-white transition-colors">
+            <Link href={routes.admin.logs} className="text-gray-300 hover:text-white transition-colors">
               操作ログ
             </Link>
-            <Link href="/" className="text-gray-400 hover:text-white text-xs transition-colors">
+            <Link href={routes.home} className="text-gray-400 hover:text-white text-xs transition-colors">
               ← サイトへ戻る
             </Link>
           </nav>

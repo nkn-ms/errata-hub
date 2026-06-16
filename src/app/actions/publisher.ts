@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdminOrThrow } from "@/services/auth";
+import { routes } from "@/constants/routes";
 
 const PublisherSchema = z.object({
   name: z.string().min(1, "出版社名を入力してください"),
@@ -42,7 +43,7 @@ export async function createPublisher(
     },
   });
 
-  redirect("/admin/publishers");
+  redirect(routes.admin.publishers);
 }
 
 export async function updatePublisher(
@@ -75,11 +76,11 @@ export async function updatePublisher(
     },
   });
 
-  redirect("/admin/publishers");
+  redirect(routes.admin.publishers);
 }
 
 export async function deletePublisher(id: string): Promise<void> {
   await requireAdminOrThrow();
   await prisma.publisher.delete({ where: { id } });
-  redirect("/admin/publishers");
+  redirect(routes.admin.publishers);
 }

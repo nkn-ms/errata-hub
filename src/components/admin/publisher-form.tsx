@@ -9,6 +9,7 @@ import {
   deletePublisher,
   type PublisherState,
 } from "@/app/actions/publisher";
+import { routes } from "@/constants/routes";
 
 export default function PublisherForm({ publisher }: { publisher?: Publisher }) {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
             </button>
             <button
               type="button"
-              onClick={() => router.push("/admin/publishers")}
+              onClick={() => router.push(routes.admin.publishers)}
               className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               キャンセル

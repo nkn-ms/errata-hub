@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { routes } from "@/constants/routes";
 
 const LoginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -34,7 +35,7 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
     return { error: "メールアドレスまたはパスワードが正しくありません" };
   }
 
-  redirect("/");
+  redirect(routes.home);
 }
 
 export async function register(_prevState: AuthState, formData: FormData): Promise<AuthState> {
@@ -61,12 +62,12 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     return { error: error.message };
   }
 
-  redirect("/auth/confirm");
+  redirect(routes.auth.confirm);
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   // 公開掲示板なのでログアウト後もゲストとして閲覧できる。トップに戻すのが自然。
-  redirect("/");
+  redirect(routes.home);
 }

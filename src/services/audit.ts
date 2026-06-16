@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import type { TargetType } from "@/constants/audit";
 
 type AuditParams = {
   userId?: string;
   userEmail?: string;
   action: string;
-  targetType: string;
+  targetType: TargetType;
   targetId: string;
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile, Publisher, PublisherAccess } from "@/generated/prisma/client";
+import { routes } from "@/constants/routes";
 
 type ProfileWithAccess = Profile & {
   publisherAccess: (PublisherAccess & { publisher: Publisher })[];
@@ -35,7 +36,7 @@ export default function AdminUserEditor({
   async function handleSaveRole() {
     setSaving(true);
     setRoleSaved(false);
-    await fetch(`/api/admin/users/${profile.id}`, {
+    await fetch(routes.api.adminUser(profile.id), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),
@@ -47,7 +48,7 @@ export default function AdminUserEditor({
 
   async function handleAddPublisher() {
     if (!selectedPublisherId) return;
-    const res = await fetch(`/api/admin/users/${profile.id}/publishers`, {
+    const res = await fetch(routes.api.adminUserPublishers(profile.id), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ publisherId: selectedPublisherId }),
@@ -61,7 +62,7 @@ export default function AdminUserEditor({
   }
 
   async function handleRemovePublisher(publisherId: string) {
-    await fetch(`/api/admin/users/${profile.id}/publishers`, {
+    await fetch(routes.api.adminUserPublishers(profile.id), {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ publisherId }),
@@ -149,7 +150,7 @@ export default function AdminUserEditor({
       </div>
 
       <button
-        onClick={() => router.push("/admin/users")}
+        onClick={() => router.push(routes.admin.users)}
         className="text-sm text-gray-500 hover:text-gray-700"
       >
         ← 一覧へ戻る

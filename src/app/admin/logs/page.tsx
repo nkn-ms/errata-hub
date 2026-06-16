@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { routes } from "@/constants/routes";
 
 const ACTION_LABELS: Record<string, string> = {
   UPDATE_FEEDBACK: "フィードバック更新",
@@ -81,7 +82,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
         </button>
         {(action || email) && (
           <Link
-            href="/admin/logs"
+            href={routes.admin.logs}
             className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
             リセット

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { STATUS_LABELS } from "@/constants/feedback-status";
+import { routes } from "@/constants/routes";
 import type { FeedbackStatus } from "@/generated/prisma/client";
 
 type Status = FeedbackStatus;
@@ -31,9 +32,9 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/feedbacks/${id}`, { method: "DELETE" });
+      const res = await fetch(routes.api.feedback(id), { method: "DELETE" });
       if (!res.ok) throw new Error();
-      router.push("/admin/feedbacks");
+      router.push(routes.admin.feedbacks);
       router.refresh();
     } catch {
       setError("削除に失敗しました。");
@@ -46,7 +47,7 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
     setSaved(false);
     setError("");
     try {
-      const res = await fetch(`/api/feedbacks/${id}`, {
+      const res = await fetch(routes.api.feedback(id), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -143,7 +144,7 @@ export function AdminFeedbackEditor({ id, currentStatus, currentComment, current
           </button>
           <button
             type="button"
-            onClick={() => router.push("/admin/feedbacks")}
+            onClick={() => router.push(routes.admin.feedbacks)}
             className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
             一覧に戻る
