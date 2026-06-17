@@ -10,6 +10,8 @@ export const routes = {
   login: "/login",
   register: "/register",
   submit: "/submit",
+  howToUse: "/how-to-use",
+  tech: "/tech",
 
   report: (id: string) => `/reports/${id}`,
   book: (id: string) => `/books/${id}`,
