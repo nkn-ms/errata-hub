@@ -21,7 +21,7 @@ const ReportSchema = z.object({
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
   title: z.string().min(1, "タイトルは必須です"),
-  type: z.enum(["TYPO", "ERRATA", "READABILITY", "OTHER"]),
+  type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
   locationType: z.enum(["PAGE", "KINDLE", "OTHER"]),
   page: z.number().int().positive().nullable().optional(),
   line: z.number().int().positive().nullable().optional(),

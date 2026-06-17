@@ -20,9 +20,8 @@ import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 const typeColors: Record<ReportType, string> = {
-  誤字脱字: "bg-orange-100 text-orange-700",
   正誤情報: "bg-purple-100 text-purple-700",
-  読みにくい: "bg-cyan-100 text-cyan-700",
+  改善提案: "bg-cyan-100 text-cyan-700",
   その他: "bg-gray-100 text-gray-600",
 };
 
@@ -204,9 +203,8 @@ export function ReportTable({ data }: { data: Report[] }) {
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">種別：すべて</option>
-          <option value="誤字脱字">誤字脱字</option>
           <option value="正誤情報">正誤情報</option>
-          <option value="読みにくい">読みにくい</option>
+          <option value="改善提案">改善提案</option>
           <option value="その他">その他</option>
         </select>
         <select

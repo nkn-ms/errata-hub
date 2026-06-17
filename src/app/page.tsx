@@ -54,7 +54,7 @@ export default async function Home() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">最新の投稿</h1>
           <p className="mt-1 text-sm text-gray-500">
-            読者から投稿された書籍の誤字脱字・正誤情報・改善提案の一覧です。（最新{TOP_PAGE_LIMIT}件）
+            読者から投稿された書籍の正誤情報・改善提案の一覧です。（最新{TOP_PAGE_LIMIT}件）
           </p>
         </div>
 

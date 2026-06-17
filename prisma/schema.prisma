@@ -14,10 +14,9 @@ datasource db {
 }
 
 enum ReportType {
-  TYPO        // 誤字脱字
-  ERRATA      // 正誤情報
-  READABILITY // 読みにくい
-  OTHER       // その他
+  ERRATA     // 正誤情報（誤字脱字・誤植を含む訂正系）
+  SUGGESTION // 改善提案（読みにくい・わかりにくい等、より良い表現の提案）
+  OTHER      // その他
 }
 
 enum LocationType {

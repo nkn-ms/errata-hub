@@ -44,9 +44,8 @@ export function mapReport(f: PrismaReportWithRelations): Report {
 
 function mapType(type: PrismaReport["type"]): Report["type"] {
   const map = {
-    TYPO: "誤字脱字",
     ERRATA: "正誤情報",
-    READABILITY: "読みにくい",
+    SUGGESTION: "改善提案",
     OTHER: "その他",
   } as const;
   return map[type];

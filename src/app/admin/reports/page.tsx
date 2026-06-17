@@ -4,9 +4,8 @@ import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
 
 const TYPE_LABELS = {
-  TYPO: "誤字脱字",
   ERRATA: "正誤情報",
-  READABILITY: "読みにくい",
+  SUGGESTION: "改善提案",
   OTHER: "その他",
 } as const;
 

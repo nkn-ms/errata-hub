@@ -11,9 +11,8 @@ type Props = {
 };
 
 const typeColors: Record<string, string> = {
-  誤字脱字: "bg-orange-100 text-orange-700",
   正誤情報: "bg-purple-100 text-purple-700",
-  読みにくい: "bg-cyan-100 text-cyan-700",
+  改善提案: "bg-cyan-100 text-cyan-700",
   その他: "bg-gray-100 text-gray-600",
 };
 

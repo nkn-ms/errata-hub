@@ -14,13 +14,12 @@ type BookData = {
   coverImageUrl: string;
 };
 
-type ReportType = "TYPO" | "ERRATA" | "READABILITY" | "OTHER";
+type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type LocationType = "PAGE" | "KINDLE" | "OTHER";
 
 const typeLabels: Record<ReportType, string> = {
-  TYPO: "誤字脱字",
   ERRATA: "正誤情報",
-  READABILITY: "読みにくい・わかりにくい",
+  SUGGESTION: "改善提案",
   OTHER: "その他",
 };
 
@@ -29,7 +28,7 @@ export function ReportForm() {
   const [book, setBook] = useState<BookData | null>(null);
   const [edition, setEdition] = useState("");
   const [printing, setPrinting] = useState("");
-  const [reportType, setReportType] = useState<ReportType>("TYPO");
+  const [reportType, setReportType] = useState<ReportType>("ERRATA");
   const [locationType, setLocationType] = useState<LocationType>("PAGE");
   const [page, setPage] = useState("");
   const [line, setLine] = useState("");
@@ -44,7 +43,7 @@ export function ReportForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const isErrataType = reportType === "TYPO" || reportType === "ERRATA";
+  const isErrataType = reportType === "ERRATA";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

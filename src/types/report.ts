@@ -1,4 +1,4 @@
-export type ReportType = "誤字脱字" | "正誤情報" | "読みにくい" | "その他";
+export type ReportType = "正誤情報" | "改善提案" | "その他";
 export type StatusType =
   | "未対応"
   | "出版社へ送信済み"

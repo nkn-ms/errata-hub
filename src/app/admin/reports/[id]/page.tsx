@@ -15,7 +15,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
   if (!report) notFound();
 
   const TYPE_LABELS = {
-    TYPO: "誤字脱字", ERRATA: "正誤情報", READABILITY: "読みにくい", OTHER: "その他",
+    ERRATA: "正誤情報", SUGGESTION: "改善提案", OTHER: "その他",
   };
   const LOCATION_LABELS = {
     PAGE: "ページ", KINDLE: "Kindle", OTHER: "その他",
