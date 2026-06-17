@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
     ? await prisma.publisher.findMany({ where: { emailDomain: domain } })
     : [];
 
+  // role は identity（ADMIN/USER）のみ。出版社かどうかは PublisherAccess から導出するため
+  // ここではロールに焼き込まず、下で PublisherAccess を付与する（capability）。
   const profile = await prisma.profile.upsert({
     where: { id: data.user.id },
     update: {},
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
       id: data.user.id,
       email,
       displayName,
-      role: matchedPublishers.length > 0 ? "PUBLISHER" : "USER",
+      role: "USER",
     },
   });
 

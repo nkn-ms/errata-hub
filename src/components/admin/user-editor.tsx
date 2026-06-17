@@ -11,7 +11,6 @@ type ProfileWithAccess = Profile & {
 
 const ROLES = [
   { value: "ADMIN", label: "管理者" },
-  { value: "PUBLISHER", label: "出版社" },
   { value: "USER", label: "一般" },
 ] as const;
 

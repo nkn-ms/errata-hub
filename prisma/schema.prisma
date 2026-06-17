@@ -39,7 +39,6 @@ enum ReportStatus {
 
 enum Role {
   ADMIN
-  PUBLISHER
   USER
 }
 

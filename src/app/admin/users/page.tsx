@@ -4,13 +4,11 @@ import { routes } from "@/constants/routes";
 
 const ROLE_LABELS = {
   ADMIN: "管理者",
-  PUBLISHER: "出版社",
   USER: "一般",
 } as const;
 
 const ROLE_COLORS = {
   ADMIN: "bg-red-100 text-red-800",
-  PUBLISHER: "bg-blue-100 text-blue-800",
   USER: "bg-gray-100 text-gray-600",
 } as const;
 

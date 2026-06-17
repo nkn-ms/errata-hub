@@ -5,7 +5,7 @@ import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdmin } from "@/services/auth";
 
 const PatchSchema = z.object({
-  role: z.enum(["ADMIN", "PUBLISHER", "USER"]),
+  role: z.enum(["ADMIN", "USER"]),
 });
 
 export async function PATCH(
