@@ -1,5 +1,7 @@
 # Errata Hub
 
+[![CI](https://github.com/nkn-ms/errata-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nkn-ms/errata-hub/actions/workflows/ci.yml)
+
 **技術書の正誤情報と「より良い表現」の提案を集める、公開フィードバック掲示板。**
 
 技術書を読んでいて見つけた誤字脱字・正誤情報や、「ここはこう書いた方が読みやすい」といった改善提案を、読者が投稿・共有できる Web アプリケーションです。出版社が投稿に回答・対応状況を更新でき、同じ誤りを見つけた他の読者が賛同できる仕組みを目指しています。
@@ -38,6 +40,8 @@
 | バリデーション | Zod |
 | テーブル UI | TanStack Table |
 | 外部 API | OpenBD（日本語書誌・ISBN）/ Google Books（タイトル検索・書影） |
+| テスト | Vitest（単体）/ Testing Library |
+| CI | GitHub Actions（lint + typecheck + test + build）/ Dependabot |
 | デプロイ | Vercel（予定） |
 
 ---
@@ -77,7 +81,8 @@ npm install
 cp .env.example .env   # 用意している場合
 
 # 3. Prisma クライアント生成 & スキーマ反映
-npx prisma generate
+#    （--generator client で ER 図ジェネレータをスキップ）
+npx prisma generate --generator client
 npx prisma db push
 
 # 4. 開発サーバー起動
@@ -85,6 +90,18 @@ npm run dev
 ```
 
 http://localhost:3000 を開く。
+
+### 開発コマンド
+
+| コマンド | 内容 |
+|----------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | Prisma クライアント生成 + 本番ビルド |
+| `npm run lint` | ESLint |
+| `npm test` | 単体テスト（Vitest・1回実行） |
+| `npm run test:watch` | 単体テスト（ウォッチモード） |
+
+型チェックは `npx tsc --noEmit` で実行できます。これら（lint / typecheck / test / build）は push・PR ごとに [GitHub Actions](.github/workflows/ci.yml) でも自動実行されます。
 
 ### 環境変数
 
@@ -109,7 +126,7 @@ src/
 ├── constants/    定数（ステータス定義など）
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
 ├── lib/          外部ライブラリのラッパー（prisma / supabase / utils）
-├── services/     ビジネスロジック・認可（auth, audit, feedback）
+├── services/     ビジネスロジック・認可（auth, audit, report）
 ├── types/        型定義
 └── utils/        純粋関数（ISBN 正規化・マッパー）
 docs/             設計・学習メモ・ER 図
