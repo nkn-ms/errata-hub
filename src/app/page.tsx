@@ -20,6 +20,12 @@ export default async function Home() {
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <span className="text-lg font-bold text-gray-900">Errata Hub</span>
           <div className="flex items-center gap-3">
+            <Link href={routes.howToUse} className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
+              使い方
+            </Link>
+            <Link href={routes.tech} className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
+              使用技術
+            </Link>
             {user ? (
               <>
                 <span className="text-xs text-gray-500 hidden sm:block">{user.email}</span>
