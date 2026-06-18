@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # npm 依存（package.json）
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # パッチ・マイナーはまとめて1PRに（レビュー負荷を下げる）
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions のバージョン（.github/workflows/*.yml）
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
