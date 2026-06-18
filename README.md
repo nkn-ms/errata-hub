@@ -33,7 +33,7 @@
 | 領域 | 採用技術 |
 |------|----------|
 | フレームワーク | Next.js 16（App Router）/ React 19 / TypeScript |
-| スタイリング | Tailwind CSS v4 / shadcn/ui 系コンポーネント |
+| スタイリング | Tailwind CSS v4 / 自作 UI コンポーネント（lucide-react アイコン） |
 | 認証 | Supabase Auth（メール確認・PKCE code フロー） |
 | データベース | PostgreSQL（Supabase ホスティング） |
 | ORM | Prisma v7（`@prisma/adapter-pg`） |
