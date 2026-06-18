@@ -67,7 +67,7 @@
 
 ### 必要なもの
 
-- Node.js 20 以上
+- Node.js 20 以上（CI は Node 22 で実行）
 - Supabase プロジェクト（PostgreSQL + Auth）
 - Google Books API キー
 
