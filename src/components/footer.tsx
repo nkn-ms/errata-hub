@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 
 // GitHub マーク。lucide-react はブランドアイコンを廃止したため公式マークをインラインで持つ。
@@ -21,16 +19,15 @@ export function Footer() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-bold text-gray-900">{site.name}</p>
-            <p className="mt-1 text-xs text-gray-500 max-w-xs">{site.description}</p>
+            {/* 日本語を文節境界で折り返す（公開→「公」「開」のような語中改行を防ぐ） */}
+            <p className="mt-1 text-xs text-gray-500 max-w-sm [word-break:auto-phrase]">
+              {site.description}
+            </p>
           </div>
 
+          {/* ヘッダー(sticky)が常時ナビを提供するため、フッターは重複させず
+              ヘッダーに無いメタ系リンクのみ置く（将来: 利用規約・プライバシーポリシー）。 */}
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <Link href={routes.howToUse} className="text-gray-600 hover:text-gray-900 transition-colors">
-              使い方
-            </Link>
-            <Link href={routes.tech} className="text-gray-600 hover:text-gray-900 transition-colors">
-              使用技術
-            </Link>
             <a
               href={site.repoUrl}
               target="_blank"
@@ -43,9 +40,7 @@ export function Footer() {
           </nav>
         </div>
 
-        <p className="mt-6 text-xs text-gray-400">
-          © {year} {site.name} — 個人開発プロジェクト
-        </p>
+        <p className="mt-6 text-xs text-gray-400">© {year} {site.name}</p>
       </div>
     </footer>
   );
