@@ -11,7 +11,12 @@ function GithubMark({ className }: { className?: string }) {
 
 // 全ページ共通フッター。root layout(app/layout.tsx) に配置する。
 export function Footer() {
+  // 開始年は固定。運営継続を示すため、年をまたいだら「開始年–現在年」の範囲表記にする。
   const year = new Date().getFullYear();
+  const copyright =
+    year > site.foundedYear
+      ? `© ${site.foundedYear}–${year} ${site.name}`
+      : `© ${site.foundedYear} ${site.name}`;
 
   return (
     <footer className="border-t border-gray-200 bg-white">
@@ -40,7 +45,7 @@ export function Footer() {
           </nav>
         </div>
 
-        <p className="mt-6 text-xs text-gray-400">© {year} {site.name}</p>
+        <p className="mt-6 text-xs text-gray-400">{copyright}</p>
       </div>
     </footer>
   );
