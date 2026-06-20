@@ -1,25 +1,28 @@
 # Errata Hub
 
-**技術書の正誤情報と「より良い表現」の提案を集める、公開フィードバック掲示板。**
+[![CI](https://github.com/nkn-ms/errata-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nkn-ms/errata-hub/actions/workflows/ci.yml)
 
-技術書を読んでいて見つけた誤字脱字・正誤情報や、「ここはこう書いた方が読みやすい」といった改善提案を、読者が投稿・共有できる Web アプリケーションです。出版社が投稿に回答・対応状況を更新でき、同じ誤りを見つけた他の読者が賛同できる仕組みを目指しています。
+**技術書を読んでいて見つけた誤りや「こう書いた方が読みやすい」という気づきを、読者が投稿して共有できる公開サイトです。**
 
-> ⚠️ これは学習・ポートフォリオ目的の個人開発プロジェクトです。
+投稿には誤りの箇所（ページ・行や版・刷）を添えられ、出版社が回答・対応状況を更新できます。
+
+> ℹ️ 掲載されている投稿は投稿者からの報告であり、出版社の回答がつくまでは未確認の情報です。各投稿に表示される出版社の回答・対応状況とあわせてご確認ください。
 
 ---
 
 ## なぜ作ったか
 
-技術書の正誤情報は、出版社サイト・著者ブログ・SNS などに散在していて見つけにくく、読者からのフィードバックも届きにくいのが現状です。「本 × 正誤情報」を一箇所に集約し、信頼できる形で蓄積・発見できる場を作ることを目指しました。
+技術書を読んでいると、公式の正誤表にも載っていない誤りに出くわすことがあります。そうした「誤りを見つけ、指摘した」という記録を、技術者自身のポートフォリオとして残せる場が欲しいというのが動機の一つです。
+また、投稿しやすいフォームを用意することで、他の技術者の方も気軽に指摘でき、正誤情報がより多くの人に届く——そんな場になればと考えて作りました。
 
-技術的には、単なる CRUD アプリではなく **信頼性が重要な公開 UGC（ユーザー生成コンテンツ）プラットフォーム** として、認証・認可・データ整合性・セキュリティをどう設計するかの実践を主眼に置いています。
+技術的にも、不特定多数が投稿する公開 UGC（ユーザー生成コンテンツ）を題材に、**認証・認可・データ整合性・セキュリティといった「実運用で効いてくる設計」を自分の手で一通り実装してみたかった**、という狙いもありました。
 
 ---
 
 ## 主な機能
 
 - **書籍検索つき投稿フォーム** — ISBN 検索（OpenBD）/ タイトル検索（Google Books）。書影は両 API でフォールバック補完
-- **正誤情報の投稿** — 正誤情報・読みにくさの改善提案。ページ/行・版/刷などの位置情報つき
+- **投稿（種別つき）** — 正誤情報・改善提案・その他の 3 種別。ページ/行・版/刷などの位置情報つき
 - **公開ページ** — トップ（最新投稿）・書籍別一覧・投稿詳細・ユーザー別投稿一覧
 - **メール認証** — Supabase Auth（メール確認・PKCE code フロー）
 - **管理画面** — 投稿への回答・対応状況の更新、出版社マスタ管理、ユーザー/ロール管理、操作ログ（監査ログ）
@@ -31,13 +34,15 @@
 | 領域 | 採用技術 |
 |------|----------|
 | フレームワーク | Next.js 16（App Router）/ React 19 / TypeScript |
-| スタイリング | Tailwind CSS v4 / shadcn/ui 系コンポーネント |
+| スタイリング | Tailwind CSS v4 / 自作 UI コンポーネント（lucide-react アイコン） |
 | 認証 | Supabase Auth（メール確認・PKCE code フロー） |
 | データベース | PostgreSQL（Supabase ホスティング） |
 | ORM | Prisma v7（`@prisma/adapter-pg`） |
 | バリデーション | Zod |
 | テーブル UI | TanStack Table |
 | 外部 API | OpenBD（日本語書誌・ISBN）/ Google Books（タイトル検索・書影） |
+| テスト | Vitest（単体）/ Testing Library |
+| CI | GitHub Actions（lint + typecheck + test + build）/ Dependabot |
 | デプロイ | Vercel（予定） |
 
 ---
@@ -63,7 +68,7 @@
 
 ### 必要なもの
 
-- Node.js 20 以上
+- Node.js 20 以上（CI は Node 22 で実行）
 - Supabase プロジェクト（PostgreSQL + Auth）
 - Google Books API キー
 
@@ -77,7 +82,8 @@ npm install
 cp .env.example .env   # 用意している場合
 
 # 3. Prisma クライアント生成 & スキーマ反映
-npx prisma generate
+#    （--generator client で ER 図ジェネレータをスキップ）
+npx prisma generate --generator client
 npx prisma db push
 
 # 4. 開発サーバー起動
@@ -85,6 +91,18 @@ npm run dev
 ```
 
 http://localhost:3000 を開く。
+
+### 開発コマンド
+
+| コマンド | 内容 |
+|----------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | Prisma クライアント生成 + 本番ビルド |
+| `npm run lint` | ESLint |
+| `npm test` | 単体テスト（Vitest・1回実行） |
+| `npm run test:watch` | 単体テスト（ウォッチモード） |
+
+型チェックは `npx tsc --noEmit` で実行できます。これら（lint / typecheck / test / build）は push・PR ごとに [GitHub Actions](.github/workflows/ci.yml) でも自動実行されます。
 
 ### 環境変数
 
@@ -109,7 +127,7 @@ src/
 ├── constants/    定数（ステータス定義など）
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
 ├── lib/          外部ライブラリのラッパー（prisma / supabase / utils）
-├── services/     ビジネスロジック・認可（auth, audit, feedback）
+├── services/     ビジネスロジック・認可（auth, audit, report）
 ├── types/        型定義
 └── utils/        純粋関数（ISBN 正規化・マッパー）
 docs/             設計・学習メモ・ER 図
@@ -119,4 +137,6 @@ docs/             設計・学習メモ・ER 図
 
 ## ライセンス
 
-個人開発・学習目的のプロジェクトです。
+本プロジェクトにはオープンソースライセンスを付与していません。
+そのため、著作権法上の権利はすべて作者に帰属します（All rights reserved）。
+コードはポートフォリオとしての公開であり、無断での複製・再配布・再利用はご遠慮ください。
