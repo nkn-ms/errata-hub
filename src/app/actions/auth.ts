@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { routes } from "@/constants/routes";
 
@@ -49,12 +50,21 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     return { error: parsed.error.issues[0].message };
   }
 
+  // 確認メールのリンクから戻る先を、リクエスト元の origin に合わせて明示する。
+  // これが無いと Supabase の Site URL にフォールバックし、環境を跨いだ誤リダイレクト
+  // （本番なのに localhost へ等）や、callback を経由せず未ログインになる不具合が起きる。
+  const h = await headers();
+  const origin =
+    h.get("origin") ??
+    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { display_name: parsed.data.displayName },
+      emailRedirectTo: `${origin}${routes.auth.callback}`,
     },
   });
 

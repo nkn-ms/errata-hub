@@ -18,6 +18,7 @@ export const routes = {
   user: (id: string) => `/users/${id}`,
 
   auth: {
+    callback: "/auth/callback",
     confirm: "/auth/confirm",
     error: "/auth/error",
     verified: "/auth/verified",
