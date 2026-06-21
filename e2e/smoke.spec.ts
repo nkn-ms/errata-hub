@@ -68,6 +68,37 @@ test.describe("認可ゲート（proxy.ts）", () => {
   });
 });
 
+test.describe("投稿一覧テーブル", () => {
+  test("フィルタバー（検索・種別・件数）が表示される", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByPlaceholder("書籍名・タイトルで検索...")).toBeVisible();
+    await expect(page.getByRole("option", { name: "種別：すべて" })).toBeAttached();
+    await expect(page.getByText(/\d+ 件/)).toBeVisible();
+  });
+
+  test("行をクリックすると投稿詳細 /reports/[id] に遷移する", async ({ page }) => {
+    await page.goto("/");
+    // テーブルの描画完了を待ってから件数を見る（クライアント描画の取りこぼし防止）。
+    await expect(page.getByText(/\d+ 件/)).toBeVisible();
+    const rows = page.locator("tbody tr");
+    test.skip((await rows.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
+
+    // 末尾セル（投稿日）はリンクを含まないので、行クリック（router.push）が確実に発火する。
+    await rows.first().locator("td").last().click();
+    await expect(page).toHaveURL(/\/reports\/[^/]+$/);
+  });
+
+  test("書籍名リンクから書籍ページ /books/[id] に遷移する", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/\d+ 件/)).toBeVisible();
+    const bookLinks = page.locator('tbody a[href^="/books/"]');
+    test.skip((await bookLinks.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
+
+    await bookLinks.first().click();
+    await expect(page).toHaveURL(/\/books\/[^/]+$/);
+  });
+});
+
 test.describe("情報ページ", () => {
   test("使い方ページが開ける", async ({ page }) => {
     const res = await page.goto("/how-to-use");
