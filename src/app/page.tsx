@@ -2,9 +2,7 @@ import { ReportTable } from "@/components/report-table";
 import { findRecentReports } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/app/actions/auth";
-import Link from "next/link";
-import { routes } from "@/constants/routes";
+import { HeaderNav } from "@/components/header-nav";
 
 const TOP_PAGE_LIMIT = 10;
 
@@ -19,39 +17,7 @@ export default async function Home() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <span className="text-lg font-bold text-gray-900">Errata Hub</span>
-          <div className="flex items-center gap-3">
-            <Link href={routes.howToUse} className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
-              使い方
-            </Link>
-            <Link href={routes.tech} className="text-sm text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
-              使用技術
-            </Link>
-            {user ? (
-              <>
-                <span className="text-xs text-gray-500 hidden sm:block">{user.email}</span>
-                <form action={logout}>
-                  <button type="submit" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                    ログアウト
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link href={routes.register} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  会員登録
-                </Link>
-                <Link href={routes.login} className="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-md hover:bg-gray-700 transition-colors">
-                  ログイン
-                </Link>
-              </>
-            )}
-            <Link
-              href={routes.submit}
-              className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-            >
-              投稿する
-            </Link>
-          </div>
+          <HeaderNav userEmail={user?.email ?? null} />
         </div>
       </header>
 
