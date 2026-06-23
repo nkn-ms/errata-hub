@@ -1,0 +1,69 @@
+import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+
+// ログイン済みテスト用の認証情報などを .env.e2e から読む（存在すれば）。
+// このファイルは gitignore 済み（テンプレは .env.e2e.example）。
+dotenv.config({ path: ".env.e2e", quiet: true });
+
+// e2e の設定。
+// 既定（chromium）は読み取り専用スモークのみ。本番 Supabase に接続するため
+// 「表示・遷移・バリデーション」に限定し、書き込み（登録・投稿）は行わない。
+const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+
+// 外部URL（Vercel等）を指定したときは自前でサーバーを起動しない。
+const isLocal = BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
+
+// 確認済みテストアカウントの認証情報がある場合のみ、ログイン済みテストを有効化する。
+// 無いときは auth-setup / authenticated を project に含めないので、既定スイートは緑のまま。
+const hasCreds = !!process.env.E2E_TEST_EMAIL && !!process.env.E2E_TEST_PASSWORD;
+
+const authProjects = hasCreds
+  ? [
+      {
+        name: "auth-setup",
+        testMatch: /auth\.setup\.ts/,
+      },
+      {
+        name: "authenticated",
+        testMatch: /.*\.auth\.spec\.ts/,
+        use: {
+          ...devices["Desktop Chrome"],
+          storageState: "e2e/.auth/user.json",
+        },
+        dependencies: ["auth-setup"],
+      },
+    ]
+  : [];
+
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  reporter: [["list"], ["html", { open: "never" }]],
+  use: {
+    baseURL: BASE_URL,
+    trace: "on-first-retry",
+    navigationTimeout: 60_000,
+    actionTimeout: 15_000,
+  },
+  projects: [
+    {
+      name: "chromium",
+      // 認証セットアップ／認証テストは別 project で扱うので、ここでは除外。
+      testIgnore: [/auth\.setup\.ts/, /.*\.auth\.spec\.ts/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    ...authProjects,
+  ],
+  // dev サーバーをローカルで起動（既に起動済みなら再利用）。
+  // dev は初回アクセスでルートをコンパイルするため timeout は長めに取る。
+  webServer: isLocal
+    ? {
+        command: "npm run dev",
+        url: BASE_URL,
+        reuseExistingServer: true,
+        timeout: 180_000,
+      }
+    : undefined,
+});
