@@ -46,6 +46,46 @@ async function fetchGoogleCover(isbn: string): Promise<string> {
   }
 }
 
+// OpenBD レスポンス summary のうち利用する部分
+type OpenBdSummary = {
+  isbn?: string;
+  title?: string;
+  author?: string;
+  publisher?: string;
+};
+
+// タイトル検索(Google)の結果を、得られた ISBN で OpenBD を一括照会して書誌情報を補正する。
+// 和書は Google だと書名がローマ字化・出版社が欠落しがちなため、書誌(title/author/publisher)は
+// OpenBD を正とする。書影は OpenBD がほぼ持たないため Google のものを維持する。
+// OpenBD は ISBN をカンマ区切りで 1 リクエストにまとめられる（順序保持・無ければ null）。
+async function enrichWithOpenBD(books: BookResult[]): Promise<BookResult[]> {
+  const isbns = books.map((b) => b.isbn).filter(Boolean);
+  if (isbns.length === 0) return books;
+  try {
+    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`);
+    if (!res.ok) return books;
+    const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
+    const byIsbn = new Map<string, OpenBdSummary>();
+    for (const entry of data) {
+      const s = entry?.summary;
+      if (s?.isbn) byIsbn.set(s.isbn, s);
+    }
+    return books.map((b) => {
+      const s = byIsbn.get(b.isbn);
+      if (!s) return b; // OpenBD に無ければ Google のまま
+      return {
+        ...b,
+        title: s.title || b.title,
+        author: s.author || b.author,
+        publisher: s.publisher || b.publisher,
+        // 書影は OpenBD がほぼ返さないため Google の書影を維持
+      };
+    });
+  } catch {
+    return books; // 失敗時は Google のまま（検索を止めない）
+  }
+}
+
 export function BookSearch({ onSelect }: Props) {
   const [mode, setMode] = useState<Mode>("isbn");
   const [query, setQuery] = useState("");
@@ -146,7 +186,9 @@ export function BookSearch({ onSelect }: Props) {
           })
           // ISBN を本の同一性の基準にするため、ISBN の無い結果は選択させない
           .filter((b) => b.isbn);
-        setResults(books);
+        // 書誌情報は OpenBD を正として補正（書影は Google を維持）
+        const enriched = await enrichWithOpenBD(books);
+        setResults(enriched);
         setOpen(true);
       } catch {
         setResults([]);
