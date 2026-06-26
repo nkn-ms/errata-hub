@@ -79,8 +79,18 @@ export async function updatePublisher(
   redirect(routes.admin.publishers);
 }
 
-export async function deletePublisher(id: string): Promise<void> {
+export async function deletePublisher(id: string): Promise<PublisherState> {
   await requireAdminOrThrow();
+
+  // 書籍が紐づく出版社は削除させない（UX側のガード）。
+  // 最終的な整合性の保証は DB の onDelete: Restrict（Book.publisherId）が担う。
+  const bookCount = await prisma.book.count({ where: { publisherId: id } });
+  if (bookCount > 0) {
+    return {
+      error: `この出版社には${bookCount}冊の書籍が紐づいているため削除できません。先に書籍の出版社を付け替えてください。`,
+    };
+  }
+
   await prisma.publisher.delete({ where: { id } });
   redirect(routes.admin.publishers);
 }

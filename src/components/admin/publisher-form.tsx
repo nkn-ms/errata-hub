@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Publisher } from "@/generated/prisma/client";
 import {
@@ -23,11 +23,14 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
     action,
     undefined
   );
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDelete() {
     if (!publisher) return;
-    if (!confirm("この出版社を削除しますか？関連する書籍データへの影響を確認してください。")) return;
-    await deletePublisher(publisher.id);
+    if (!confirm("この出版社を削除しますか？（書籍が紐づいている場合は削除できません）")) return;
+    setDeleteError(null);
+    const result = await deletePublisher(publisher.id);
+    if (result?.error) setDeleteError(result.error);
   }
 
   return (
@@ -82,6 +85,9 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
 
         {state?.error && (
           <p className="text-sm text-red-500">{state.error}</p>
+        )}
+        {deleteError && (
+          <p className="text-sm text-red-500">{deleteError}</p>
         )}
 
         <div className="flex gap-3 justify-between pt-2">

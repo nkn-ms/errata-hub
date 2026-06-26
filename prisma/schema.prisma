@@ -78,7 +78,7 @@ model PublisherAccess {
 model Book {
   id            String     @id @default(uuid())
   publisherId   String?
-  publisher     Publisher? @relation(fields: [publisherId], references: [id])
+  publisher     Publisher? @relation(fields: [publisherId], references: [id], onDelete: Restrict)
   title         String
   author        String?
   isbn          String     @unique // ISBN-13 に正規化して保存（本の同一性の基準）
