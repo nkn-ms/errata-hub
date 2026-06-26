@@ -24,7 +24,7 @@ export default async function AdminBooksPage() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">書籍マスタ</h1>
         <p className="mt-1 text-sm text-gray-500">
-          全 {rows.length} 件 ・ 投稿が紐づく書籍は削除できません（先に投稿を削除してください）
+          全 {rows.length} 件 ・ 行をクリックすると編集・削除できます
         </p>
       </div>
 

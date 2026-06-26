@@ -33,6 +33,7 @@ export const routes = {
     users: "/admin/users",
     user: (id: string) => `/admin/users/${id}`,
     books: "/admin/books",
+    book: (id: string) => `/admin/books/${id}`,
     logs: "/admin/logs",
   },
 
