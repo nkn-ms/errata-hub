@@ -32,6 +32,7 @@ export const routes = {
     publisher: (id: string) => `/admin/publishers/${id}`,
     users: "/admin/users",
     user: (id: string) => `/admin/users/${id}`,
+    books: "/admin/books",
     logs: "/admin/logs",
   },
 
@@ -39,6 +40,7 @@ export const routes = {
     reports: "/api/reports",
     report: (id: string) => `/api/reports/${id}`,
     booksSearch: "/api/books/search",
+    book: (id: string) => `/api/books/${id}`,
     adminUser: (id: string) => `/api/admin/users/${id}`,
     adminUserPublishers: (id: string) => `/api/admin/users/${id}/publishers`,
   },

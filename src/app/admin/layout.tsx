@@ -21,6 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href={routes.admin.publishers} className="text-gray-300 hover:text-white transition-colors">
               出版社マスタ
             </Link>
+            <Link href={routes.admin.books} className="text-gray-300 hover:text-white transition-colors">
+              書籍マスタ
+            </Link>
             <Link href={routes.admin.users} className="text-gray-300 hover:text-white transition-colors">
               ユーザー管理
             </Link>
