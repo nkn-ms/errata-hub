@@ -5,6 +5,7 @@ export const TARGET_TYPE = {
   REPORT: "Report",
   PROFILE: "Profile",
   PUBLISHER_ACCESS: "PublisherAccess",
+  BOOK: "Book",
 } as const;
 
 // TARGET_TYPE の値から「許される文字列」の型を派生させる。

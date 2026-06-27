@@ -8,6 +8,8 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_USER_ROLE: "ロール変更",
   GRANT_PUBLISHER_ACCESS: "出版社アクセス付与",
   REVOKE_PUBLISHER_ACCESS: "出版社アクセス削除",
+  UPDATE_BOOK: "書籍更新",
+  DELETE_BOOK: "書籍削除",
 };
 
 const PAGE_SIZE = 50;
