@@ -91,7 +91,7 @@ npx prisma generate --generator client
 npx prisma db push
 
 # 5. 管理者ユーザー＋サンプルデータを投入（冪等。ログイン: admin@local.test / password123）
-npm run seed:local
+npx prisma db seed   # `npm run seed:local` でも可
 
 # 6. 開発サーバー起動
 npm run dev
