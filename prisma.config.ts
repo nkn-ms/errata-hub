@@ -14,6 +14,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // `prisma db seed` で実行されるシード（ローカル専用・接続先がローカルでなければ中止）。
+    seed: "tsx ./prisma/seed.ts",
   },
   datasource: {
     url: process.env["DIRECT_URL"], // マイグレーションはPgBouncer不可のため直接接続

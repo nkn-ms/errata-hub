@@ -1,5 +1,5 @@
 // ローカル開発用のシード（冪等＝何度実行しても安全）。
-//   npm run seed:local
+//   npx prisma db seed   （または npm run seed:local）
 //
 // やること: ローカル Supabase に「管理者ユーザー＋出版社＋本2冊（投稿あり/なし）」を作る。
 // 接続情報は `supabase status` から取得するので、事前に `supabase start` が必要。
