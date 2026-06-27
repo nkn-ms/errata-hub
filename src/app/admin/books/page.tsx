@@ -23,9 +23,7 @@ export default async function AdminBooksPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">書籍マスタ</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          全 {rows.length} 件 ・ 「編集」から書誌の編集・削除ができます
-        </p>
+        <p className="mt-1 text-sm text-gray-500">全 {rows.length} 件</p>
       </div>
 
       <AdminBookTable books={rows} />
