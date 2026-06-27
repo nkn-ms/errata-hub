@@ -78,19 +78,26 @@
 # 1. 依存関係のインストール
 npm install
 
-# 2. 環境変数の設定（.env を作成。下表参照）
-cp .env.example .env   # 用意している場合
+# 2. ローカル Supabase を起動（Docker 必要。Auth+DB+Studio 一式）
+supabase start
 
-# 3. Prisma クライアント生成 & スキーマ反映
+# 3. ローカル用の環境変数を作成（値は `supabase status` 参照）
+cp .env.local.example .env.local
+#    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY を supabase status の値に置き換える
+
+# 4. Prisma クライアント生成 & スキーマ反映（.env.local のローカルDBに対して実行）
 #    （--generator client で ER 図ジェネレータをスキップ）
 npx prisma generate --generator client
 npx prisma db push
 
-# 4. 開発サーバー起動
+# 5. 管理者ユーザー＋サンプルデータを投入（冪等。ログイン: admin@local.test / password123）
+npm run seed:local
+
+# 6. 開発サーバー起動
 npm run dev
 ```
 
-http://localhost:3000 を開く。
+http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323、受信メール確認は http://127.0.0.1:54324。
 
 ### 開発コマンド
 
@@ -106,15 +113,19 @@ http://localhost:3000 を開く。
 
 ### 環境変数
 
+環境ごとの置き場所:
+- **ローカル開発** … `.env.local`（`supabase start` のローカル Supabase 値。テンプレ = `.env.local.example`）
+- **本番 / Preview** … Vercel の環境変数（このリポジトリに本番値は置かない）
+
 | 変数名 | 用途 |
 |--------|------|
-| `DATABASE_URL` | アプリ用の DB 接続（コネクションプーラー経由） |
+| `DATABASE_URL` | アプリ用の DB 接続（本番はコネクションプーラー経由 / ローカルは直結） |
 | `DIRECT_URL` | マイグレーション用の直接接続（Prisma v7 は `prisma.config.ts` で使用） |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL（公開） |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable キー（公開・RLS で保護） |
 | `GOOGLE_BOOKS_API_KEY` | Google Books API キー（**サーバーサイドのみ**・公開しない） |
 
-> `.env` は `.gitignore` 済み。`NEXT_PUBLIC_` 以外の値は秘密情報として扱い、コミットしないこと。
+> `.env*` は `.gitignore` 済み（テンプレの `*.example` のみ追跡）。`NEXT_PUBLIC_` 以外の値は秘密情報として扱い、コミットしないこと。本番値はローカルに置かず Vercel で管理する。`prisma.config.ts` は `.env.local` を優先して読むため、ローカルの CLI 操作（`prisma db push` 等）が誤って本番DBを叩くことはない。
 
 ---
 
