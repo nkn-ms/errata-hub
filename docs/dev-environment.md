@@ -59,11 +59,16 @@ supabase start                 # ローカル Supabase（Auth+DB+Studio+メー�
 cp .env.local.example .env.local
 #   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY を `supabase status` の値に置き換える
 npx prisma db push             # ローカルDBにスキーマ反映（.env.local を見る）
+npm run seed:local             # 管理者ユーザー＋サンプルデータを投入（冪等）
 npm run dev                    # http://localhost:3000
 ```
 
+- **管理者ログイン**: `admin@local.test` / `password123`（`npm run seed:local` が作る・ローカル専用）
 - ローカル Studio（DB の中身を見る）: http://127.0.0.1:54323
 - 受信メール（確認メール等）: http://127.0.0.1:54324
+
+`npm run seed:local`（`scripts/seed-local.ts`）は冪等で、`supabase status` から接続情報を取り、
+接続先がローカル(127.0.0.1)でなければ中止する安全装置付き。`supabase db reset` 後もこれ一発で復元できる。
 
 ## 6. チートシート: 「この操作、どのDBに効く？」
 
