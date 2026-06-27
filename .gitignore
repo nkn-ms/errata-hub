@@ -53,3 +53,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# playwright-mcp（MCPブラウザ自動操作の作業ログ・成果物。コミットしない）
+.playwright-mcp/
