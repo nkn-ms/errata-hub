@@ -6,8 +6,10 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.e2e", quiet: true });
 
 // e2e の設定。
-// 既定（chromium）は読み取り専用スモークのみ。本番 Supabase に接続するため
-// 「表示・遷移・バリデーション」に限定し、書き込み（登録・投稿）は行わない。
+// 既定（chromium）は読み取り専用スモーク（表示・遷移・バリデーション）に限定し、
+// 書き込み（登録・投稿）は行わない＝安全側の既定。
+// BASE_URL の既定 http://localhost:3000 は「ローカル dev＝ローカル Supabase（.env.local）」を指す。
+// E2E_BASE_URL を本番/Preview に向けるとそのホスト Supabase に接続するため、読み取り専用を維持して事故を防ぐ。
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 // 外部URL（Vercel等）を指定したときは自前でサーバーを起動しない。
