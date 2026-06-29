@@ -14,6 +14,7 @@ export const routes = {
   tech: "/tech",
   account: "/account",
   accountWithdraw: "/account/withdraw",
+  accountWithdrawn: "/account/withdrawn",
 
   report: (id: string) => `/reports/${id}`,
   book: (id: string) => `/books/${id}`,

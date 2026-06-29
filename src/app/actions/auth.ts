@@ -190,9 +190,9 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     after: { email: anonymizedEmail, displayName: null },
   });
 
-  // 4) セッションを破棄してトップへ。
+  // 4) セッションを破棄して退会完了ページへ。
   await supabase.auth.signOut();
-  redirect(routes.home);
+  redirect(routes.accountWithdrawn);
 }
 
 export async function logout() {
