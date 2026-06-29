@@ -28,6 +28,12 @@ export function HeaderNav({ userEmail }: { userEmail: string | null }) {
       </Link>
       {userEmail ? (
         <>
+          <Link
+            href={routes.account}
+            className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            アカウント
+          </Link>
           <span className="hidden sm:block text-xs text-gray-500">{userEmail}</span>
           <form action={logout} className="hidden sm:block">
             <button
@@ -119,6 +125,13 @@ export function HeaderNav({ userEmail }: { userEmail: string | null }) {
           {userEmail ? (
             <>
               <span className="block px-4 py-2 text-xs text-gray-500 truncate">{userEmail}</span>
+              <Link
+                href={routes.account}
+                onClick={close}
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                アカウント
+              </Link>
               <form action={logout}>
                 <button
                   type="submit"

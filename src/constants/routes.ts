@@ -12,6 +12,8 @@ export const routes = {
   submit: "/submit",
   howToUse: "/how-to-use",
   tech: "/tech",
+  account: "/account",
+  accountWithdraw: "/account/withdraw",
 
   report: (id: string) => `/reports/${id}`,
   book: (id: string) => `/books/${id}`,

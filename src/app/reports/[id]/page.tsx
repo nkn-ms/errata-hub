@@ -63,9 +63,13 @@ export default async function ReportDetailPage({ params }: Props) {
             </div>
             <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              <Link href={routes.user(report.userId)} className="hover:underline">
-                {report.userName} <span className="text-gray-400">@{report.userIdShort}</span>
-              </Link>
+              {report.isWithdrawn ? (
+                <span className="text-gray-400">{report.userName}</span>
+              ) : (
+                <Link href={routes.user(report.userId)} className="hover:underline">
+                  {report.userName} <span className="text-gray-400">@{report.userIdShort}</span>
+                </Link>
+              )}
               {" · "}{report.createdAt}
             </p>
           </div>
