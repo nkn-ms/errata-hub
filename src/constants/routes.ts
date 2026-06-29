@@ -12,6 +12,9 @@ export const routes = {
   submit: "/submit",
   howToUse: "/how-to-use",
   tech: "/tech",
+  account: "/account",
+  accountWithdraw: "/account/withdraw",
+  accountWithdrawn: "/account/withdrawn",
 
   report: (id: string) => `/reports/${id}`,
   book: (id: string) => `/books/${id}`,
@@ -22,6 +25,9 @@ export const routes = {
     confirm: "/auth/confirm",
     error: "/auth/error",
     verified: "/auth/verified",
+    resetPassword: "/auth/reset-password",
+    resetPasswordSent: "/auth/reset-password/sent",
+    updatePassword: "/auth/update-password",
   },
 
   admin: {

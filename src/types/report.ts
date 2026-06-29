@@ -16,6 +16,7 @@ export type Report = {
   userId: string;
   userName: string;
   userIdShort: string;
+  isWithdrawn: boolean;
   title: string;
   bookTitle: string;
   bookAuthor: string;

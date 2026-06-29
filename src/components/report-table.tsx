@@ -141,16 +141,20 @@ const columns: ColumnDef<Report>[] = [
   {
     accessorKey: "userName",
     header: "投稿者",
-    cell: ({ row }) => (
-      <Link
-        href={routes.user(row.original.userId)}
-        className="block hover:underline"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="text-sm text-gray-600">{row.original.userName}</div>
-        <div className="text-xs text-gray-400">@{row.original.userIdShort}</div>
-      </Link>
-    ),
+    cell: ({ row }) =>
+      // 退会済みユーザーはプロフィールへのリンクも短縮IDも出さない。
+      row.original.isWithdrawn ? (
+        <div className="text-sm text-gray-400">{row.original.userName}</div>
+      ) : (
+        <Link
+          href={routes.user(row.original.userId)}
+          className="block hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-sm text-gray-600">{row.original.userName}</div>
+          <div className="text-xs text-gray-400">@{row.original.userIdShort}</div>
+        </Link>
+      ),
   },
   {
     accessorKey: "createdAt",

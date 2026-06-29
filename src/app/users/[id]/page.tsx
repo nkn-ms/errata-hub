@@ -5,6 +5,7 @@ import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/re
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -24,11 +25,38 @@ export default async function UserDetailPage({ params }: Props) {
     select: {
       id: true,
       displayName: true,
+      email: true,
       createdAt: true,
     },
   });
 
   if (!profile) notFound();
+
+  // 退会済みユーザーのページは「退会済みです」とだけ表示し、投稿一覧は出さない（案1）。
+  // 公開上の追跡可能性を弱めるため。email は判定にのみ使い表示はしない。
+  if (isWithdrawnEmail(profile.email)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+            <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
+            <span className="text-gray-300">/</span>
+            <span className="text-sm text-gray-500">ユーザー</span>
+          </div>
+        </header>
+        <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-16">
+          <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
+            <p className="text-2xl mb-3">👤</p>
+            <p className="text-base font-medium text-gray-700">{WITHDRAWN_DISPLAY_NAME}です</p>
+            <p className="mt-2 text-sm text-gray-400">このユーザーは退会しています。</p>
+          </div>
+          <div className="mt-6">
+            <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const reports = await findReportsByUser(id);
 

@@ -61,6 +61,18 @@ describe("mapReport", () => {
     expect(mapReport(buildPrismaReport({ user: { displayName: null } })).userName).toBe("匿名");
   });
 
+  it("退会済み（匿名化メール）は投稿者名を『退会済みユーザー』にし isWithdrawn=true にする", () => {
+    const r = mapReport(
+      buildPrismaReport({ user: { displayName: null, email: "deleted-abc@deleted.local" } })
+    );
+    expect(r.userName).toBe("退会済みユーザー");
+    expect(r.isWithdrawn).toBe(true);
+  });
+
+  it("通常ユーザーは isWithdrawn=false", () => {
+    expect(mapReport(buildPrismaReport({ user: { displayName: "山田太郎", email: "yamada@example.com" } })).isWithdrawn).toBe(false);
+  });
+
   it("userIdShort は先頭8文字", () => {
     expect(mapReport(buildPrismaReport()).userIdShort).toBe("abcdef01");
   });

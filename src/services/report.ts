@@ -11,7 +11,8 @@ import { Prisma } from "@/generated/prisma/client";
 export const reportInclude = {
   book: { include: { publisher: true } },
   images: true,
-  user: { select: { displayName: true } },
+  // email は退会判定（匿名化メールか）にのみ使い、クライアントへは渡さない（mapReport で破棄）。
+  user: { select: { displayName: true, email: true } },
 } satisfies Prisma.ReportInclude;
 
 export type ReportWithRelations = Prisma.ReportGetPayload<{

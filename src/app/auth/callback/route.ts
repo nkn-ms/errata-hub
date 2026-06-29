@@ -56,5 +56,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(new URL("/", origin));
+  // パスワード再発行などで戻り先を指定したい場合に next を使う。
+  // オープンリダイレクト対策として、アプリ内の相対パス（/始まり・//除外）のみ許可する。
+  const next = searchParams.get("next");
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+
+  return NextResponse.redirect(new URL(safeNext, origin));
 }
