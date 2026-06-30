@@ -64,7 +64,7 @@ fixedEdition / fixedPrinting は FIXED に付随
    - sitemap.xml / robots、ISBN・書名検索、出版社別一覧。
    - 「〇〇（書名） 正誤表」での検索流入が集客の本体。
 4. **通知**: 自分の報告に出版社回答が付いたらメール通知（Resend 等）。
-5. **法務・プライバシー**: 免責、退会（GDPR: auth.users + Profile + 画像まで削除）、削除依頼フロー、利用規約。
+5. **法務・プライバシー**: 免責、退会（GDPR: **§7 の匿名化方針**＝auth.users 削除＋Profile の PII スクラブ・Report は保全）、削除依頼フロー、利用規約。
 
 ---
 
@@ -101,3 +101,31 @@ fixedEdition / fixedPrinting は FIXED に付随
 4. RLS 締め — 公開前セキュリティ必須
 
 全部を一度にやる必要はない。段階移行する。
+
+---
+
+## 7. 確定した運用・整合性ポリシー（実装済み or 決定済み）
+
+※ §1〜6 は将来像（未実装の提案を含む）。この §7 は**現時点で確定・実装済みの方針**を集約する（背景・解説は `docs/learnings.md`、個別の判断ログは Claude メモリ参照）。
+
+### 削除と退会（別々の2系統）
+- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（将来は画像ファイル実体も削除に統合）。実装済 `DELETE /api/reports/[id]`（ADMIN限定）。
+- **ユーザー退会（GDPR）= 投稿者の匿名化（未実装）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。検証は余剰テストアカウント(test2)で。
+
+### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
+- onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意 = **SetNull**。
+- 「記事ゼロの Book / Publisher（孤児行）」は**放置で許容**。Book は ISBN で upsert、Publisher は名前照合で、再投稿時に**再利用**される（重複も不整合も作らない）。連動削除は入れない（複雑化＝バグの温床を避ける）。「出版社不明の本」は元データ不完全ゆえの**正規の状態**（publisherId は optional のまま）。
+
+### 出版社削除ガード（案A・保留中＝dev環境後に実施）
+- 現状は削除すると書籍が黙って未設定化（SetNull）＋権限が Cascade 削除＝事故りやすい。
+- 方針：「**書籍が紐づかない出版社のみ削除可**」。保証=DB（`Book.publisherId` を SetNull→**Restrict**）、UX=アプリ（件数チェック＋親切エラー）。PublisherAccess の扱い（書籍だけ Restrict か／権限も Restrict か）は要決定。DB変更を含むため dev 環境構築後に実施。
+
+### 認証エラー表示・パスワード再発行
+- ログイン失敗は**汎用文言**「メールアドレスまたはパスワードが正しくありません」（アカウント列挙対策。実装済）。どちらが違うか・登録の有無は明かさない。
+- 親切さは「パスワードをお忘れですか？」リンク＋再発行フロー（`/auth/reset-password`・未実装TODO）で担保。再発行完了画面も登録有無を明かさない文言にする。
+
+### ローカル開発環境
+- **Supabase CLI ローカル（`supabase start`・Docker）= Auth(GoTrue)+DB+Storage+Studio+Inbucket の完全ミラー**を使う。素の Postgres コンテナ不可（このアプリは Supabase Auth で login/register/PKCE するため）。`.env.local` で切替。リリース前に構築し本番との齟齬を確認（Prisma Migrate 移行・書き込み系 e2e もここで安全に）。
+
+### レスポンシブ
+- **Tailwind 標準ブレークポイントを据え置き**（カスタムしない。sm640/md768/lg1024/xl1280/2xl1536・min-width 積み上げ式）。対応は breakpoint の数値変更ではなく「**崩れるコンポーネント単位**」で行う（例：モバイルのテーブル横溢れはカード型化）。
