@@ -62,7 +62,7 @@ async function enrichWithOpenBD(books: BookResult[]): Promise<BookResult[]> {
   const isbns = books.map((b) => b.isbn).filter(Boolean);
   if (isbns.length === 0) return books;
   try {
-    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`);
+    const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`);
     if (!res.ok) return books;
     const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
     const byIsbn = new Map<string, OpenBdSummary>();
@@ -113,7 +113,7 @@ export function BookSearch({ onSelect }: Props) {
     setIsbnError("");
     setSelected(null);
     try {
-      const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbn}`);
+      const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbn}`);
       const data = await res.json();
       if (!data?.[0]) {
         setIsbnError("該当する書籍が見つかりませんでした。ISBNをご確認ください。");
