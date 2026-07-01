@@ -6,7 +6,9 @@ import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
 
 // アカウント設定ページ。アカウント情報の表示、表示名の変更、退会（Danger Zone）。
-// メールアドレスの変更等その他の訂正は問い合わせ窓口で受け付ける（プライバシーポリシー第7条）。
+// セルフサービスは表示名変更と退会のみ。メール変更機能は提供しない（需要が低く、
+// 変更したい場合は別アカウント作成を想定）。個人情報の訂正請求は一般ルートとして
+// プライバシーポリシー第7条1項の窓口で受け付ける。
 export default async function AccountPage() {
   const supabase = await createClient();
   const {
