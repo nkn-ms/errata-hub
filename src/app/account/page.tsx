@@ -3,9 +3,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
+import { DisplayNameForm } from "./display-name-form";
 
-// アカウント設定ページ。現状は表示情報と退会（Danger Zone）のみ。
-// 表示名変更などは /users/[id] の「仮置き」と合わせて今後実装予定。
+// アカウント設定ページ。アカウント情報の表示、表示名の変更、退会（Danger Zone）。
+// メールアドレスの変更等その他の訂正は問い合わせ窓口で受け付ける（プライバシーポリシー第7条）。
 export default async function AccountPage() {
   const supabase = await createClient();
   const {
@@ -39,10 +40,6 @@ export default async function AccountPage() {
               <dt className="text-gray-500">メールアドレス</dt>
               <dd className="text-gray-900 break-all">{user.email}</dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">表示名</dt>
-              <dd className="text-gray-900">{profile?.displayName ?? "未設定"}</dd>
-            </div>
             {profile?.createdAt && (
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">登録日</dt>
@@ -50,6 +47,11 @@ export default async function AccountPage() {
               </div>
             )}
           </dl>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">表示名の変更</h2>
+          <DisplayNameForm currentDisplayName={profile?.displayName ?? null} />
         </div>
 
         {/* Danger Zone */}
