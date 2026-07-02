@@ -72,7 +72,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
     setFetchError("");
     setFetched(null);
     try {
-      const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${encodeURIComponent(book.isbn)}`);
+      const res = await fetch(`${routes.api.booksOpenbd}?isbn=${encodeURIComponent(book.isbn)}`);
       if (!res.ok) throw new Error();
       const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
       const s = data[0]?.summary;
