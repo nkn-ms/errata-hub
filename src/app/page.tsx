@@ -10,6 +10,10 @@ export default async function Home() {
   const [rows, supabase] = await Promise.all([findRecentReports(TOP_PAGE_LIMIT), createClient()]);
   const reports = rows.map(mapReport);
   const { data: { user } } = await supabase.auth.getUser();
+  // ヘッダーにはメールではなく表示名を出す。表示名が無いときのみメールにフォールバック。
+  const userName = user
+    ? ((user.user_metadata?.display_name as string) || user.email || null)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,7 +21,7 @@ export default async function Home() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <span className="text-lg font-bold text-gray-900">Errata Hub</span>
-          <HeaderNav userEmail={user?.email ?? null} />
+          <HeaderNav userName={userName} />
         </div>
       </header>
 

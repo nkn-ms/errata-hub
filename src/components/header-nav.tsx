@@ -7,7 +7,7 @@ import { logout } from "@/app/actions/auth";
 
 // ヘッダー右側のナビ。デスクトップはインライン表示、モバイル（sm 未満）は
 // ハンバーガーメニューに集約する。主 CTA「投稿する」だけは常時表示。
-export function HeaderNav({ userEmail }: { userEmail: string | null }) {
+export function HeaderNav({ userName }: { userName: string | null }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -26,7 +26,7 @@ export function HeaderNav({ userEmail }: { userEmail: string | null }) {
       >
         使用技術
       </Link>
-      {userEmail ? (
+      {userName ? (
         <>
           <Link
             href={routes.account}
@@ -34,7 +34,7 @@ export function HeaderNav({ userEmail }: { userEmail: string | null }) {
           >
             アカウント
           </Link>
-          <span className="hidden sm:block text-xs text-gray-500">{userEmail}</span>
+          <span className="hidden sm:block text-xs text-gray-500">{userName}</span>
           <form action={logout} className="hidden sm:block">
             <button
               type="submit"
@@ -122,9 +122,9 @@ export function HeaderNav({ userEmail }: { userEmail: string | null }) {
             使用技術
           </Link>
           <div className="my-1 border-t border-gray-100" />
-          {userEmail ? (
+          {userName ? (
             <>
-              <span className="block px-4 py-2 text-xs text-gray-500 truncate">{userEmail}</span>
+              <span className="block px-4 py-2 text-xs text-gray-500 truncate">{userName}</span>
               <Link
                 href={routes.account}
                 onClick={close}
