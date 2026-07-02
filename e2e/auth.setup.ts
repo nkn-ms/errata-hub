@@ -21,8 +21,11 @@ setup("ログイン状態を保存する", async ({ page }) => {
   await page.locator("#password").fill(password);
   await page.getByRole("button", { name: "ログイン" }).click();
 
-  // ログイン成功でトップにリダイレクトし、ヘッダーに「ログアウト」ボタンが出る。
-  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  // ログイン成功でトップ（/）にリダイレクトする（失敗時は /login に留まる）。
+  // ログアウトはユーザーメニュー内に移動したため、成功判定は URL と
+  // 「ログイン」リンクの消失で行う（ヘッダーが未ログイン用リンクを出さない＝ログイン済み）。
+  await page.waitForURL(/\/$/, { timeout: 15_000 });
+  await expect(page.getByRole("link", { name: "ログイン" })).toHaveCount(0);
 
   await page.context().storageState({ path: authFile });
 });
