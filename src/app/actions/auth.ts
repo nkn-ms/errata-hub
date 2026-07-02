@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
@@ -142,6 +143,53 @@ export async function updatePassword(
   redirect(routes.home);
 }
 
+const DisplayNameSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "表示名を入力してください")
+    .max(50, "表示名は50文字以内で入力してください"),
+});
+
+export type ProfileState = { error?: string; success?: boolean } | undefined;
+
+/**
+ * 表示名の変更（本人のセルフサービス）。
+ *
+ * 表示の正は Profile.displayName。認証側の user_metadata も整合のため合わせて更新する。
+ * プライバシーポリシー第7条3項（表示名は本サービス上で変更可能）と対応。
+ */
+export async function updateDisplayName(
+  _prevState: ProfileState,
+  formData: FormData,
+): Promise<ProfileState> {
+  const parsed = DisplayNameSchema.safeParse({
+    displayName: formData.get("displayName"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(routes.login);
+  }
+
+  await prisma.profile.update({
+    where: { id: user.id },
+    data: { displayName: parsed.data.displayName },
+  });
+  await supabase.auth.updateUser({ data: { display_name: parsed.data.displayName } });
+
+  revalidatePath(routes.account);
+  return { success: true };
+}
+
 /**
  * 退会（アカウント匿名化）。
  *
@@ -159,11 +207,6 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     redirect(routes.login);
   }
 
-  const before = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { email: true, displayName: true },
-  });
-
   // 1) auth.users を物理削除（GDPR の核心: ログイン情報と Auth 側 PII を消す）。
   //    最も失敗しやすい外部呼び出しを先に行い、失敗時は何も変更せず復帰できるようにする。
   const admin = createAdminClient();
@@ -179,14 +222,15 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     data: { email: anonymizedEmail, displayName: null },
   });
 
-  // 3) 監査ログに退会を記録（誰がいつ退会したか）。
+  // 3) 監査ログに退会を記録する。誰がいつ退会したかは userId で追える。
+  //    退会は本人の PII を消すことが目的なので、元メール・元表示名は監査ログにも残さない。
+  //    ここに残すと、auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
+  //    無期限で PII を保持することになってしまうため（プライバシーポリシー第6条参照）。
   await createAuditLog({
     userId: user.id,
-    userEmail: before?.email ?? undefined,
     action: "WITHDRAW_USER",
     targetType: TARGET_TYPE.PROFILE,
     targetId: user.id,
-    before,
     after: { email: anonymizedEmail, displayName: null },
   });
 

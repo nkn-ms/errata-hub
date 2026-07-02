@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Footer } from "@/components/footer";
 import { site } from "@/constants/site";
@@ -35,6 +37,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <div className="flex-1">{children}</div>
         <Footer />
+        {/* Vercel Web Analytics（Cookieレス）。プライバシーポリシー第5条2項と対応。 */}
+        <Analytics />
+        {/* Vercel Speed Insights（実ユーザーの Core Web Vitals 計測）。 */}
+        <SpeedInsights />
       </body>
     </html>
   );

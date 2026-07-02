@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { site } from "@/constants/site";
+import { routes } from "@/constants/routes";
 
 // GitHub マーク。lucide-react はブランドアイコンを廃止したため公式マークをインラインで持つ。
 function GithubMark({ className }: { className?: string }) {
@@ -31,8 +33,20 @@ export function Footer() {
           </div>
 
           {/* ヘッダー(sticky)が常時ナビを提供するため、フッターは重複させず
-              ヘッダーに無いメタ系リンクのみ置く（将来: 利用規約・プライバシーポリシー）。 */}
+              ヘッダーに無いメタ系リンク（法務・ソース）のみ置く。 */}
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <Link
+              href={routes.terms}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              利用規約
+            </Link>
+            <Link
+              href={routes.privacy}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              プライバシーポリシー
+            </Link>
             <a
               href={site.repoUrl}
               target="_blank"
