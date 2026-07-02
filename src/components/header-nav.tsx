@@ -10,6 +10,10 @@ import { logout } from "@/app/actions/auth";
 export function HeaderNav({ userName }: { userName: string | null }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  // デスクトップのユーザーメニュー（表示名クリックで開閉）。ログアウトをここに集約し、
+  // 主 CTA「投稿する」の真横に並べないことで誤操作を防ぐ。
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const closeUserMenu = () => setUserMenuOpen(false);
 
   return (
     <div className="relative flex items-center gap-3">
@@ -27,23 +31,66 @@ export function HeaderNav({ userName }: { userName: string | null }) {
         使用技術
       </Link>
       {userName ? (
-        <>
-          <Link
-            href={routes.account}
-            className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        <div className="hidden sm:block relative">
+          <button
+            type="button"
+            onClick={() => setUserMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
-            アカウント
-          </Link>
-          <span className="hidden sm:block text-xs text-gray-500">{userName}</span>
-          <form action={logout} className="hidden sm:block">
-            <button
-              type="submit"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            <span className="max-w-[10rem] truncate">{userName}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
             >
-              ログアウト
-            </button>
-          </form>
-        </>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {userMenuOpen && (
+            <>
+              {/* 外側クリックで閉じる透明バックドロップ */}
+              <button
+                type="button"
+                aria-hidden="true"
+                tabIndex={-1}
+                onClick={closeUserMenu}
+                className="fixed inset-0 z-10 cursor-default"
+              />
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg z-20"
+              >
+                <Link
+                  href={routes.account}
+                  onClick={closeUserMenu}
+                  role="menuitem"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  アカウント設定
+                </Link>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    role="menuitem"
+                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    ログアウト
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
       ) : (
         <>
           <Link
@@ -130,7 +177,7 @@ export function HeaderNav({ userName }: { userName: string | null }) {
                 onClick={close}
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
-                アカウント
+                アカウント設定
               </Link>
               <form action={logout}>
                 <button
