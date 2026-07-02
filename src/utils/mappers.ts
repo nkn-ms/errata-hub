@@ -7,6 +7,7 @@ type PrismaReportWithRelations = PrismaReport & {
   book: Book & { publisher: Publisher | null };
   images: ReportImage[];
   user?: Pick<Profile, "displayName" | "email"> | null;
+  _count?: { upvotes: number };
 };
 
 export function mapReport(f: PrismaReportWithRelations): Report {
@@ -45,6 +46,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     fixedEdition: f.fixedEdition ?? undefined,
     fixedPrinting: f.fixedPrinting ?? undefined,
     createdAt: f.createdAt.toISOString().split("T")[0],
+    upvoteCount: f._count?.upvotes ?? 0,
   };
 }
 
