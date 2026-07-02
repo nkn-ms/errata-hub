@@ -110,7 +110,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### 削除と退会（別々の2系統）
 - **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（将来は画像ファイル実体も削除に統合）。実装済 `DELETE /api/reports/[id]`（ADMIN限定）。
-- **ユーザー退会（GDPR）= 投稿者の匿名化（未実装）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。検証は余剰テストアカウント(test2)で。
+- **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
 
 ### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
 - onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意 = **SetNull**。
@@ -122,7 +122,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### 認証エラー表示・パスワード再発行
 - ログイン失敗は**汎用文言**「メールアドレスまたはパスワードが正しくありません」（アカウント列挙対策。実装済）。どちらが違うか・登録の有無は明かさない。
-- 親切さは「パスワードをお忘れですか？」リンク＋再発行フロー（`/auth/reset-password`・未実装TODO）で担保。再発行完了画面も登録有無を明かさない文言にする。
+- 親切さは「パスワードをお忘れですか？」リンク＋再発行フロー（`/auth/reset-password`・実装済）で担保。再発行完了画面も登録有無を明かさない文言にしている。
 
 ### ローカル開発環境
 - **Supabase CLI ローカル（`supabase start`・Docker）= Auth(GoTrue)+DB+Storage+Studio+Inbucket の完全ミラー**を使う。素の Postgres コンテナ不可（このアプリは Supabase Auth で login/register/PKCE するため）。`.env.local` で切替。リリース前に構築し本番との齟齬を確認（Prisma Migrate 移行・書き込み系 e2e もここで安全に）。
