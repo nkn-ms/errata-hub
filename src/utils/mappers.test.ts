@@ -95,6 +95,11 @@ describe("mapReport", () => {
     expect(r.isbn).toBe("9784000000000");
   });
 
+  it("賛同数（_count.upvotes）を upvoteCount に写す。_count が無ければ 0", () => {
+    expect(mapReport(buildPrismaReport({ _count: { upvotes: 5 } })).upvoteCount).toBe(5);
+    expect(mapReport(buildPrismaReport()).upvoteCount).toBe(0);
+  });
+
   it("publisher が無ければ空文字にする", () => {
     const r = mapReport(
       buildPrismaReport({

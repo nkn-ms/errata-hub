@@ -4,6 +4,9 @@ import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/re
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+import { UpvoteButton } from "@/components/upvote-button";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -23,6 +26,17 @@ export default async function ReportDetailPage({ params }: Props) {
   if (!raw) notFound();
 
   const report = mapReport(raw);
+
+  // 賛同ボタンの初期状態: 閲覧者の立場（未ログイン/投稿者本人/他ユーザー）と賛同済みか
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const viewer = !user ? "guest" : user.id === report.userId ? "owner" : "user";
+  const upvoted = user
+    ? (await prisma.upvote.findUnique({
+        where: { reportId_profileId: { reportId: report.id, profileId: user.id } },
+        select: { id: true },
+      })) !== null
+    : false;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -192,6 +206,17 @@ export default async function ReportDetailPage({ params }: Props) {
               より修正されました
             </div>
           )}
+
+          {/* 賛同 */}
+          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+            <UpvoteButton
+              reportId={report.id}
+              initialCount={report.upvoteCount}
+              initialUpvoted={upvoted}
+              viewer={viewer}
+            />
+            <span className="text-xs text-gray-500">同じ誤りを見つけた方は賛同で知らせられます</span>
+          </div>
 
           {/* 出版社コメント */}
           {report.publisherComment && (

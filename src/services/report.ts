@@ -13,6 +13,7 @@ export const reportInclude = {
   images: true,
   // email は退会判定（匿名化メールか）にのみ使い、クライアントへは渡さない（mapReport で破棄）。
   user: { select: { displayName: true, email: true } },
+  _count: { select: { upvotes: true } },
 } satisfies Prisma.ReportInclude;
 
 export type ReportWithRelations = Prisma.ReportGetPayload<{

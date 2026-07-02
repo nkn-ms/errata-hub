@@ -41,5 +41,6 @@ export type Report = {
   fixedEdition?: number;
   fixedPrinting?: number;
   createdAt: string;
+  upvoteCount: number;
 };
 

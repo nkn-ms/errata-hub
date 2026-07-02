@@ -50,6 +50,7 @@ model Profile {
   updatedAt      DateTime         @updatedAt
   publisherAccess PublisherAccess[]
   reports      Report[]
+  upvotes      Upvote[]
 }
 
 model Publisher {
@@ -114,6 +115,19 @@ model Report {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   images           ReportImage[]
+  upvotes          Upvote[]
+}
+
+// 賛同 — 「自分も同じ誤りを見つけた」の意思表示。1ユーザー1投稿につき1回（@@unique で担保）
+model Upvote {
+  id        String   @id @default(uuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([reportId, profileId])
 }
 
 // 操作ログ — 誰が・いつ・何を・どう変えたかを記録

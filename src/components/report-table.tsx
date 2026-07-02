@@ -139,6 +139,18 @@ const columns: ColumnDef<Report>[] = [
       filterValue === "all" || row.original.status === filterValue,
   },
   {
+    accessorKey: "upvoteCount",
+    header: "賛同",
+    cell: ({ getValue }) => {
+      const count = getValue() as number;
+      return count > 0 ? (
+        <div className="text-sm text-gray-700 whitespace-nowrap">👍 {count}</div>
+      ) : (
+        <span className="text-xs text-gray-400">-</span>
+      );
+    },
+  },
+  {
     accessorKey: "userName",
     header: "投稿者",
     cell: ({ row }) =>
