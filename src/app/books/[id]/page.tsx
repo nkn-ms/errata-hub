@@ -4,6 +4,7 @@ import { mapReport } from "@/utils/mappers";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { routes } from "@/constants/routes";
 
 type Props = {
@@ -43,7 +44,8 @@ export default async function BookDetailPage({ params }: Props) {
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex gap-5">
             {book.coverImageUrl && (
-              <img src={book.coverImageUrl} alt={book.title} className="w-24 h-auto object-cover rounded shadow-sm shrink-0" />
+              // 書影は外部API由来でホストが可変のため unoptimized（remotePatterns 未登録ホストで落ちない）
+              <Image src={book.coverImageUrl} alt={book.title} width={96} height={134} unoptimized className="w-24 h-auto object-cover rounded shadow-sm shrink-0" />
             )}
             <div>
               <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>

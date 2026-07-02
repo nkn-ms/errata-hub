@@ -3,6 +3,7 @@ import { mapReport } from "@/utils/mappers";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -91,7 +92,8 @@ export default async function ReportDetailPage({ params }: Props) {
           {/* 書籍情報 */}
           <div className="flex gap-4 p-4 bg-gray-50 rounded-md">
             {report.coverImage && (
-              <img src={report.coverImage} alt={report.bookTitle} className="w-16 h-auto object-cover rounded shadow-sm" />
+              // 書影は外部API由来でホストが可変のため unoptimized（remotePatterns 未登録ホストで落ちない）
+              <Image src={report.coverImage} alt={report.bookTitle} width={64} height={90} unoptimized className="w-16 h-auto object-cover rounded shadow-sm" />
             )}
             <div>
               <Link href={routes.book(report.bookId)} className="font-medium text-blue-700 hover:underline">
@@ -186,9 +188,12 @@ export default async function ReportDetailPage({ params }: Props) {
               <div className="flex flex-wrap gap-3">
                 {raw.images.map((img) => (
                   <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
-                    <img
+                    <Image
                       src={img.imageUrl}
                       alt="証拠画像"
+                      width={128}
+                      height={180}
+                      unoptimized
                       className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
                     />
                   </a>
