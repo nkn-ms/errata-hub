@@ -17,4 +17,13 @@ test.describe("ログイン済み（読み取りのみ）", () => {
     await expect(page).toHaveURL(/\/submit$/);
     await expect(page.getByRole("heading", { name: "投稿する" })).toBeVisible();
   });
+
+  test("ヘッダーにメールではなく表示名が出る", async ({ page }) => {
+    await page.goto("/");
+    const header = page.locator("header");
+    const email = process.env.E2E_TEST_EMAIL!;
+    // 今回の修正点: ログイン中のメールアドレスをヘッダーに出さない。
+    await expect(header).not.toContainText(email);
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  });
 });
