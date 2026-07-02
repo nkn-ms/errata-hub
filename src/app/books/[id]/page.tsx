@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { reportInclude } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
@@ -10,10 +12,9 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default async function BookDetailPage({ params }: Props) {
-  const { id } = await params;
-
-  const book = await prisma.book.findUnique({
+// generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
+const getBook = cache((id: string) =>
+  prisma.book.findUnique({
     where: { id },
     include: {
       publisher: true,
@@ -22,7 +23,24 @@ export default async function BookDetailPage({ params }: Props) {
         orderBy: { createdAt: "desc" },
       },
     },
-  });
+  })
+);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const book = await getBook(id);
+  if (!book) return { title: "書籍が見つかりません | Errata Hub" };
+
+  return {
+    title: `${book.title} の正誤情報・改善提案 | Errata Hub`,
+    description: `${book.title} に読者から投稿された正誤情報・改善提案の一覧（${book.reports.length}件）。`,
+  };
+}
+
+export default async function BookDetailPage({ params }: Props) {
+  const { id } = await params;
+
+  const book = await getBook(id);
 
   if (!book) notFound();
 

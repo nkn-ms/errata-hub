@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { findReportById } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
@@ -12,6 +14,21 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
+// generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
+const getReport = cache(findReportById);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const raw = await getReport(id);
+  if (!raw) return { title: "投稿が見つかりません | Errata Hub" };
+
+  const report = mapReport(raw);
+  return {
+    title: `${report.title} | Errata Hub`,
+    description: `${report.bookTitle} への${report.type}の投稿。`,
+  };
+}
+
 const typeColors: Record<string, string> = {
   正誤情報: "bg-purple-100 text-purple-700",
   改善提案: "bg-cyan-100 text-cyan-700",
@@ -21,7 +38,7 @@ const typeColors: Record<string, string> = {
 export default async function ReportDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const raw = await findReportById(id);
+  const raw = await getReport(id);
 
   if (!raw) notFound();
 
