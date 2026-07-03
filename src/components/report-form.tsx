@@ -46,6 +46,7 @@ export function ReportForm() {
     if (!book) { setError("書籍を選択してください"); return; }
     if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
+    if (medium === "PAPER" && !edition) { setError("版を入力してください"); return; }
     if (medium === "PAPER" && !page) { setError("ページ番号を入力してください"); return; }
     if (medium === "EBOOK" && !ebookLocation.trim()) { setError("位置を入力してください"); return; }
     if (medium === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
@@ -131,9 +132,12 @@ export function ReportForm() {
         </div>
 
         {isPaper && (
+        <div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">版</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              版 <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               min={1}
@@ -144,7 +148,7 @@ export function ReportForm() {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">刷</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">刷（任意）</label>
             <input
               type="number"
               min={1}
@@ -154,6 +158,8 @@ export function ReportForm() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+        <p className="mt-1.5 text-xs text-gray-400">版・刷は奥付（本の最後のページ）に記載されています。</p>
         </div>
         )}
       </section>

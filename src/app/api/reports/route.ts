@@ -44,6 +44,9 @@ const ReportSchema = z.object({
   } else if (!data.content?.trim()) {
     ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });
   }
+  if (data.medium === "PAPER" && data.edition == null) {
+    ctx.addIssue({ code: "custom", path: ["edition"], message: "版は必須です" });
+  }
   if (data.medium === "PAPER" && data.page == null) {
     ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号は必須です" });
   }
