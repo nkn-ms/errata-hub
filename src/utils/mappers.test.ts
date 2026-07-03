@@ -11,7 +11,7 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
     userId: "abcdef0123456789",
     title: "誤植の報告",
     type: "ERRATA",
-    locationType: "PAGE",
+    medium: "PAPER",
     status: "PENDING",
     edition: null,
     printing: null,
@@ -19,7 +19,7 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
     line: 3,
     hasMultiplePages: false,
     locationNote: null,
-    kindleLocation: null,
+    ebookLocation: null,
     wrong: "誤",
     correct: "正",
     content: null,
@@ -43,17 +43,11 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
 }
 
 describe("mapReport", () => {
-  it("Prisma enum を日本語ラベルへ変換する", () => {
+  it("type / medium / status は enum 値のまま通す（日本語化は表示層の責務）", () => {
     const r = mapReport(buildPrismaReport());
-    expect(r.type).toBe("正誤情報");
-    expect(r.locationType).toBe("紙の書籍");
-    expect(r.status).toBe("未対応");
-  });
-
-  it("type の3種をそれぞれ変換する", () => {
-    expect(mapReport(buildPrismaReport({ type: "ERRATA" })).type).toBe("正誤情報");
-    expect(mapReport(buildPrismaReport({ type: "SUGGESTION" })).type).toBe("改善提案");
-    expect(mapReport(buildPrismaReport({ type: "OTHER" })).type).toBe("その他");
+    expect(r.type).toBe("ERRATA");
+    expect(r.medium).toBe("PAPER");
+    expect(r.status).toBe("PENDING");
   });
 
   it("displayName が無ければ匿名にフォールバックする", () => {

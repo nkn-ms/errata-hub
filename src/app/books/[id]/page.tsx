@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { reportInclude } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -111,10 +111,10 @@ export default async function BookDetailPage({ params }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                        title={STATUS_TOOLTIPS[report.status]}
                       >
-                        {report.status}
+                        {STATUS_LABELS[report.status]}
                       </span>
                     </div>
                     <p className="font-medium text-gray-900 truncate">{report.title}</p>
@@ -134,7 +134,7 @@ export default async function BookDetailPage({ params }: Props) {
                     <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
                   </div>
                 </div>
-                {report.status === "修正済み" && (report.fixedEdition || report.fixedPrinting) && (
+                {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
                   <p className="mt-2 text-xs text-green-700">
                     ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
                     {report.fixedEdition && report.fixedPrinting && " "}

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { findReportsByUser } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
@@ -9,12 +10,6 @@ import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 
 type Props = {
   params: Promise<{ id: string }>;
-};
-
-const typeColors: Record<string, string> = {
-  正誤情報: "bg-purple-100 text-purple-700",
-  改善提案: "bg-cyan-100 text-cyan-700",
-  その他: "bg-gray-100 text-gray-600",
 };
 
 export default async function UserDetailPage({ params }: Props) {
@@ -64,8 +59,8 @@ export default async function UserDetailPage({ params }: Props) {
 
   const stats = {
     total: mapped.length,
-    fixed: mapped.filter((f) => f.status === "修正済み").length,
-    pending: mapped.filter((f) => f.status === "未対応").length,
+    fixed: mapped.filter((f) => f.status === "FIXED").length,
+    pending: mapped.filter((f) => f.status === "PENDING").length,
   };
 
   return (
@@ -154,14 +149,14 @@ export default async function UserDetailPage({ params }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[report.type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {report.type}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type] ?? "bg-gray-100 text-gray-600"}`}>
+                        {TYPE_LABELS[report.type]}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                        title={STATUS_TOOLTIPS[report.status]}
                       >
-                        {report.status}
+                        {STATUS_LABELS[report.status]}
                       </span>
                     </div>
                     <p className="font-medium text-gray-900 truncate">{report.title}</p>

@@ -1,15 +1,9 @@
-export type ReportType = "正誤情報" | "改善提案" | "その他";
-export type StatusType =
-  | "未対応"
-  | "出版社へ送信済み"
-  | "出版社確認中"
-  | "出版社回答済み"
-  | "修正予定"
-  | "修正済み"
-  | "対応なし"
-  | "却下";
-export type LocationType = "紙の書籍" | "電子書籍" | "その他";
+import type { ReportType, ReportStatus, Medium } from "@/generated/prisma/client";
 
+export type { ReportType, ReportStatus, Medium };
+
+// クライアントへ渡す表示用の Report。type / medium / status は Prisma enum 値のまま持ち、
+// 日本語ラベルは constants/report-labels.ts・report-status.ts で表示直前に引く。
 export type Report = {
   id: string;
   bookId: string;
@@ -26,21 +20,20 @@ export type Report = {
   edition?: number;
   printing?: number;
   type: ReportType;
-  locationType: LocationType;
+  medium: Medium;
   page?: number;
   line?: number;
   hasMultiplePages?: boolean;
   locationNote?: string;
-  kindleLocation?: string;
+  ebookLocation?: string;
   wrong?: string;
   correct?: string;
   content?: string;
   note?: string;
   publisherComment?: string;
-  status: StatusType;
+  status: ReportStatus;
   fixedEdition?: number;
   fixedPrinting?: number;
   createdAt: string;
   upvoteCount: number;
 };
-

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
 import { routes } from "@/constants/routes";
+import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 
 type BookData = {
   googleBooksId: string;
@@ -15,13 +16,7 @@ type BookData = {
 };
 
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
-type LocationType = "PAGE" | "KINDLE" | "OTHER";
-
-const typeLabels: Record<ReportType, string> = {
-  ERRATA: "正誤情報",
-  SUGGESTION: "改善提案",
-  OTHER: "その他",
-};
+type Medium = "PAPER" | "EBOOK" | "OTHER";
 
 export function ReportForm() {
   const router = useRouter();
@@ -29,12 +24,12 @@ export function ReportForm() {
   const [edition, setEdition] = useState("");
   const [printing, setPrinting] = useState("");
   const [reportType, setReportType] = useState<ReportType>("ERRATA");
-  const [locationType, setLocationType] = useState<LocationType>("PAGE");
+  const [medium, setMedium] = useState<Medium>("PAPER");
   const [page, setPage] = useState("");
   const [line, setLine] = useState("");
   const [hasMultiplePages, setHasMultiplePages] = useState(false);
   const [locationNote, setLocationNote] = useState("");
-  const [kindleLocation, setKindleLocation] = useState("");
+  const [ebookLocation, setEbookLocation] = useState("");
   const [title, setTitle] = useState("");
   const [wrong, setWrong] = useState("");
   const [correct, setCorrect] = useState("");
@@ -44,16 +39,17 @@ export function ReportForm() {
   const [error, setError] = useState("");
 
   const isErrataType = reportType === "ERRATA";
-  const isPaper = locationType === "PAGE";
+  const isPaper = medium === "PAPER";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!book) { setError("書籍を選択してください"); return; }
     if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
-    if (locationType === "PAGE" && !page) { setError("ページ番号を入力してください"); return; }
-    if (locationType === "KINDLE" && !kindleLocation.trim()) { setError("位置を入力してください"); return; }
-    if (locationType === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
+    if (medium === "PAPER" && !edition) { setError("版を入力してください"); return; }
+    if (medium === "PAPER" && !page) { setError("ページ番号を入力してください"); return; }
+    if (medium === "EBOOK" && !ebookLocation.trim()) { setError("位置を入力してください"); return; }
+    if (medium === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
     if (isErrataType) {
       if (!wrong.trim()) { setError("誤（該当箇所）を入力してください"); return; }
       if (!correct.trim()) { setError("正（正しい内容）を入力してください"); return; }
@@ -75,12 +71,12 @@ export function ReportForm() {
           printing: isPaper && printing ? parseInt(printing) : null,
           title,
           type: reportType,
-          locationType,
+          medium,
           page: isPaper && page ? parseInt(page) : null,
           line: isPaper && line ? parseInt(line) : null,
           hasMultiplePages: isPaper && hasMultiplePages,
-          locationNote: locationType === "KINDLE" ? null : locationNote || null,
-          kindleLocation: locationType === "KINDLE" ? kindleLocation : null,
+          locationNote: medium === "EBOOK" ? null : locationNote || null,
+          ebookLocation: medium === "EBOOK" ? ebookLocation : null,
           wrong: isErrataType ? wrong : null,
           correct: isErrataType ? correct : null,
           content: isErrataType ? null : content,
@@ -113,22 +109,22 @@ export function ReportForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">読んだ媒体</label>
           <div className="flex flex-wrap gap-2">
-            {(["PAGE", "KINDLE", "OTHER"] as LocationType[]).map((t) => (
+            {(Object.keys(MEDIUM_LABELS) as Medium[]).map((m) => (
               <button
-                key={t}
+                key={m}
                 type="button"
-                onClick={() => setLocationType(t)}
+                onClick={() => setMedium(m)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  locationType === t
+                  medium === m
                     ? "bg-gray-900 text-white border-gray-900"
                     : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
                 }`}
               >
-                {t === "PAGE" ? "紙の書籍" : t === "KINDLE" ? "電子書籍" : "その他（PDF・Web資料など）"}
+                {MEDIUM_LABELS[m]}
               </button>
             ))}
           </div>
-          {locationType === "KINDLE" && (
+          {medium === "EBOOK" && (
             <p className="mt-2 text-xs text-blue-600">
               電子書籍は出版社の修正で内容が更新されることがあります。ダウンロード・更新した時期が分かれば備考に記載してください。
             </p>
@@ -136,9 +132,12 @@ export function ReportForm() {
         </div>
 
         {isPaper && (
+        <div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">版</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              版 <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               min={1}
@@ -149,7 +148,7 @@ export function ReportForm() {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">刷</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">刷（任意）</label>
             <input
               type="number"
               min={1}
@@ -159,6 +158,8 @@ export function ReportForm() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+        <p className="mt-1.5 text-xs text-gray-400">版・刷は奥付（本の最後のページ）に記載されています。</p>
         </div>
         )}
       </section>
@@ -183,7 +184,7 @@ export function ReportForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">種別</label>
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(typeLabels) as ReportType[]).map((t) => (
+            {(Object.keys(TYPE_LABELS) as ReportType[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -194,14 +195,14 @@ export function ReportForm() {
                     : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
                 }`}
               >
-                {typeLabels[t]}
+                {TYPE_LABELS[t]}
               </button>
             ))}
           </div>
         </div>
 
         {/* 位置情報（読んだ媒体に応じて入力欄が変わる） */}
-        {locationType === "PAGE" && (
+        {medium === "PAPER" && (
           <div className="space-y-3 pl-4 border-l-2 border-gray-200">
             <div className="flex gap-4">
               <div className="flex-1">
@@ -256,22 +257,22 @@ export function ReportForm() {
           </div>
         )}
 
-        {locationType === "KINDLE" && (
+        {medium === "EBOOK" && (
           <div className="pl-4 border-l-2 border-gray-200">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               位置 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              value={kindleLocation}
-              onChange={(e) => setKindleLocation(e.target.value)}
+              value={ebookLocation}
+              onChange={(e) => setEbookLocation(e.target.value)}
               placeholder="例: 位置No.1234、43%、p.42"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         )}
 
-        {locationType === "OTHER" && (
+        {medium === "OTHER" && (
           <div className="pl-4 border-l-2 border-gray-200">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               位置メモ <span className="text-red-500">*</span>

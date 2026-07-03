@@ -14,16 +14,11 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Report, ReportType } from "@/types/report";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
+import { Report, ReportType, ReportStatus } from "@/types/report";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-
-const typeColors: Record<ReportType, string> = {
-  正誤情報: "bg-purple-100 text-purple-700",
-  改善提案: "bg-cyan-100 text-cyan-700",
-  その他: "bg-gray-100 text-gray-600",
-};
 
 function Badge({ label, className }: { label: string; className: string }) {
   return (
@@ -34,8 +29,8 @@ function Badge({ label, className }: { label: string; className: string }) {
 }
 
 function getLocationLabel(report: Report): string {
-  if (report.locationType === "電子書籍") return `電子書籍 ${report.kindleLocation ?? ""}`;
-  if (report.locationType === "紙の書籍") {
+  if (report.medium === "EBOOK") return `電子書籍 ${report.ebookLocation ?? ""}`;
+  if (report.medium === "PAPER") {
     let label = `p.${report.page}`;
     if (report.line) label += ` l.${report.line}`;
     if (report.hasMultiplePages) label += " 他";
@@ -119,7 +114,7 @@ const columns: ColumnDef<Report>[] = [
     header: "種別",
     cell: ({ getValue }) => {
       const type = getValue() as ReportType;
-      return <Badge label={type} className={typeColors[type]} />;
+      return <Badge label={TYPE_LABELS[type]} className={TYPE_COLORS[type]} />;
     },
     filterFn: (row, _, filterValue) =>
       filterValue === "all" || row.original.type === filterValue,
@@ -128,10 +123,10 @@ const columns: ColumnDef<Report>[] = [
     accessorKey: "status",
     header: "ステータス",
     cell: ({ getValue }) => {
-      const status = getValue() as string;
+      const status = getValue() as ReportStatus;
       return (
-        <span title={STATUS_TOOLTIPS_BY_LABEL[status]}>
-          <Badge label={status} className={STATUS_COLORS_BY_LABEL[status] ?? "bg-gray-100 text-gray-700"} />
+        <span title={STATUS_TOOLTIPS[status]}>
+          <Badge label={STATUS_LABELS[status]} className={STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700"} />
         </span>
       );
     },
@@ -219,9 +214,9 @@ export function ReportTable({ data }: { data: Report[] }) {
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">種別：すべて</option>
-          <option value="正誤情報">正誤情報</option>
-          <option value="改善提案">改善提案</option>
-          <option value="その他">その他</option>
+          {(Object.entries(TYPE_LABELS) as [ReportType, string][]).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
         <select
           value={(columnFilters.find((f) => f.id === "status")?.value as string) ?? "all"}
@@ -234,14 +229,9 @@ export function ReportTable({ data }: { data: Report[] }) {
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">ステータス：すべて</option>
-          <option value="未対応">未対応</option>
-          <option value="出版社へ送信済み">出版社へ送信済み</option>
-          <option value="出版社確認中">出版社確認中</option>
-          <option value="出版社回答済み">出版社回答済み</option>
-          <option value="修正予定">修正予定</option>
-          <option value="修正済み">修正済み</option>
-          <option value="対応なし">対応なし</option>
-          <option value="却下">却下</option>
+          {(Object.entries(STATUS_LABELS) as [ReportStatus, string][]).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
         <span className="text-sm text-gray-500 ml-auto">
           {table.getFilteredRowModel().rows.length} 件

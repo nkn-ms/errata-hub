@@ -73,7 +73,7 @@ async function main() {
   });
   if ((await prisma.report.count({ where: { bookId: bookA.id } })) === 0) {
     await prisma.report.create({
-      data: { userId, bookId: bookA.id, title: "サンプル投稿", type: "ERRATA", locationType: "PAGE", page: 12, wrong: "誤りの例", correct: "正しい例" },
+      data: { userId, bookId: bookA.id, title: "サンプル投稿", type: "ERRATA", medium: "PAPER", edition: 1, page: 12, wrong: "誤りの例", correct: "正しい例" },
     });
   }
 

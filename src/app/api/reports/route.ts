@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { toCanonicalIsbn } from "@/utils/isbn";
-import { ReportType, LocationType } from "@/generated/prisma/client";
+import { ReportType, Medium } from "@/generated/prisma/client";
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。
 // 形式の正規化・検証は toCanonicalIsbn（ISBN-13 へ統一）で行う。
@@ -22,12 +22,12 @@ const ReportSchema = z.object({
   printing: z.number().int().positive().nullable().optional(),
   title: z.string().min(1, "タイトルは必須です"),
   type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
-  locationType: z.enum(["PAGE", "KINDLE", "OTHER"]),
+  medium: z.enum(["PAPER", "EBOOK", "OTHER"]),
   page: z.number().int().positive().nullable().optional(),
   line: z.number().int().positive().nullable().optional(),
   hasMultiplePages: z.boolean().optional(),
   locationNote: z.string().nullable().optional(),
-  kindleLocation: z.string().nullable().optional(),
+  ebookLocation: z.string().nullable().optional(),
   wrong: z.string().nullable().optional(),
   correct: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
@@ -44,13 +44,16 @@ const ReportSchema = z.object({
   } else if (!data.content?.trim()) {
     ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });
   }
-  if (data.locationType === "PAGE" && data.page == null) {
+  if (data.medium === "PAPER" && data.edition == null) {
+    ctx.addIssue({ code: "custom", path: ["edition"], message: "版は必須です" });
+  }
+  if (data.medium === "PAPER" && data.page == null) {
     ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号は必須です" });
   }
-  if (data.locationType === "KINDLE" && !data.kindleLocation?.trim()) {
-    ctx.addIssue({ code: "custom", path: ["kindleLocation"], message: "位置は必須です" });
+  if (data.medium === "EBOOK" && !data.ebookLocation?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["ebookLocation"], message: "位置は必須です" });
   }
-  if (data.locationType === "OTHER" && !data.locationNote?.trim()) {
+  if (data.medium === "OTHER" && !data.locationNote?.trim()) {
     ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
   }
 });
@@ -74,8 +77,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const { book, edition, printing, title, type, locationType, page, line,
-            hasMultiplePages, locationNote, kindleLocation, wrong, correct, content, note } = parsed.data;
+    const { book, edition, printing, title, type, medium, page, line,
+            hasMultiplePages, locationNote, ebookLocation, wrong, correct, content, note } = parsed.data;
 
     // ISBN-13 に正規化（ISBN-10 は変換、不正な ISBN は弾く）
     const canonicalIsbn = toCanonicalIsbn(book.isbn);
@@ -83,12 +86,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "ISBNが正しくありません" }, { status: 400 });
     }
 
-    // 出版社を検索または作成（無ければ作る）
+    // 出版社を名前で upsert（name は @unique — 同時投稿でも重複作成されない）
     let publisherId: string | null = null;
     if (book.publisher) {
-      const publisher =
-        (await prisma.publisher.findFirst({ where: { name: book.publisher } })) ??
-        (await prisma.publisher.create({ data: { name: book.publisher } }));
+      const publisher = await prisma.publisher.upsert({
+        where: { name: book.publisher },
+        update: {},
+        create: { name: book.publisher },
+      });
       publisherId = publisher.id;
     }
 
@@ -113,12 +118,12 @@ export async function POST(request: Request) {
         edition: edition ?? null,
         printing: printing ?? null,
         type: type as ReportType,
-        locationType: locationType as LocationType,
+        medium: medium as Medium,
         page: page ?? null,
         line: line ?? null,
         hasMultiplePages: hasMultiplePages ?? false,
         locationNote: locationNote ?? null,
-        kindleLocation: kindleLocation ?? null,
+        ebookLocation: ebookLocation ?? null,
         wrong: wrong ?? null,
         correct: correct ?? null,
         content: content ?? null,

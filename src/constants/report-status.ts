@@ -34,14 +34,6 @@ const STATUS_TOOLTIP_VALUES = {
   DISMISSED: "管理者が無効な投稿と判断しました。",
 } as const satisfies Record<ReportStatus, string>;
 
-// Prisma enum キーで参照（管理画面・API 側）
+// 公開側・管理側とも Prisma enum キーで参照する（日本語ラベルは表示直前に STATUS_LABELS で引く）
 export const STATUS_COLORS: Record<ReportStatus, string> = STATUS_COLOR_VALUES;
 export const STATUS_TOOLTIPS: Record<ReportStatus, string> = STATUS_TOOLTIP_VALUES;
-
-// 日本語ラベルで参照（公開側コンポーネント）
-export const STATUS_COLORS_BY_LABEL: Record<string, string> = Object.fromEntries(
-  (Object.keys(STATUS_LABELS) as ReportStatus[]).map((k) => [STATUS_LABELS[k], STATUS_COLOR_VALUES[k]])
-);
-export const STATUS_TOOLTIPS_BY_LABEL: Record<string, string> = Object.fromEntries(
-  (Object.keys(STATUS_LABELS) as ReportStatus[]).map((k) => [STATUS_LABELS[k], STATUS_TOOLTIP_VALUES[k]])
-);
