@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
+import { TYPE_LABELS } from "@/constants/report-labels";
 
 export default async function AdminReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,13 +15,10 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
 
   if (!report) notFound();
 
-  const TYPE_LABELS = {
-    ERRATA: "正誤情報", SUGGESTION: "改善提案", OTHER: "その他",
-  };
-  const locationText = report.locationType === "PAGE"
+  const locationText = report.medium === "PAPER"
     ? `p.${report.page}${report.line ? ` l.${report.line}` : ""}${report.hasMultiplePages ? " 他" : ""}`
-    : report.locationType === "KINDLE"
-    ? `電子書籍 ${report.kindleLocation}`
+    : report.medium === "EBOOK"
+    ? `電子書籍 ${report.ebookLocation}`
     : report.locationNote ?? "-";
 
   return (
@@ -44,7 +42,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           <dt className="text-gray-500">位置</dt>
           <dd>{locationText}</dd>
 
-          {report.locationNote && report.locationType === "PAGE" && (
+          {report.locationNote && report.medium === "PAPER" && (
             <>
               <dt className="text-gray-500">位置備考</dt>
               <dd>{report.locationNote}</dd>

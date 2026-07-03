@@ -2,7 +2,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { findReportById } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_COLORS_BY_LABEL, STATUS_TOOLTIPS_BY_LABEL } from "@/constants/report-status";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,15 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const report = mapReport(raw);
   return {
     title: `${report.title} | Errata Hub`,
-    description: `${report.bookTitle} への${report.type}の投稿。`,
+    description: `${report.bookTitle} への${TYPE_LABELS[report.type]}の投稿。`,
   };
 }
-
-const typeColors: Record<string, string> = {
-  正誤情報: "bg-purple-100 text-purple-700",
-  改善提案: "bg-cyan-100 text-cyan-700",
-  その他: "bg-gray-100 text-gray-600",
-};
 
 export default async function ReportDetailPage({ params }: Props) {
   const { id } = await params;
@@ -83,14 +78,14 @@ export default async function ReportDetailPage({ params }: Props) {
           {/* タイトルとバッジ */}
           <div>
             <div className="flex flex-wrap gap-2 mb-2">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[report.type]}`}>
-                {report.type}
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
+                {TYPE_LABELS[report.type]}
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS_BY_LABEL[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                title={STATUS_TOOLTIPS_BY_LABEL[report.status]}
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
+                title={STATUS_TOOLTIPS[report.status]}
               >
-                {report.status}
+                {STATUS_LABELS[report.status]}
               </span>
             </div>
             <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
@@ -134,7 +129,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               </div>
             )}
-            {report.locationType === "紙の書籍" && report.page && (
+            {report.medium === "PAPER" && report.page && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">位置</p>
                 <p className="text-gray-800">
@@ -144,10 +139,10 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               </div>
             )}
-            {report.locationType === "電子書籍" && report.kindleLocation && (
+            {report.medium === "EBOOK" && report.ebookLocation && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">位置（電子書籍）</p>
-                <p className="text-gray-800">{report.kindleLocation}</p>
+                <p className="text-gray-800">{report.ebookLocation}</p>
               </div>
             )}
             {report.locationNote && (
@@ -220,7 +215,7 @@ export default async function ReportDetailPage({ params }: Props) {
           )}
 
           {/* 修正済み情報 */}
-          {report.status === "修正済み" && (report.fixedEdition || report.fixedPrinting) && (
+          {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
             <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
               ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
               {report.fixedEdition && report.fixedPrinting && " "}

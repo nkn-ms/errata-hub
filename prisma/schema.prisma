@@ -19,14 +19,15 @@ enum ReportType {
   OTHER      // その他
 }
 
-enum LocationType {
-  PAGE
-  KINDLE
-  OTHER
+// 読んだ媒体。位置情報の入力欄はこれに応じて変わる（PAPER=ページ・行、EBOOK=位置No等、OTHER=自由記述）
+enum Medium {
+  PAPER // 紙の書籍
+  EBOOK // 電子書籍（Kindle等。版・刷を持たず同一商品に上書き配信される）
+  OTHER // PDF・Web資料など
 }
 
 enum ReportStatus {
-  PENDING     // 受付済み（管理者未確認）
+  PENDING     // 未対応（管理者未確認）
   FORWARDED   // 出版社へ送信済み（未回答）
   IN_REVIEW   // 出版社確認中（一次回答あり）
   REPLIED     // 出版社回答済み
@@ -55,11 +56,12 @@ model Profile {
 
 model Publisher {
   id              String           @id @default(uuid())
-  name            String
+  name            String           @unique // 名前で upsert して名寄せする（同時投稿での重複作成を防ぐ）
   email           String?
   emailDomain     String?          // 自動権限付与用ドメイン (例: "oreilly.co.jp")
   note            String?
   createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   books           Book[]
   publisherAccess PublisherAccess[]
 }
@@ -85,6 +87,7 @@ model Book {
   isbn          String     @unique // ISBN-13 に正規化して保存（本の同一性の基準）
   coverImageUrl String?
   createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   reports     Report[]
 }
 
@@ -98,12 +101,12 @@ model Report {
   edition          Int?
   printing         Int?
   type             ReportType
-  locationType     LocationType
-  page             Int?
-  line             Int?
-  hasMultiplePages Boolean        @default(false)
-  locationNote     String?
-  kindleLocation   String?
+  medium           Medium
+  page             Int?           // PAPER 用
+  line             Int?           // PAPER 用
+  hasMultiplePages Boolean        @default(false) // PAPER 用
+  locationNote     String?        // PAPER=補足（任意）/ OTHER=位置メモ（必須）
+  ebookLocation    String?        // EBOOK 用（位置No・%・ページ等の自由記述）
   wrong            String?
   correct          String?
   content          String?

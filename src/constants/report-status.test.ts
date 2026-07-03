@@ -3,8 +3,6 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   STATUS_TOOLTIPS,
-  STATUS_COLORS_BY_LABEL,
-  STATUS_TOOLTIPS_BY_LABEL,
 } from "@/constants/report-status";
 
 const STATUS_KEYS = Object.keys(STATUS_LABELS);
@@ -18,18 +16,9 @@ describe("report-status の定義", () => {
     }
   });
 
-  it("ラベルに重複がない（BY_LABEL マップが欠落しない）", () => {
+  it("ラベルに重複がない", () => {
     const labels = Object.values(STATUS_LABELS);
     expect(new Set(labels).size).toBe(labels.length);
-  });
-
-  it("BY_LABEL マップは enum 由来の値と一致する", () => {
-    for (const key of STATUS_KEYS) {
-      const k = key as keyof typeof STATUS_LABELS;
-      const label = STATUS_LABELS[k];
-      expect(STATUS_COLORS_BY_LABEL[label]).toBe(STATUS_COLORS[k]);
-      expect(STATUS_TOOLTIPS_BY_LABEL[label]).toBe(STATUS_TOOLTIPS[k]);
-    }
   });
 
   it("既知のラベルが期待どおり", () => {

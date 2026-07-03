@@ -1,13 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
+import { TYPE_LABELS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
-
-const TYPE_LABELS = {
-  ERRATA: "正誤情報",
-  SUGGESTION: "改善提案",
-  OTHER: "その他",
-} as const;
 
 export default async function AdminReportsPage() {
   const reports = await prisma.report.findMany({

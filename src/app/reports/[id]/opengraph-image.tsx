@@ -2,15 +2,18 @@ import { ImageResponse } from "next/og";
 import { findReportById } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
+import { TYPE_LABELS } from "@/constants/report-labels";
+import type { ReportType } from "@/types/report";
 
 export const alt = "投稿の概要";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
-const typeBadgeColors: Record<string, { bg: string; fg: string }> = {
-  正誤情報: { bg: "#f3e8ff", fg: "#7e22ce" },
-  改善提案: { bg: "#cffafe", fg: "#0e7490" },
-  その他: { bg: "#f3f4f6", fg: "#4b5563" },
+// OG 画像は Tailwind が使えないため hex 指定（TYPE_COLORS の OG 版）
+const typeBadgeColors: Record<ReportType, { bg: string; fg: string }> = {
+  ERRATA: { bg: "#f3e8ff", fg: "#7e22ce" },
+  SUGGESTION: { bg: "#cffafe", fg: "#0e7490" },
+  OTHER: { bg: "#f3f4f6", fg: "#4b5563" },
 };
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
@@ -21,10 +24,11 @@ export default async function Image({ params }: { params: Promise<{ id: string }
 
   const title = report?.title ?? "投稿が見つかりません";
   const bookLine = report ? [report.bookTitle, report.publisher].filter(Boolean).join(" / ") : "";
-  const type = report?.type ?? "その他";
-  const badge = typeBadgeColors[type] ?? typeBadgeColors["その他"];
+  const type: ReportType = report?.type ?? "OTHER";
+  const typeLabel = TYPE_LABELS[type];
+  const badge = typeBadgeColors[type];
 
-  const fontData = await loadJapaneseFont(`Errata Hub${title}${bookLine}${type}`);
+  const fontData = await loadJapaneseFont(`Errata Hub${title}${bookLine}${typeLabel}`);
 
   return new ImageResponse(
     (
@@ -49,7 +53,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               fontSize: 32,
             }}
           >
-            {type}
+            {typeLabel}
           </div>
         </div>
         <div
