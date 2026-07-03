@@ -12,6 +12,10 @@ import { PrismaClient } from "../src/generated/prisma/client";
 const ADMIN_EMAIL = "admin@local.test";
 const ADMIN_PASSWORD = "password123"; // ローカル専用の捨てアカウント
 
+// 一般ユーザー（管理者の投稿への賛同など「他人の投稿」が要るテストで使う）
+const READER_EMAIL = "reader@local.test";
+const READER_PASSWORD = "password123";
+
 function getLocalSupabase() {
   let raw: string;
   try {
@@ -36,28 +40,37 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1) 管理者ユーザー（既にいれば再利用）
-  let userId: string;
-  const created = await admin.auth.admin.createUser({
-    email: ADMIN_EMAIL,
-    password: ADMIN_PASSWORD,
-    email_confirm: true,
-    user_metadata: { display_name: "ローカル管理者" },
-  });
-  if (created.error) {
-    const { data } = await admin.auth.admin.listUsers();
-    const found = data.users.find((u) => u.email === ADMIN_EMAIL);
-    if (!found) throw created.error;
-    userId = found.id;
-  } else {
-    userId = created.data.user!.id;
+  // 確認済みユーザーを作成（既にいれば再利用）して id を返す
+  async function ensureUser(email: string, password: string, displayName: string): Promise<string> {
+    const created = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { display_name: displayName },
+    });
+    if (created.error) {
+      const { data } = await admin.auth.admin.listUsers();
+      const found = data.users.find((u) => u.email === email);
+      if (!found) throw created.error;
+      return found.id;
+    }
+    return created.data.user!.id;
   }
 
-  // 2) Profile（ADMIN）
+  // 1) 管理者ユーザー＋一般ユーザー
+  const userId = await ensureUser(ADMIN_EMAIL, ADMIN_PASSWORD, "ローカル管理者");
+  const readerId = await ensureUser(READER_EMAIL, READER_PASSWORD, "ローカル読者");
+
+  // 2) Profile（ADMIN / USER）
   await prisma.profile.upsert({
     where: { id: userId },
     update: { role: "ADMIN", email: ADMIN_EMAIL, displayName: "ローカル管理者" },
     create: { id: userId, email: ADMIN_EMAIL, displayName: "ローカル管理者", role: "ADMIN" },
+  });
+  await prisma.profile.upsert({
+    where: { id: readerId },
+    update: { role: "USER", email: READER_EMAIL, displayName: "ローカル読者" },
+    create: { id: readerId, email: READER_EMAIL, displayName: "ローカル読者", role: "USER" },
   });
 
   // 3) 出版社
@@ -86,6 +99,7 @@ async function main() {
 
   console.log("✓ seed 完了");
   console.log(`  管理者ログイン: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+  console.log(`  一般ユーザー: ${READER_EMAIL} / ${READER_PASSWORD}`);
   console.log("  出版社: オーム社 / 本: Web API(投稿1) ・ マスタリングTCP/IP(投稿0)");
 
   await prisma.$disconnect();
