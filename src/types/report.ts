@@ -8,7 +8,7 @@ export type StatusType =
   | "修正済み"
   | "対応なし"
   | "却下";
-export type LocationType = "ページ" | "Kindle" | "その他";
+export type LocationType = "紙の書籍" | "電子書籍" | "その他";
 
 export type Report = {
   id: string;

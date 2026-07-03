@@ -134,7 +134,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               </div>
             )}
-            {report.locationType === "ページ" && report.page && (
+            {report.locationType === "紙の書籍" && report.page && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">位置</p>
                 <p className="text-gray-800">
@@ -144,9 +144,9 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               </div>
             )}
-            {report.locationType === "Kindle" && report.kindleLocation && (
+            {report.locationType === "電子書籍" && report.kindleLocation && (
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Kindle位置</p>
+                <p className="text-xs text-gray-500 mb-0.5">位置（電子書籍）</p>
                 <p className="text-gray-800">{report.kindleLocation}</p>
               </div>
             )}

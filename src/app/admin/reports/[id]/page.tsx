@@ -20,7 +20,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
   const locationText = report.locationType === "PAGE"
     ? `p.${report.page}${report.line ? ` l.${report.line}` : ""}${report.hasMultiplePages ? " 他" : ""}`
     : report.locationType === "KINDLE"
-    ? `Kindle ${report.kindleLocation}`
+    ? `電子書籍 ${report.kindleLocation}`
     : report.locationNote ?? "-";
 
   return (

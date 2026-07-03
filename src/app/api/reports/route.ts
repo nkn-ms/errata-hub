@@ -32,6 +32,27 @@ const ReportSchema = z.object({
   correct: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   note: z.string().nullable().optional(),
+}).superRefine((data, ctx) => {
+  // 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（API 直叩き対策）。
+  if (data.type === "ERRATA") {
+    if (!data.wrong?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["wrong"], message: "誤（該当箇所）は必須です" });
+    }
+    if (!data.correct?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）は必須です" });
+    }
+  } else if (!data.content?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });
+  }
+  if (data.locationType === "PAGE" && data.page == null) {
+    ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号は必須です" });
+  }
+  if (data.locationType === "KINDLE" && !data.kindleLocation?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["kindleLocation"], message: "位置は必須です" });
+  }
+  if (data.locationType === "OTHER" && !data.locationNote?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
+  }
 });
 
 // 一覧取得はサーバーコンポーネントから services/report の findRecentReports を直接呼ぶため、

@@ -46,7 +46,7 @@ describe("mapReport", () => {
   it("Prisma enum を日本語ラベルへ変換する", () => {
     const r = mapReport(buildPrismaReport());
     expect(r.type).toBe("正誤情報");
-    expect(r.locationType).toBe("ページ");
+    expect(r.locationType).toBe("紙の書籍");
     expect(r.status).toBe("未対応");
   });
 
