@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 
 // 書き込み系（投稿・賛同）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project は BASE_URL がローカルのときだけ有効）。
@@ -10,9 +11,6 @@ import { test, expect, type Page } from "@playwright/test";
 //
 // 外部書誌API（OpenBD / Google Books）はモックする。書誌データの取得自体はテスト対象外で、
 // 外部依存によるflakinessを避けるため。
-
-const ADMIN = { email: "admin@local.test", password: "password123" };
-const READER = { email: "reader@local.test", password: "password123" };
 
 // シードの本B（投稿なし）。投稿作成テストで使い、終了時に投稿を削除して元の状態に戻す。
 const BOOK_B = {
