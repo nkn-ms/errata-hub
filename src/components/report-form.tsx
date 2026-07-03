@@ -44,6 +44,7 @@ export function ReportForm() {
   const [error, setError] = useState("");
 
   const isErrataType = reportType === "ERRATA";
+  const isPaper = locationType === "PAGE";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +52,14 @@ export function ReportForm() {
     if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
     if (locationType === "PAGE" && !page) { setError("ページ番号を入力してください"); return; }
+    if (locationType === "KINDLE" && !kindleLocation.trim()) { setError("位置を入力してください"); return; }
+    if (locationType === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
+    if (isErrataType) {
+      if (!wrong.trim()) { setError("誤（該当箇所）を入力してください"); return; }
+      if (!correct.trim()) { setError("正（正しい内容）を入力してください"); return; }
+    } else if (!content.trim()) {
+      setError("内容・提案を入力してください"); return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -59,21 +68,22 @@ export function ReportForm() {
       const res = await fetch(routes.api.reports, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
         body: JSON.stringify({
           book,
-          edition: edition ? parseInt(edition) : null,
-          printing: printing ? parseInt(printing) : null,
+          edition: isPaper && edition ? parseInt(edition) : null,
+          printing: isPaper && printing ? parseInt(printing) : null,
           title,
           type: reportType,
           locationType,
-          page: page ? parseInt(page) : null,
-          line: line ? parseInt(line) : null,
-          hasMultiplePages,
-          locationNote: locationNote || null,
-          kindleLocation: kindleLocation || null,
-          wrong: wrong || null,
-          correct: correct || null,
-          content: content || null,
+          page: isPaper && page ? parseInt(page) : null,
+          line: isPaper && line ? parseInt(line) : null,
+          hasMultiplePages: isPaper && hasMultiplePages,
+          locationNote: locationType === "KINDLE" ? null : locationNote || null,
+          kindleLocation: locationType === "KINDLE" ? kindleLocation : null,
+          wrong: isErrataType ? wrong : null,
+          correct: isErrataType ? correct : null,
+          content: isErrataType ? null : content,
           note: note || null,
         }),
       });
@@ -100,6 +110,32 @@ export function ReportForm() {
           <BookSearch onSelect={setBook} />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">読んだ媒体</label>
+          <div className="flex flex-wrap gap-2">
+            {(["PAGE", "KINDLE", "OTHER"] as LocationType[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setLocationType(t)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  locationType === t
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
+                }`}
+              >
+                {t === "PAGE" ? "紙の書籍" : t === "KINDLE" ? "電子書籍" : "その他（PDF・Web資料など）"}
+              </button>
+            ))}
+          </div>
+          {locationType === "KINDLE" && (
+            <p className="mt-2 text-xs text-blue-600">
+              電子書籍は出版社の修正で内容が更新されることがあります。ダウンロード・更新した時期が分かれば備考に記載してください。
+            </p>
+          )}
+        </div>
+
+        {isPaper && (
         <div className="flex gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">版</label>
@@ -124,6 +160,7 @@ export function ReportForm() {
             />
           </div>
         </div>
+        )}
       </section>
 
       {/* 投稿内容 */}
@@ -163,27 +200,7 @@ export function ReportForm() {
           </div>
         </div>
 
-        {/* 位置情報 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">位置情報の種別</label>
-          <div className="flex gap-2">
-            {(["PAGE", "KINDLE", "OTHER"] as LocationType[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setLocationType(t)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  locationType === t
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
-                }`}
-              >
-                {t === "PAGE" ? "ページ" : t === "KINDLE" ? "Kindle" : "その他"}
-              </button>
-            ))}
-          </div>
-        </div>
-
+        {/* 位置情報（読んだ媒体に応じて入力欄が変わる） */}
         {locationType === "PAGE" && (
           <div className="space-y-3 pl-4 border-l-2 border-gray-200">
             <div className="flex gap-4">
@@ -242,13 +259,13 @@ export function ReportForm() {
         {locationType === "KINDLE" && (
           <div className="pl-4 border-l-2 border-gray-200">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kindle位置 <span className="text-red-500">*</span>
+              位置 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={kindleLocation}
               onChange={(e) => setKindleLocation(e.target.value)}
-              placeholder="例: 43% または Location 1234"
+              placeholder="例: 位置No.1234、43%、p.42"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -256,12 +273,14 @@ export function ReportForm() {
 
         {locationType === "OTHER" && (
           <div className="pl-4 border-l-2 border-gray-200">
-            <label className="block text-sm font-medium text-gray-700 mb-1">位置メモ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              位置メモ <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={locationNote}
               onChange={(e) => setLocationNote(e.target.value)}
-              placeholder="場所を自由に記載してください"
+              placeholder="例: 第3章「◯◯」の節、サンプルコードzip内のreadme"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -271,7 +290,9 @@ export function ReportForm() {
         {isErrataType ? (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">誤（該当箇所）</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                誤（該当箇所） <span className="text-red-500">*</span>
+              </label>
               <textarea
                 value={wrong}
                 onChange={(e) => setWrong(e.target.value)}
@@ -281,7 +302,9 @@ export function ReportForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">正（正しい内容）</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                正（正しい内容） <span className="text-red-500">*</span>
+              </label>
               <textarea
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
@@ -293,7 +316,9 @@ export function ReportForm() {
           </div>
         ) : (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">内容・提案</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              内容・提案 <span className="text-red-500">*</span>
+            </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}

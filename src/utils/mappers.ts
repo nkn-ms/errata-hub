@@ -61,8 +61,8 @@ function mapType(type: PrismaReport["type"]): Report["type"] {
 
 function mapLocationType(type: PrismaReport["locationType"]): Report["locationType"] {
   const map = {
-    PAGE: "ページ",
-    KINDLE: "Kindle",
+    PAGE: "紙の書籍",
+    KINDLE: "電子書籍",
     OTHER: "その他",
   } as const;
   return map[type];

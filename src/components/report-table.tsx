@@ -34,8 +34,8 @@ function Badge({ label, className }: { label: string; className: string }) {
 }
 
 function getLocationLabel(report: Report): string {
-  if (report.locationType === "Kindle") return `Kindle ${report.kindleLocation ?? ""}`;
-  if (report.locationType === "ページ") {
+  if (report.locationType === "電子書籍") return `電子書籍 ${report.kindleLocation ?? ""}`;
+  if (report.locationType === "紙の書籍") {
     let label = `p.${report.page}`;
     if (report.line) label += ` l.${report.line}`;
     if (report.hasMultiplePages) label += " 他";
