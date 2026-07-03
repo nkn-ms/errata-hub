@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { routes } from "@/constants/routes";
 
 type BookResult = {
@@ -270,7 +271,7 @@ export function BookSearch({ onSelect }: Props) {
                   className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
                 >
                   {book.coverImageUrl ? (
-                    <img src={book.coverImageUrl} alt="" className="w-8 h-11 object-cover flex-shrink-0 rounded" />
+                    <Image src={book.coverImageUrl} alt="" width={32} height={44} unoptimized className="w-8 h-11 object-cover flex-shrink-0 rounded" />
                   ) : (
                     <div className="w-8 h-11 bg-gray-200 flex-shrink-0 rounded" />
                   )}
@@ -293,7 +294,7 @@ export function BookSearch({ onSelect }: Props) {
           {selected && (
             <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
               {selected.coverImageUrl ? (
-                <img src={selected.coverImageUrl} alt="" className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />
+                <Image src={selected.coverImageUrl} alt="" width={48} height={64} unoptimized className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />
               ) : (
                 <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0" />
               )}
@@ -337,7 +338,7 @@ export function BookSearch({ onSelect }: Props) {
           {selected && (
             <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
               {selected.coverImageUrl ? (
-                <img src={selected.coverImageUrl} alt="" className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />
+                <Image src={selected.coverImageUrl} alt="" width={48} height={64} unoptimized className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />
               ) : (
                 <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0" />
               )}

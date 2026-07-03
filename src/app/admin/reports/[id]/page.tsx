@@ -17,10 +17,6 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
   const TYPE_LABELS = {
     ERRATA: "正誤情報", SUGGESTION: "改善提案", OTHER: "その他",
   };
-  const LOCATION_LABELS = {
-    PAGE: "ページ", KINDLE: "Kindle", OTHER: "その他",
-  };
-
   const locationText = report.locationType === "PAGE"
     ? `p.${report.page}${report.line ? ` l.${report.line}` : ""}${report.hasMultiplePages ? " 他" : ""}`
     : report.locationType === "KINDLE"
