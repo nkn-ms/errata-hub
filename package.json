@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate --generator client && next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:local": "prisma db seed",
