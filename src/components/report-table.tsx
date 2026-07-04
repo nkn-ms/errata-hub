@@ -173,11 +173,17 @@ const columns: ColumnDef<Report>[] = [
 ];
 
 export function ReportTable({ data }: { data: Report[] }) {
+  // TanStack Table の useReactTable は React Compiler と非互換（返り値の関数を
+  // メモ化すると stale UI になる）ため、このコンポーネントだけ最適化対象から外す。
+  "use no memo";
+
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
+  // 上の "use no memo" で対処済みだが、このルールは opt-out 済みの関数にも警告を出すため行単位で抑制する
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
