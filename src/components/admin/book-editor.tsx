@@ -120,7 +120,9 @@ export function AdminBookEditor({ book }: { book: Book }) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => null);
-        throw new Error(d?.error ?? "保存に失敗しました");
+        // バリデーション詳細（フィールド別メッセージ）があれば汎用文言より優先して見せる
+        const detail = d?.details ? Object.values<string[]>(d.details).flat()[0] : undefined;
+        throw new Error(detail ?? d?.error ?? "保存に失敗しました");
       }
       setSaved(true);
       router.refresh();

@@ -4,14 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdmin } from "@/services/auth";
+import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 
 // 管理者による書誌の手修正。ISBN は本の同一性の基準のため変更させない（読取専用）。
 // 空文字は「未設定」とみなして null に倒す。
+// 書影URLは許可ホスト（OpenBD / Google Books）のみ。手入力ミスに気づけるよう、
+// 投稿API（黙って null に落とす）と違いここでは 400 で明示的に弾く。
 const BookUpdateSchema = z.object({
   title: z.string().trim().min(1, "書籍名は必須です"),
   author: z.string().trim().optional(),
   publisherName: z.string().trim().optional(),
-  coverImageUrl: z.string().trim().optional(),
+  coverImageUrl: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || sanitizeCoverImageUrl(v) !== null, {
+      message: "書影URLは OpenBD（cover.openbd.jp）または Google Books（books.google.com）のURLのみ設定できます",
+    }),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -49,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: {
         title,
         author: author || null,
-        coverImageUrl: coverImageUrl || null,
+        coverImageUrl: sanitizeCoverImageUrl(coverImageUrl),
         publisherId,
       },
       include: { publisher: true },
