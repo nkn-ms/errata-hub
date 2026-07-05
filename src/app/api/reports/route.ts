@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { toCanonicalIsbn } from "@/utils/isbn";
+import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { ReportType, Medium } from "@/generated/prisma/client";
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。
@@ -105,7 +106,9 @@ export async function POST(request: Request) {
         title: book.title,
         author: book.author || null,
         isbn: canonicalIsbn,
-        coverImageUrl: book.coverImageUrl || null,
+        // 許可ホスト（OpenBD / Google Books）以外は null に落とす。書影は装飾情報なので、
+        // 提供元のホスト変更等があっても投稿自体は失敗させない（400 にしない）。
+        coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
         publisherId,
       },
     });
