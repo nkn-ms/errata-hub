@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
+import { GitHubIcon, XIcon } from "@/components/icons";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -21,6 +22,8 @@ export default async function UserDetailPage({ params }: Props) {
       id: true,
       displayName: true,
       email: true,
+      githubUsername: true,
+      xUsername: true,
       createdAt: true,
     },
   });
@@ -110,21 +113,34 @@ export default async function UserDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* 仮置き：将来的な機能 */}
-          <div className="mt-5 pt-5 border-t border-gray-100 space-y-2">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">仮置き — 今後実装予定</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 text-xs rounded-full border border-dashed border-gray-300 text-gray-400">
-                GitHub連携
-              </span>
-              <span className="px-3 py-1 text-xs rounded-full border border-dashed border-gray-300 text-gray-400">
-                表示名の変更
-              </span>
-              <span className="px-3 py-1 text-xs rounded-full border border-dashed border-gray-300 text-gray-400">
-                自己紹介文
-              </span>
+          {/* 公開リンク（本人がアカウント設定で入力した場合のみ表示）。
+              自己申告のため rel=nofollow（リンクスパム対策）＋ ugc を付ける。 */}
+          {(profile.githubUsername || profile.xUsername) && (
+            <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-gray-100">
+              {profile.githubUsername && (
+                <a
+                  href={`https://github.com/${profile.githubUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow ugc"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <GitHubIcon className="w-3.5 h-3.5" />
+                  {profile.githubUsername}
+                </a>
+              )}
+              {profile.xUsername && (
+                <a
+                  href={`https://x.com/${profile.xUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow ugc"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                  @{profile.xUsername}
+                </a>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* 投稿一覧 */}

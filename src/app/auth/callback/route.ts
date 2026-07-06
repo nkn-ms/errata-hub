@@ -27,7 +27,14 @@ export async function GET(request: NextRequest) {
 
   const email = data.user.email ?? "";
   const domain = email.split("@")[1] ?? "";
-  const displayName = (data.user.user_metadata?.display_name as string) || null;
+  // メール登録は display_name（register で設定）。OAuth（GitHub 等）には display_name が
+  // 無いので、プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
+  const meta = data.user.user_metadata ?? {};
+  const displayName =
+    (meta.display_name as string) ||
+    (meta.full_name as string) ||
+    (meta.user_name as string) ||
+    null;
 
   const matchedPublishers = domain
     ? await prisma.publisher.findMany({ where: { emailDomain: domain } })
