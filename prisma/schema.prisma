@@ -45,7 +45,7 @@ enum Role {
 model Profile {
   id             String           @id // Supabase auth.users の UUID と一致
   email          String           @unique // auth.users削除後も操作履歴を追跡するための記録用（Auth側と二重管理は意図的）
-  displayName    String?          // 公開表示名（投稿者名として使用）
+  displayName    String?          // 公開表示名（投稿者名として使用）。null=退会スクラブ済み。意図的にnullable — 必須化しないこと（docs/design.md「削除と退会」参照）
   githubUsername String?          // 公開リンク用（本人が任意で入力。ログイン手段とは独立）
   xUsername      String?          // 公開リンク用（X / Twitter。任意）
   role           Role             @default(USER)
