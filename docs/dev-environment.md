@@ -41,8 +41,10 @@ env で迷ったらここを見る。
 ## 3. 優先順位（なぜローカルが勝つか）
 
 - **アプリ実行（`npm run dev`）**: Next.js が `.env.local` を `.env` より**優先**して読む。
-  - これは Next.js の公式仕様（探索順: `process.env` → `.env.$(NODE_ENV).local` → `.env.local` → `.env.$(NODE_ENV)` → `.env`。最初に見つかった値で確定）。
+  - これは Next.js の公式仕様（探索順: `process.env` → `.env.$(NODE_ENV).local` → `.env.local` → `.env.$(NODE_ENV)` → `.env`。最初に見つかった値で確定。
+    出典: [Next.js Guides > Environment Variables > Load Order](https://nextjs.org/docs/app/guides/environment-variables)、手元では `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md` で確認可）。
     「共通のデフォルトは `.env`、そのマシン固有の上書きは `.env.local`」という **dotenv 界隈の標準的な重ね着方式**で、Vite や CRA も同じ流儀。
+    `.env.development` / `.env.production` は NODE_ENV でファイルが自動選択される仕組み（このプロジェクトでは未使用）。
   - Vercel 上には `.env`/`.env.local` ファイルが**存在しない**ので、Vercel が値を直接 `process.env` に注入する＝Vercel の環境変数が使われる。
 - **Prisma の CLI**（`prisma db push` 等）: 素では `.env` しか読まない。そこで `prisma.config.ts` を
   「**`.env.local` → `.env` の順で読む**」よう設定している（dotenv は既存値を上書きしないので `.env.local` が勝つ）。
