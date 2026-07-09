@@ -14,7 +14,7 @@ env で迷ったらここを見る。
 - **`supabase/config.toml` や Supabase 向け env 値を変えたら `supabase stop && supabase start`**。
   起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
 - **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma db push` が必要**。
-  コードのデプロイでは DB は変わらない（§6 break-glass 手順）。
+  コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。
 - **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。
 - **e2e を本番/Preview に向けるときだけ `.env.e2e`** を使う（普段のローカル e2e はシード垢を自動使用）。
   この分離は「うっかり本番に書き込む e2e」を防ぐ安全弁なので、`.env.local` に統合しない。
@@ -97,9 +97,42 @@ npm run dev                    # http://localhost:3000
 | ローカルで `npm run dev` | **ローカル** Supabase |
 | ローカルで `prisma db push` | **ローカル** Supabase（`.env.local` 優先のため） |
 | `git push` → main → Vercel 本番デプロイ | **本番** Supabase |
-| 本番にスキーマを反映したい（稀） | **break-glass**: Supabase ダッシュボードから接続情報を取り、その場限りで実行（ローカルに残さない） |
+| 本番にスキーマを反映したい（稀） | §7 の手順で。**正は `prisma db push`**・SQL 直打ちは代替 |
 
-## 7. なぜこの形にしたか（狙い）
+## 7. 本番DBへのスキーマ反映手順（正: `prisma db push`）
+
+`schema.prisma` の model/enum を変更した機能を本番反映するとき、**コードの main マージでは DB スキーマは変わらない（別作業）**。マージ前に本番 DB へ反映しておく（先にコードだけ本番に出ると、新カラムを参照した瞬間に落ちるため）。
+
+### 方法A（正）: `prisma db push`
+
+```bash
+# 別ターミナルで、対象ブランチを checkout した状態で（この会話・ファイルに URL を残さない）
+DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
+```
+
+- inline の env が `.env.local` より優先される（dotenv は既存 env を上書きしない。prisma.config.ts 参照）
+- 接続文字列は Supabase ダッシュボード → Connect → **Direct connection**（port 5432）。DB パスワードが要る
+  - パスワードはプロジェクト作成時にしか表示されないので**パスワードマネージャに控えておく**
+  - 紛失したら Settings → Database → Reset database password で再発行できるが、**Vercel の DATABASE_URL / DIRECT_URL も貼り替えが必要になる**（Sensitive のため上書き再設定）
+- 「data loss」系の警告が出たら中断して内容を確認（カラム削除・型変更など破壊的変更のとき）
+
+**なぜこれが正か**: `schema.prisma` が git 管理された唯一の正で、db push はそこから DDL を機械的に導出する（手書きミスが構造的に起きない・実DBとの差分計算と破壊的変更の警告つき）。将来の Prisma Migrate 移行（SQL をファイルとして git 管理）も「schema と実DBの一致」が前提で、db push 運用はそれを保証する。手動 SQL を常用すると一致が人間の注意力頼みになりドリフトの温床になる。
+
+### 方法B（代替）: SQL Editor で DDL 直打ち
+
+接続文字列がすぐ取れないとき（例: パスワード不明で Reset は避けたい）は、Supabase ダッシュボード → SQL Editor で DDL を直接実行してもよい。ただし:
+
+- **db push が発行する SQL と同一内容にする**こと。手書きせず、ローカルで次のコマンドで生成するのが安全:
+  ```bash
+  # ローカルDB（schema変更前の状態）と schema.prisma の差分 DDL を出力
+  npx prisma migrate diff \
+    --from-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+    --to-schema-datamodel prisma/schema.prisma --script
+  ```
+- テーブル名・カラム名のダブルクォートは必須（Prisma は大文字小文字混在の名前で作るため、外すと別名扱いでエラー）
+- 実績: 2026-07-09 に `Profile.githubUsername` / `xUsername` の追加をこの方法で反映した
+
+## 8. なぜこの形にしたか（狙い）
 
 1. **本番の秘密をローカルに置かない** ＝ 漏洩したときの被害範囲(blast radius)を最小化。
 2. **手元の操作が本番DBを壊さない** ＝ `npm run dev` も `prisma db push` もローカルDBに向く。
