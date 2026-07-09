@@ -34,7 +34,7 @@ DB に `@unique` を付けても、文字列が違えば別物扱いなので防
 
 - 正規化ロジック: [`src/utils/isbn.ts`](../src/utils/isbn.ts) の `toCanonicalIsbn(raw)`
   - ハイフン等を除去 → ISBN-10 なら ISBN-13 へ変換 → チェック数字を検証 → 不正なら `null`
-- 投稿時に通す場所: [`src/app/api/feedbacks/route.ts`](../src/app/api/feedbacks/route.ts)（POST）
+- 投稿時に通す場所: [`src/app/api/reports/route.ts`](../src/app/api/reports/route.ts)（POST。旧 `api/feedbacks` は Feedback→Report リネームで改称済み）
   - `toCanonicalIsbn` で正規化し、不正なら 400。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
 - DB: `Book.isbn` は **必須 + `@unique`**（ISBN-13 を保存）。
 
@@ -399,7 +399,7 @@ upsert は **id で判定**するので create に進む → ところが `Profi
 GDPR の消去権が対象とするのは **PII**。**匿名化して個人と結びつかなくなったデータは GDPR の対象外**になる。
 → 退会では **PII だけ消し、コンテンツ（レポート）は匿名で残せる**。これが UGC（ユーザー投稿）サービスの定石。
 
-### このアプリの退会方針（未実装・[[decision-withdrawal-anonymize]] に記録）
+### このアプリの退会方針（実装済: `app/actions/auth.ts` の `withdraw`）
 
 1. `auth.users` を Admin API で削除（**auth 側 PII** ＝メール/メタデータとログイン情報を消す）
 2. `Profile` は**消さず PII だけスクラブ**：`email`→匿名ダミー（@unique+必須なので null 不可）、`displayName`→null（UI で「退会済みユーザー」表示）

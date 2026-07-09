@@ -9,5 +9,5 @@ export const TARGET_TYPE = {
 } as const;
 
 // TARGET_TYPE の値から「許される文字列」の型を派生させる。
-// → "Report" | "Profile" | "PublisherAccess"
+// → "Report" | "Profile" | "PublisherAccess" | "Book"
 export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];

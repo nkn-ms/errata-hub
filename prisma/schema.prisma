@@ -44,8 +44,14 @@ enum Role {
 
 model Profile {
   id             String           @id // Supabase auth.users の UUID と一致
-  email          String           @unique // auth.users削除後も操作履歴を追跡するための記録用（Auth側と二重管理は意図的）
-  displayName    String?          // 公開表示名（投稿者名として使用）。null=退会スクラブ済み。意図的にnullable — 必須化しないこと（docs/design.md「削除と退会」参照）
+  // auth.users削除後も操作履歴を追跡するための記録用（Auth側と二重管理は意図的）。
+  // 退会時は deleted-<uuid>@deleted.local に書き換わり、この接尾辞が退会判定の唯一のソース（src/lib/withdrawal.ts）。
+  // 「壊れたデータ」ではないので直接UPDATEで修復しないこと。既知の罠: 退会者と同じメールでの再登録は @unique 衝突で失敗する（docs/learnings.md）
+  email          String           @unique
+  // 公開表示名（投稿者名として使用）。意図的にnullable — 必須化しないこと（docs/design.md「削除と退会」参照）。
+  // null の主な源は退会スクラブ。OAuth初回作成で氏名系metadataが皆無の場合もnullになり得る（表示は「匿名」フォールバック）。
+  // 退会判定の正はこの列ではなく email の匿名接尾辞
+  displayName    String?
   githubUsername String?          // 公開リンク用（本人が任意で入力。ログイン手段とは独立）
   xUsername      String?          // 公開リンク用（X / Twitter。任意）
   role           Role             @default(USER)
@@ -68,7 +74,10 @@ model Publisher {
   publisherAccess PublisherAccess[]
 }
 
-// ユーザーと出版社の多対多 — 管理者が手動で付与・剥奪できる
+// ユーザーと出版社の多対多。付与経路は2つ:
+//   1) 管理者が手動で付与・剥奪（/admin/users）
+//   2) ログイン時に Publisher.emailDomain とメールドメインが一致すると自動付与（auth/callback）
+// 現状は表示のみに使い、権限は何もゲートしない（権限に使う際は検証つき付与への見直しが前提。docs/design.md §2）
 model PublisherAccess {
   id          String    @id @default(uuid())
   profileId   String
@@ -83,6 +92,8 @@ model PublisherAccess {
 model Book {
   id            String     @id @default(uuid())
   publisherId   String?
+  // 意図的に Restrict（optionalの既定 SetNull から変更）: 書籍が紐づく出版社は削除不可（出版社削除ガード）。
+  // UX側の件数チェックは app/actions/publisher.ts、最終保証はこの制約が担う
   publisher     Publisher? @relation(fields: [publisherId], references: [id], onDelete: Restrict)
   title         String
   author        String?
@@ -96,12 +107,15 @@ model Book {
 model Report {
   id               String         @id @default(uuid())
   userId           String
+  // onDelete未指定 = Restrict（意図的）。退会は Profile 削除ではなく PII スクラブ（匿名化）で行い
+  // Report を保全する設計のため、投稿を持つ Profile は削除できないままにする（docs/design.md §7「削除と退会」）
   user             Profile        @relation(fields: [userId], references: [id])
   bookId           String
+  // onDelete未指定 = Restrict（意図的）。投稿が紐づく本は削除不可（管理画面の件数チェックとDBで二重ガード）
   book             Book           @relation(fields: [bookId], references: [id])
   title            String
-  edition          Int?
-  printing         Int?
+  edition          Int?           // PAPER 用（PAPERはアプリ層で必須・EBOOKは版刷を持たないため常にnull）
+  printing         Int?           // PAPER 用（任意）
   type             ReportType
   medium           Medium
   page             Int?           // PAPER 用
@@ -135,13 +149,15 @@ model Upvote {
   @@unique([reportId, profileId])
 }
 
-// 操作ログ — 誰が・いつ・何を・どう変えたかを記録
+// 操作ログ — 誰が・いつ・何を・どう変えたかを記録。
+// 保持期間はプライバシーポリシー第6条2項に対応: 90日で自動削除（本番Supabaseに pg_cron ジョブ
+// delete-old-audit-logs を手動登録済み＝リポジトリ管理外。登録SQLは docs/dev-environment.md §9 参照）
 model AuditLog {
   id         String   @id @default(uuid())
-  userId     String?  // 操作者のSupabase user UUID（システム操作はnull）
+  userId     String?  // 操作者のSupabase user UUID（システム操作はnull）。ProfileへのFKは意図的に張らない（ユーザー削除後もログを保全するため）
   userEmail  String?  // 操作者のメール（ユーザー削除後も記録が残るよう非正規化）
-  action     String   // 例: "UPDATE_REPORT_STATUS" "DELETE_REPORT" "UPDATE_USER_ROLE"
-  targetType String   // 例: "Report" "Profile" "Publisher"
+  action     String   // 例: "UPDATE_REPORT" "DELETE_REPORT" "UPDATE_USER_ROLE" "WITHDRAW_USER"（ベタ書き。網羅は grep で確認）
+  targetType String   // "Report" | "Profile" | "PublisherAccess" | "Book" — 正解の文字列は src/constants/audit.ts の TARGET_TYPE に集約
   targetId   String   // 操作対象のID
   before     Json?    // 変更前の値
   after      Json?    // 変更後の値

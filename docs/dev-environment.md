@@ -137,3 +137,23 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 1. **本番の秘密をローカルに置かない** ＝ 漏洩したときの被害範囲(blast radius)を最小化。
 2. **手元の操作が本番DBを壊さない** ＝ `npm run dev` も `prisma db push` もローカルDBに向く。
 3. 本番・Preview の値は **Vercel に一元化**。
+
+## 9. リポジトリ管理外の本番DB設定（新環境では再登録が必要）
+
+コードや schema.prisma に現れない、本番 Supabase に**直接 SQL で登録した**設定。DBを作り直す・環境を増やす際はここを見て再登録する。
+
+### AuditLog の90日自動削除（pg_cron）
+
+プライバシーポリシー第6条2項「90日を目安に削除」に対応するジョブ。**2026-07-03 に本番へ登録済み**（SQL Editor で実行・ローカルでも同SQL検証済み）。
+
+```sql
+select cron.schedule(
+  'delete-old-audit-logs',           -- ジョブ名
+  '0 0 * * *',                       -- 毎日 0:00 UTC（JST 9:00）
+  $$ DELETE FROM "AuditLog" WHERE "createdAt" < now() - interval '90 days' $$
+);
+```
+
+- 前提: Supabase ダッシュボード → Database → Extensions で `pg_cron` を有効化
+- 実行履歴の確認: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;`
+- 登録済みジョブの確認: `SELECT * FROM cron.job;`

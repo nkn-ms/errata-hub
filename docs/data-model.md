@@ -5,13 +5,13 @@
 | テーブル | 役割（1行） |
 |---|---|
 | **Profile** | ユーザーのアプリ側プロフィール（表示名・ロール・メール記録）。id は Supabase `auth.users` の UUID と一致 |
-| **Publisher** | 出版社マスタ。管理画面で CRUD。`emailDomain` は将来の自動権限付与用 |
+| **Publisher** | 出版社マスタ。管理画面で CRUD。`emailDomain` はログイン時の自動権限付与に使用（ドメイン一致で PublisherAccess を自動付与・実装済み。ただし現状 access は表示のみで権限はゲートしない） |
 | **PublisherAccess** | 「どのユーザーがどの出版社の中の人か」の多対多。出版社ユーザーかは Role でなくこのテーブルから導出 |
 | **Book** | 書籍マスタ。**ISBN-13 が同一性の基準**（`@unique`）。投稿時に upsert で名寄せ |
 | **Report** | 投稿の本体（正誤情報/改善提案/その他）。位置情報・誤/正・ステータス・出版社コメントを持つ |
 | **Upvote** | 賛同（「自分も見つけた」）。`reportId × profileId` で一意＝1ユーザー1投稿1回 |
 | **ReportImage** | 投稿の証拠画像（アップロード機能は未実装。テーブルだけ先行） |
-| **AuditLog** | 操作ログ。誰が・いつ・何を・どう変えたか（before/after の JSON）。90日で pg_cron が削除 |
+| **AuditLog** | 操作ログ。誰が・いつ・何を・どう変えたか（before/after の JSON）。90日で pg_cron が削除（本番に手動登録済み・リポジトリ管理外。登録SQLは [dev-environment.md §9](./dev-environment.md) 参照） |
 
 ## なぜ「User」テーブルが無いのか
 
