@@ -49,6 +49,11 @@ export default async function AccountPage() {
               <dt className="text-gray-500">メールアドレス</dt>
               <dd className="text-gray-900 break-all">{user.email}</dd>
             </div>
+            {/* 投稿者名の下や自分のユーザーページに出る短縮ID。本人が照合できるようここにも出す */}
+            <div className="flex justify-between gap-4">
+              <dt className="text-gray-500">ユーザーID</dt>
+              <dd className="text-gray-900">@{user.id.slice(0, 8)}</dd>
+            </div>
             {profile?.createdAt && (
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">登録日</dt>
@@ -56,6 +61,11 @@ export default async function AccountPage() {
               </div>
             )}
           </dl>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <Link href={routes.user(user.id)} className="text-sm text-blue-600 hover:underline">
+              自分のユーザーページを見る →
+            </Link>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
