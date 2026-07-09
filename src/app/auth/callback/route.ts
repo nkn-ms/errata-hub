@@ -53,13 +53,6 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // OAuth ログインの user_metadata には display_name が無く、ヘッダー等は
-  // user_metadata.display_name を参照するため、表示の正（Profile.displayName）を
-  // ここで同期する（actions/auth.ts の表示名変更と同じ整合方針）。
-  if (!meta.display_name && profile.displayName) {
-    await supabase.auth.updateUser({ data: { display_name: profile.displayName } });
-  }
-
   if (matchedPublishers.length > 0) {
     await prisma.publisherAccess.createMany({
       data: matchedPublishers.map((p) => ({

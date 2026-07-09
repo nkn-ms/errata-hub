@@ -69,6 +69,8 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
+      // display_name はメール確認後の callback で Profile.displayName（表示の正）を
+      // 作るための運搬用。以後 user_metadata は参照しない（updateDisplayName の方針コメント参照）。
       data: { display_name: parsed.data.displayName },
       emailRedirectTo: `${origin}${routes.auth.callback}`,
     },
@@ -183,7 +185,9 @@ export type ProfileState = { error?: string; success?: boolean } | undefined;
 /**
  * 表示名の変更（本人のセルフサービス）。
  *
- * 表示の正は Profile.displayName。認証側の user_metadata も整合のため合わせて更新する。
+ * 表示の正は Profile.displayName のみ。user_metadata.display_name は会員登録フォームから
+ * callback での Profile 作成へ値を運ぶ一度きりの用途で、以後は参照も同期もしない
+ * （二重管理にすると OAuth ログイン等の経路ごとに同期漏れが起きるため）。
  * プライバシーポリシー第7条3項（表示名は本サービス上で変更可能）と対応。
  */
 export async function updateDisplayName(
@@ -211,7 +215,6 @@ export async function updateDisplayName(
     where: { id: user.id },
     data: { displayName: parsed.data.displayName },
   });
-  await supabase.auth.updateUser({ data: { display_name: parsed.data.displayName } });
 
   revalidatePath(routes.account);
   return { success: true };

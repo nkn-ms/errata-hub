@@ -2,6 +2,7 @@ import { ReportTable } from "@/components/report-table";
 import { findRecentReports } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { HeaderNav } from "@/components/header-nav";
 
 const TOP_PAGE_LIMIT = 10;
@@ -10,10 +11,13 @@ export default async function Home() {
   const [rows, supabase] = await Promise.all([findRecentReports(TOP_PAGE_LIMIT), createClient()]);
   const reports = rows.map(mapReport);
   const { data: { user } } = await supabase.auth.getUser();
-  // ヘッダーにはメールではなく表示名を出す。表示名が無いときのみメールにフォールバック。
-  const userName = user
-    ? ((user.user_metadata?.display_name as string) || user.email || null)
+  // ヘッダーにはメールではなく表示名を出す。表示名の正は Profile.displayName で、
+  // user_metadata は参照しない（OAuth ログインでは display_name が入らないため）。
+  // 表示名が無いときのみメールにフォールバック。
+  const profile = user
+    ? await prisma.profile.findUnique({ where: { id: user.id }, select: { displayName: true } })
     : null;
+  const userName = user ? (profile?.displayName || user.email || null) : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
