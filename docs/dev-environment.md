@@ -6,6 +6,20 @@ env で迷ったらここを見る。
 > **環境変数(env)** = アプリの設定値や秘密情報（DB の接続先・API キー等）を**コードの外**に出して、
 > 環境ごとに差し替えられるようにする仕組み。コードは `process.env.XXX` で読む。
 
+## 0. ⚠️ 忘れてはいけないこと（先に読む）
+
+- **ローカルの値は全部 `.env.local`**。`.env` は方針コメントのみの空ファイル（§4）。
+- **Supabase CLI（`supabase start`）も `.env` と `.env.local` を自動で読む**（実測確認済み）。
+  GitHub ログインのローカル用 client_id/secret はここから `supabase/config.toml` の `env()` に入る。
+- **`supabase/config.toml` や Supabase 向け env 値を変えたら `supabase stop && supabase start`**。
+  起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
+- **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma db push` が必要**。
+  コードのデプロイでは DB は変わらない（§6 break-glass 手順）。
+- **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。
+- **e2e を本番/Preview に向けるときだけ `.env.e2e`** を使う（普段のローカル e2e はシード垢を自動使用）。
+  この分離は「うっかり本番に書き込む e2e」を防ぐ安全弁なので、`.env.local` に統合しない。
+- **public 化（検索に出す）時に noindex を外す**（`robots.ts` と `layout.tsx` の2箇所）。それまでは維持。
+
 ## 1. 「環境」は3つ
 
 | 環境 | どこ | 何のため |
@@ -27,10 +41,14 @@ env で迷ったらここを見る。
 ## 3. 優先順位（なぜローカルが勝つか）
 
 - **アプリ実行（`npm run dev`）**: Next.js が `.env.local` を `.env` より**優先**して読む。
+  - これは Next.js の公式仕様（探索順: `process.env` → `.env.$(NODE_ENV).local` → `.env.local` → `.env.$(NODE_ENV)` → `.env`。最初に見つかった値で確定）。
+    「共通のデフォルトは `.env`、そのマシン固有の上書きは `.env.local`」という **dotenv 界隈の標準的な重ね着方式**で、Vite や CRA も同じ流儀。
   - Vercel 上には `.env`/`.env.local` ファイルが**存在しない**ので、Vercel が値を直接 `process.env` に注入する＝Vercel の環境変数が使われる。
 - **Prisma の CLI**（`prisma db push` 等）: 素では `.env` しか読まない。そこで `prisma.config.ts` を
   「**`.env.local` → `.env` の順で読む**」よう設定している（dotenv は既存値を上書きしないので `.env.local` が勝つ）。
   これで CLI もローカルを向く＝**手元の操作が誤って本番DBを叩かない**。
+- **Supabase CLI（`supabase start`）**: `.env` と `.env.local` の両方を自動で読み、
+  `supabase/config.toml` 内の `env(変数名)` に差し込む（2026-07 実測確認）。ローカル用 GitHub OAuth の値はこの経路で渡る。
 
 ```
 [自分のマシン]  npm run dev / prisma ──読む──▶ .env.local（ローカル Supabase）
@@ -41,7 +59,7 @@ env で迷ったらここを見る。
 
 | ファイル | git | 中身 |
 |---|---|---|
-| `.env.local` | 対象外 | **ローカル開発の実値**（ローカル Supabase ＋ Google キー）← 普段使うのはこれ |
+| `.env.local` | 対象外 | **ローカル開発の実値**（ローカル Supabase ＋ Google キー ＋ ローカル用 GitHub OAuth）← 普段使うのはこれ |
 | `.env` | 対象外 | **コメントのみ**（本番値はゼロにスクラブ済み） |
 | `.env.example` | 追跡 | 必要な変数の一覧＋ホスト型 Supabase の例（値なしテンプレ） |
 | `.env.local.example` | 追跡 | ローカル開発用テンプレ（値なし） |

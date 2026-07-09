@@ -125,8 +125,30 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL（公開） |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable キー（公開・RLS で保護） |
 | `GOOGLE_BOOKS_API_KEY` | Google Books API キー（**サーバーサイドのみ**・公開しない） |
+| `SUPABASE_SECRET_KEY` | Supabase secret キー（**サーバー専用**・退会処理の auth.users 削除に使用） |
+| `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID` / `_SECRET` | GitHub ログイン用 OAuth App の資格情報。ローカル= `.env.local`（`supabase start` が読む）/ 本番= **Supabase ダッシュボード**の Provider 設定（Vercel ではない） |
 
 > `.env*` は `.gitignore` 済み（テンプレの `*.example` のみ追跡）。`NEXT_PUBLIC_` 以外の値は秘密情報として扱い、コミットしないこと。本番値はローカルに置かず Vercel で管理する。`prisma.config.ts` は `.env.local` を優先して読むため、ローカルの CLI 操作（`prisma db push` 等）が誤って本番DBを叩くことはない。
+
+仕組みの全体像（どの環境がどのファイルを読むか・優先順位・チートシート）は **[docs/dev-environment.md](docs/dev-environment.md)** にまとまっている。
+
+---
+
+## 開発ドキュメントの地図
+
+**迷ったらまず [docs/dev-environment.md](docs/dev-environment.md)** — env と環境の地図。冒頭に「⚠️ 忘れてはいけないこと」（本番 DB へのスキーマ反映・config 変更時の再起動・Preview 確認してからマージ 等）を集約している。
+
+| ドキュメント | 内容 |
+|---|---|
+| [docs/dev-environment.md](docs/dev-environment.md) | **env・環境・運用の要注意事項**。開発で迷ったらここが起点 |
+| [docs/design.md](docs/design.md) | 設計方針（将来像と確定済みポリシー） |
+| [docs/data-model.md](docs/data-model.md) | データモデルの解説 |
+| [docs/erd.svg](docs/erd.svg) | ER 図（`prisma generate` で自動更新） |
+| [docs/learnings.md](docs/learnings.md) | 開発中の学習メモ |
+| [docs/legal/](docs/legal/) | 利用規約・プライバシーポリシー（ドラフト） |
+| [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) | AI エージェント開発時のルール（**本番反映の安全ルール**は人間にも適用） |
+| [.env.local.example](.env.local.example) ほか `*.example` | 環境変数テンプレート（変数名と取得方法の説明つき） |
+| [e2e/](e2e/) ＋ [playwright.config.ts](playwright.config.ts) | e2e テスト。ローカルはシード垢自動・外部 URL 実行の注意はコメント参照 |
 
 ---
 
