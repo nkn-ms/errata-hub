@@ -113,12 +113,12 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
 
 ### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
-- onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意 = **SetNull**。
+- onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意だが **Restrict**（出版社削除ガード。optional の既定 SetNull から意図的に変更）。
 - 「記事ゼロの Book / Publisher（孤児行）」は**放置で許容**。Book は ISBN で upsert、Publisher は名前照合で、再投稿時に**再利用**される（重複も不整合も作らない）。連動削除は入れない（複雑化＝バグの温床を避ける）。「出版社不明の本」は元データ不完全ゆえの**正規の状態**（publisherId は optional のまま）。
 
-### 出版社削除ガード（案A・保留中＝dev環境後に実施）
-- 現状は削除すると書籍が黙って未設定化（SetNull）＋権限が Cascade 削除＝事故りやすい。
-- 方針：「**書籍が紐づかない出版社のみ削除可**」。保証=DB（`Book.publisherId` を SetNull→**Restrict**）、UX=アプリ（件数チェック＋親切エラー）。PublisherAccess の扱い（書籍だけ Restrict か／権限も Restrict か）は要決定。DB変更を含むため dev 環境構築後に実施。
+### 出版社削除ガード（案A・実装済）
+- 「**書籍が紐づかない出版社のみ削除可**」。保証=DB（`Book.publisherId` の onDelete を SetNull→**Restrict** に変更済み）、UX=アプリ（`app/actions/publisher.ts` の件数チェック＋親切エラー）。
+- PublisherAccess は **Cascade のまま**と決着（権限レコードは出版社と運命共同体でよい。Restrict にすると権限保持者がいるだけで削除できず掃除の妨げになる）。
 
 ### 認証エラー表示・パスワード再発行
 - ログイン失敗は**汎用文言**「メールアドレスまたはパスワードが正しくありません」（アカウント列挙対策。実装済）。どちらが違うか・登録の有無は明かさない。
