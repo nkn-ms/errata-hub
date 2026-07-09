@@ -124,11 +124,11 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 - **db push が発行する SQL と同一内容にする**こと。手書きせず、ローカルで次のコマンドで生成するのが安全:
   ```bash
-  # ローカルDB（schema変更前の状態）と schema.prisma の差分 DDL を出力
-  npx prisma migrate diff \
-    --from-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-    --to-schema-datamodel prisma/schema.prisma --script
+  # ローカルDB（schema変更前の状態）と schema.prisma の差分 DDL を「表示するだけ」（実行はしない）
+  # from = prisma.config.ts の接続先（.env.local 優先＝ローカルDB）、to = schema.prisma
+  npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
   ```
+  ※ Prisma v7 で `--from-url` は削除され `--from-config-datasource` になった（`--script` を外すと人間向け要約）。差分が無いと `-- This is an empty migration.` と出る＝ローカルDBと schema が一致している確認にも使える
 - テーブル名・カラム名のダブルクォートは必須（Prisma は大文字小文字混在の名前で作るため、外すと別名扱いでエラー）
 - 実績: 2026-07-09 に `Profile.githubUsername` / `xUsername` の追加をこの方法で反映した
 
