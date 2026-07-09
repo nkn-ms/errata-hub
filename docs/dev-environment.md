@@ -6,6 +6,20 @@ env で迷ったらここを見る。
 > **環境変数(env)** = アプリの設定値や秘密情報（DB の接続先・API キー等）を**コードの外**に出して、
 > 環境ごとに差し替えられるようにする仕組み。コードは `process.env.XXX` で読む。
 
+## 0. ⚠️ 忘れてはいけないこと（先に読む）
+
+- **ローカルの値は全部 `.env.local`**。`.env` は方針コメントのみの空ファイル（§4）。
+- **Supabase CLI（`supabase start`）も `.env` と `.env.local` を自動で読む**（実測確認済み）。
+  GitHub ログインのローカル用 client_id/secret はここから `supabase/config.toml` の `env()` に入る。
+- **`supabase/config.toml` や Supabase 向け env 値を変えたら `supabase stop && supabase start`**。
+  起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
+- **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma db push` が必要**。
+  コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。
+- **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。
+- **e2e を本番/Preview に向けるときだけ `.env.e2e`** を使う（普段のローカル e2e はシード垢を自動使用）。
+  この分離は「うっかり本番に書き込む e2e」を防ぐ安全弁なので、`.env.local` に統合しない。
+- **public 化（検索に出す）時に noindex を外す**（`robots.ts` と `layout.tsx` の2箇所）。それまでは維持。
+
 ## 1. 「環境」は3つ
 
 | 環境 | どこ | 何のため |
@@ -27,10 +41,16 @@ env で迷ったらここを見る。
 ## 3. 優先順位（なぜローカルが勝つか）
 
 - **アプリ実行（`npm run dev`）**: Next.js が `.env.local` を `.env` より**優先**して読む。
+  - これは Next.js の公式仕様（探索順: `process.env` → `.env.$(NODE_ENV).local` → `.env.local` → `.env.$(NODE_ENV)` → `.env`。最初に見つかった値で確定。
+    出典: [Next.js Guides > Environment Variables > Load Order](https://nextjs.org/docs/app/guides/environment-variables)、手元では `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md` で確認可）。
+    「共通のデフォルトは `.env`、そのマシン固有の上書きは `.env.local`」という **dotenv 界隈の標準的な重ね着方式**で、Vite や CRA も同じ流儀。
+    `.env.development` / `.env.production` は NODE_ENV でファイルが自動選択される仕組み（このプロジェクトでは未使用）。
   - Vercel 上には `.env`/`.env.local` ファイルが**存在しない**ので、Vercel が値を直接 `process.env` に注入する＝Vercel の環境変数が使われる。
 - **Prisma の CLI**（`prisma db push` 等）: 素では `.env` しか読まない。そこで `prisma.config.ts` を
   「**`.env.local` → `.env` の順で読む**」よう設定している（dotenv は既存値を上書きしないので `.env.local` が勝つ）。
   これで CLI もローカルを向く＝**手元の操作が誤って本番DBを叩かない**。
+- **Supabase CLI（`supabase start`）**: `.env` と `.env.local` の両方を自動で読み、
+  `supabase/config.toml` 内の `env(変数名)` に差し込む（2026-07 実測確認）。ローカル用 GitHub OAuth の値はこの経路で渡る。
 
 ```
 [自分のマシン]  npm run dev / prisma ──読む──▶ .env.local（ローカル Supabase）
@@ -41,7 +61,7 @@ env で迷ったらここを見る。
 
 | ファイル | git | 中身 |
 |---|---|---|
-| `.env.local` | 対象外 | **ローカル開発の実値**（ローカル Supabase ＋ Google キー）← 普段使うのはこれ |
+| `.env.local` | 対象外 | **ローカル開発の実値**（ローカル Supabase ＋ Google キー ＋ ローカル用 GitHub OAuth）← 普段使うのはこれ |
 | `.env` | 対象外 | **コメントのみ**（本番値はゼロにスクラブ済み） |
 | `.env.example` | 追跡 | 必要な変数の一覧＋ホスト型 Supabase の例（値なしテンプレ） |
 | `.env.local.example` | 追跡 | ローカル開発用テンプレ（値なし） |
@@ -77,9 +97,42 @@ npm run dev                    # http://localhost:3000
 | ローカルで `npm run dev` | **ローカル** Supabase |
 | ローカルで `prisma db push` | **ローカル** Supabase（`.env.local` 優先のため） |
 | `git push` → main → Vercel 本番デプロイ | **本番** Supabase |
-| 本番にスキーマを反映したい（稀） | **break-glass**: Supabase ダッシュボードから接続情報を取り、その場限りで実行（ローカルに残さない） |
+| 本番にスキーマを反映したい（稀） | §7 の手順で。**正は `prisma db push`**・SQL 直打ちは代替 |
 
-## 7. なぜこの形にしたか（狙い）
+## 7. 本番DBへのスキーマ反映手順（正: `prisma db push`）
+
+`schema.prisma` の model/enum を変更した機能を本番反映するとき、**コードの main マージでは DB スキーマは変わらない（別作業）**。マージ前に本番 DB へ反映しておく（先にコードだけ本番に出ると、新カラムを参照した瞬間に落ちるため）。
+
+### 方法A（正）: `prisma db push`
+
+```bash
+# 別ターミナルで、対象ブランチを checkout した状態で（この会話・ファイルに URL を残さない）
+DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
+```
+
+- inline の env が `.env.local` より優先される（dotenv は既存 env を上書きしない。prisma.config.ts 参照）
+- 接続文字列は Supabase ダッシュボード → Connect → **Direct connection**（port 5432）。DB パスワードが要る
+  - パスワードはプロジェクト作成時にしか表示されないので**パスワードマネージャに控えておく**
+  - 紛失したら Settings → Database → Reset database password で再発行できるが、**Vercel の DATABASE_URL / DIRECT_URL も貼り替えが必要になる**（Sensitive のため上書き再設定）
+- 「data loss」系の警告が出たら中断して内容を確認（カラム削除・型変更など破壊的変更のとき）
+
+**なぜこれが正か**: `schema.prisma` が git 管理された唯一の正で、db push はそこから DDL を機械的に導出する（手書きミスが構造的に起きない・実DBとの差分計算と破壊的変更の警告つき）。将来の Prisma Migrate 移行（SQL をファイルとして git 管理）も「schema と実DBの一致」が前提で、db push 運用はそれを保証する。手動 SQL を常用すると一致が人間の注意力頼みになりドリフトの温床になる。
+
+### 方法B（代替）: SQL Editor で DDL 直打ち
+
+接続文字列がすぐ取れないとき（例: パスワード不明で Reset は避けたい）は、Supabase ダッシュボード → SQL Editor で DDL を直接実行してもよい。ただし:
+
+- **db push が発行する SQL と同一内容にする**こと。手書きせず、ローカルで次のコマンドで生成するのが安全:
+  ```bash
+  # ローカルDB（schema変更前の状態）と schema.prisma の差分 DDL を「表示するだけ」（実行はしない）
+  # from = prisma.config.ts の接続先（.env.local 優先＝ローカルDB）、to = schema.prisma
+  npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
+  ```
+  ※ Prisma v7 で `--from-url` は削除され `--from-config-datasource` になった（`--script` を外すと人間向け要約）。差分が無いと `-- This is an empty migration.` と出る＝ローカルDBと schema が一致している確認にも使える
+- テーブル名・カラム名のダブルクォートは必須（Prisma は大文字小文字混在の名前で作るため、外すと別名扱いでエラー）
+- 実績: 2026-07-09 に `Profile.githubUsername` / `xUsername` の追加をこの方法で反映した
+
+## 8. なぜこの形にしたか（狙い）
 
 1. **本番の秘密をローカルに置かない** ＝ 漏洩したときの被害範囲(blast radius)を最小化。
 2. **手元の操作が本番DBを壊さない** ＝ `npm run dev` も `prisma db push` もローカルDBに向く。

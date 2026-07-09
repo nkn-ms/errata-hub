@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { register } from "@/app/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { GitHubSignInButton } from "@/components/github-sign-in-button";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(register, undefined);
@@ -16,7 +17,9 @@ export default function RegisterPage() {
           <p className="mt-2 text-sm text-gray-500">Errata Hub</p>
         </div>
 
-        <form action={action} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        {/* GitHub ボタンも <form> なので、ネストを避けるためカードは div にして form を分ける */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+          <form action={action} className="space-y-4">
           {state?.error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
               {state.error}
@@ -74,6 +77,15 @@ export default function RegisterPage() {
           >
             {pending ? "登録中..." : "会員登録"}
           </button>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-gray-200" />
+            <span className="text-xs text-gray-400">または</span>
+            <div className="flex-1 border-t border-gray-200" />
+          </div>
+
+          <GitHubSignInButton />
 
           <p className="text-center text-sm text-gray-500">
             すでにアカウントをお持ちの方は
@@ -81,7 +93,7 @@ export default function RegisterPage() {
               ログイン
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   );

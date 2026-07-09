@@ -445,3 +445,24 @@ GDPR の消去権が対象とするのは **PII**。**匿名化して個人と�
 - 逆にログアウトを `<a href="/logout">` にすると **GET で状態変更**することになり、ブラウザの prefetch やクローラーが URL を踏んだだけで勝手にログアウトする事故が起きる（有名なやらかしパターン）。スクリーンリーダーも「link=どこかへ飛ぶ / button=何かが起きる」と読み分けるため、入れ替えはユーザーを騙す。
 - 実例: GitHub ヘッダーの「New repository」（緑ボタン）は `<a>`、ログアウトは `<form>`+`<button>`。shadcn/ui はこの用途に `<Button asChild><Link …>` という API を持つ。
 - 本プロジェクトの実装（header-nav.tsx の「投稿する」= Link にボタン風スタイル / ログアウト = button）は正しい。違和感の解消は実装の入れ替えではなく「見た目を挙動に寄せる」方向で行う（例: cursor-pointer の一括適用）。
+
+## user_metadata は「認証ユーザーに付く自由記入のJSONメモ欄」— 表示名の正にはしない
+
+Supabase Auth のユーザー本体（`auth.users`）には認証に必要な情報（メール・パスワードハッシュ・確認日時など）が入っている。その横に付いている**自由記入の JSON 欄**が `user_metadata`（DB カラム名は `raw_user_meta_data`）。中身のスキーマは決まっておらず、書き込むのは主に次の2者。
+
+| 誰が | いつ | 何が入るか |
+|------|------|-----------|
+| アプリ | 会員登録時（`signUp` の `options.data`）や `updateUser` | 登録フォームの表示名など任意の値 |
+| OAuth プロバイダ | GitHub ログイン時に**自動で** | GitHub プロフィール（`user_name`・`avatar_url`・`email` など） |
+
+参考: https://supabase.com/docs/guides/auth/managing-user-data
+
+### 注意点（権限判断に使わない）
+
+`user_metadata` は**本人がクライアント API（`updateUser`）から自由に書き換えられる**。「管理者かどうか」のような権限判断に使うと自己昇格できてしまうため絶対に使わない。本プロジェクトで `role` を Profile テーブル（サーバー管理）に持つのはこのため。なお管理者しか書けない `app_metadata` という別領域もあるが、本プロジェクトでは未使用。
+
+### 本プロジェクトでの方針（2026-07-09 確定）
+
+**表示名の正は `Profile.displayName` のみ。`user_metadata.display_name` は「会員登録フォーム → メール確認後の callback で Profile を作る」までの一度きりの運搬役で、以後は参照も同期もしない。**
+
+かつては「Profile が正・user_metadata も整合のため合わせて更新する」という二重管理だったが、ログイン経路（メール登録・GitHub・将来の Google）が増えるたびに同期漏れが起きる構造で、実際に GitHub ログインでヘッダーがメール表示になるバグが出た（GitHub 由来の metadata には `display_name` というキーが無いため）。読む場所を Profile に一本化して同期コード自体を廃止した（コミット b1492de）。

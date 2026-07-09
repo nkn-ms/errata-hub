@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
+import { ProfileLinksForm } from "./profile-links-form";
 
 // アカウント設定ページ。アカウント情報の表示、表示名の変更、退会（Danger Zone）。
 // セルフサービスは表示名変更と退会のみ。メール変更機能は提供しない（需要が低く、
@@ -21,8 +22,14 @@ export default async function AccountPage() {
 
   const profile = await prisma.profile.findUnique({
     where: { id: user.id },
-    select: { displayName: true, createdAt: true },
+    select: { displayName: true, githubUsername: true, xUsername: true, createdAt: true },
   });
+
+  // GitHub ログイン済みなら OAuth の identity から本人のアカウント名を取り、
+  // 未入力時のプリフィル候補として渡す（保存＝公開は本人の操作のみ）。
+  const githubIdentity = user.identities?.find((i) => i.provider === "github");
+  const githubUsernameSuggestion =
+    (githubIdentity?.identity_data?.user_name as string | undefined) ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -42,6 +49,11 @@ export default async function AccountPage() {
               <dt className="text-gray-500">メールアドレス</dt>
               <dd className="text-gray-900 break-all">{user.email}</dd>
             </div>
+            {/* 投稿者名の下や自分のユーザーページに出る短縮ID。本人が照合できるようここにも出す */}
+            <div className="flex justify-between gap-4">
+              <dt className="text-gray-500">ユーザーID</dt>
+              <dd className="text-gray-900">@{user.id.slice(0, 8)}</dd>
+            </div>
             {profile?.createdAt && (
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">登録日</dt>
@@ -49,11 +61,25 @@ export default async function AccountPage() {
               </div>
             )}
           </dl>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <Link href={routes.user(user.id)} className="text-sm text-blue-600 hover:underline">
+              自分のユーザーページを見る →
+            </Link>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-4">表示名の変更</h2>
           <DisplayNameForm currentDisplayName={profile?.displayName ?? null} />
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">公開リンク</h2>
+          <ProfileLinksForm
+            currentGithubUsername={profile?.githubUsername ?? null}
+            currentXUsername={profile?.xUsername ?? null}
+            githubUsernameSuggestion={githubUsernameSuggestion}
+          />
         </div>
 
         {/* Danger Zone */}

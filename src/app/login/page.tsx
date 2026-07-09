@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { GitHubSignInButton } from "@/components/github-sign-in-button";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -16,7 +17,9 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-gray-500">Errata Hub</p>
         </div>
 
-        <form action={action} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        {/* GitHub ボタンも <form> なので、ネストを避けるためカードは div にして form を分ける */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+          <form action={action} className="space-y-4">
           {state?.error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
               {state.error}
@@ -58,6 +61,15 @@ export default function LoginPage() {
           >
             {pending ? "ログイン中..." : "ログイン"}
           </button>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-gray-200" />
+            <span className="text-xs text-gray-400">または</span>
+            <div className="flex-1 border-t border-gray-200" />
+          </div>
+
+          <GitHubSignInButton />
 
           <p className="text-center text-sm">
             <Link href={routes.auth.resetPassword} className="text-blue-600 hover:underline">
@@ -71,7 +83,7 @@ export default function LoginPage() {
               会員登録
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   );

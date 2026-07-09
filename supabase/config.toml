@@ -334,6 +334,16 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# GitHub ログイン（ローカル用）。GitHub の OAuth App（callback: http://127.0.0.1:54321/auth/v1/callback）
+# を作成し、client_id / secret を .env.local（gitignore済み・テンプレは .env.local.example）に書く。
+# `supabase start` が .env / .env.local を自動で読み、下の env() に差し込む（両方とも実測確認済み）。
+# 本番は Supabase ダッシュボード側の Provider 設定（別の OAuth App）を使う。
+[auth.external.github]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

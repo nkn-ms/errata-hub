@@ -69,6 +69,8 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
+      // display_name はメール確認後の callback で Profile.displayName（表示の正）を
+      // 作るための運搬用。以後 user_metadata は参照しない（updateDisplayName の方針コメント参照）。
       data: { display_name: parsed.data.displayName },
       emailRedirectTo: `${origin}${routes.auth.callback}`,
     },
@@ -79,6 +81,33 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
   }
 
   redirect(routes.auth.confirm);
+}
+
+/**
+ * GitHub ログイン（OAuth 開始）。
+ *
+ * signInWithOAuth はサーバーでは自動リダイレクトせず認可 URL を返すだけなので、
+ * redirect() で GitHub へ送る。PKCE の code verifier は @supabase/ssr が
+ * Cookie に保存し、GitHub から戻った /auth/callback の exchangeCodeForSession が消費する。
+ * 参考: https://supabase.com/docs/guides/auth/social-login/auth-github
+ */
+export async function signInWithGitHub() {
+  // 登録フローと同様に、戻り先 origin をリクエスト元に合わせる（Site URL フォールバック対策）。
+  const h = await headers();
+  const origin =
+    h.get("origin") ??
+    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "github",
+    options: { redirectTo: `${origin}${routes.auth.callback}` },
+  });
+
+  if (error || !data.url) {
+    redirect(routes.auth.error);
+  }
+  redirect(data.url);
 }
 
 const ResetRequestSchema = z.object({
@@ -156,7 +185,9 @@ export type ProfileState = { error?: string; success?: boolean } | undefined;
 /**
  * 表示名の変更（本人のセルフサービス）。
  *
- * 表示の正は Profile.displayName。認証側の user_metadata も整合のため合わせて更新する。
+ * 表示の正は Profile.displayName のみ。user_metadata.display_name は会員登録フォームから
+ * callback での Profile 作成へ値を運ぶ一度きりの用途で、以後は参照も同期もしない
+ * （二重管理にすると OAuth ログイン等の経路ごとに同期漏れが起きるため）。
  * プライバシーポリシー第7条3項（表示名は本サービス上で変更可能）と対応。
  */
 export async function updateDisplayName(
@@ -184,7 +215,66 @@ export async function updateDisplayName(
     where: { id: user.id },
     data: { displayName: parsed.data.displayName },
   });
-  await supabase.auth.updateUser({ data: { display_name: parsed.data.displayName } });
+
+  revalidatePath(routes.account);
+  return { success: true };
+}
+
+// 空文字は「未設定に戻す」として null に落とす。URL ではなくユーザー名で保存し、
+// 表示側で https://github.com/... を組み立てる（任意 URL を貼らせない＝リンク先偽装の余地を断つ）。
+const GITHUB_USERNAME_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/; // 英数字とハイフン39文字以内・先頭末尾/連続ハイフン不可
+const X_USERNAME_RE = /^[A-Za-z0-9_]{1,15}$/; // 英数字とアンダースコア15文字以内
+
+const ProfileLinksSchema = z.object({
+  githubUsername: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .refine((v) => v === null || GITHUB_USERNAME_RE.test(v), {
+      message: "GitHubのユーザー名の形式が正しくありません（英数字とハイフン、39文字以内）",
+    }),
+  xUsername: z
+    .string()
+    .trim()
+    // URL やハンドルをそのまま貼る人向けに @ 前置きだけは剥がして受け付ける
+    .transform((v) => v.replace(/^@/, ""))
+    .transform((v) => (v === "" ? null : v))
+    .refine((v) => v === null || X_USERNAME_RE.test(v), {
+      message: "Xのユーザー名の形式が正しくありません（英数字とアンダースコア、15文字以内）",
+    }),
+});
+
+/**
+ * 公開リンク（GitHub / X）の変更（本人のセルフサービス）。
+ *
+ * ログイン手段とは独立した自己申告のプロフィール項目。本人が入力した場合のみ公開される。
+ */
+export async function updateProfileLinks(
+  _prevState: ProfileState,
+  formData: FormData,
+): Promise<ProfileState> {
+  const parsed = ProfileLinksSchema.safeParse({
+    githubUsername: formData.get("githubUsername") ?? "",
+    xUsername: formData.get("xUsername") ?? "",
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(routes.login);
+  }
+
+  await prisma.profile.update({
+    where: { id: user.id },
+    data: parsed.data,
+  });
 
   revalidatePath(routes.account);
   return { success: true };
