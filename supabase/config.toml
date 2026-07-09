@@ -335,7 +335,8 @@ skip_nonce_check = false
 email_optional = false
 
 # GitHub ログイン（ローカル用）。GitHub の OAuth App（callback: http://127.0.0.1:54321/auth/v1/callback）
-# を作成し、client_id / secret を環境変数で渡してから `supabase start` する。
+# を作成し、client_id / secret をリポジトリ直下の .env（gitignore済み）に書く。
+# `supabase start` が .env を自動で読み、下の env() に差し込む（実測確認済み）。
 # 本番は Supabase ダッシュボード側の Provider 設定（別の OAuth App）を使う。
 [auth.external.github]
 enabled = true
