@@ -5,6 +5,7 @@ import { login } from "@/app/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { GitHubSignInButton } from "@/components/github-sign-in-button";
+import { LegalConsentNote } from "@/components/legal";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -70,6 +71,9 @@ export default function LoginPage() {
           </div>
 
           <GitHubSignInButton />
+
+          {/* GitHubログインは初回に新規登録を兼ねる（同一メール自動リンク/新規作成）ため、ログイン画面にも同意文言を出す */}
+          <LegalConsentNote action="ログイン" />
 
           <p className="text-center text-sm">
             <Link href={routes.auth.resetPassword} className="text-blue-600 hover:underline">
