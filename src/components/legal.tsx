@@ -65,3 +65,21 @@ export function BulletList({ children }: { children: React.ReactNode }) {
     </ul>
   );
 }
+
+// 登録・ログイン画面の同意文言。規約第2条「利用することにより同意したものとみなす」の
+// 建て付けを画面側にも明示する（メール登録とGitHubログインの両方に効くようカード末尾に置く）。
+export function LegalConsentNote({ action }: { action: string }) {
+  return (
+    <p className="text-center text-xs text-gray-400 leading-relaxed">
+      {action}することで、
+      <Link href={routes.terms} className="text-blue-600 hover:underline">
+        利用規約
+      </Link>
+      および
+      <Link href={routes.privacy} className="text-blue-600 hover:underline">
+        プライバシーポリシー
+      </Link>
+      に同意したものとみなされます。
+    </p>
+  );
+}

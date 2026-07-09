@@ -5,6 +5,7 @@ import { register } from "@/app/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { GitHubSignInButton } from "@/components/github-sign-in-button";
+import { LegalConsentNote } from "@/components/legal";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(register, undefined);
@@ -86,6 +87,8 @@ export default function RegisterPage() {
           </div>
 
           <GitHubSignInButton />
+
+          <LegalConsentNote action="登録" />
 
           <p className="text-center text-sm text-gray-500">
             すでにアカウントをお持ちの方は
