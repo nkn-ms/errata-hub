@@ -74,8 +74,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       action: "UPDATE_REPORT",
       targetType: TARGET_TYPE.REPORT,
       targetId: id,
-      before: { status: before?.status, publisherComment: before?.publisherComment },
-      after: { status: report.status, publisherComment: report.publisherComment },
+      // PatchSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
+      before: {
+        status: before?.status,
+        publisherComment: before?.publisherComment,
+        fixedEdition: before?.fixedEdition,
+        fixedPrinting: before?.fixedPrinting,
+      },
+      after: {
+        status: report.status,
+        publisherComment: report.publisherComment,
+        fixedEdition: report.fixedEdition,
+        fixedPrinting: report.fixedPrinting,
+      },
     });
 
     return NextResponse.json(report);

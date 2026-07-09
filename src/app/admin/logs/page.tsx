@@ -10,6 +10,7 @@ const ACTION_LABELS: Record<string, string> = {
   REVOKE_PUBLISHER_ACCESS: "出版社アクセス削除",
   UPDATE_BOOK: "書籍更新",
   DELETE_BOOK: "書籍削除",
+  WITHDRAW_USER: "退会",
 };
 
 const PAGE_SIZE = 50;
