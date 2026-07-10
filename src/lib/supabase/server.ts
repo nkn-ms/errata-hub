@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Supabase SSR クライアント（サーバー用）。cookie の getAll/setAll の形と、
+// Server Component では cookie を書けないため setAll の失敗を握りつぶす try/catch は
+// 公式パターンそのまま。出典: https://supabase.com/docs/guides/auth/server-side/nextjs
 export async function createClient() {
   const cookieStore = await cookies();
 
