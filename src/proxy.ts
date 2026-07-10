@@ -25,6 +25,9 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // getUser() はトークン検証と、失効間際ならリフレッシュ（延長）も行う。
+  // その結果を cookie に書き戻せるのは実質ここ（ミドルウェア）だけなので、
+  // この呼び出しが「セッション維持」の本体になる（Server Component は cookie を書けない）。
   const { data: { user } } = await supabase.auth.getUser();
 
   // ミドルウェアはエッジで軽く動くべきなので DB を読まない（ロール判定はしない）。
@@ -42,5 +45,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/submit/:path*", "/submit"],
+  // 静的アセットを除く全ルートで実行する（Supabase 公式推奨の形）。
+  // 以前は保護ルート（/admin・/submit）限定だったが、それだと公開ページだけを
+  // 閲覧しているログインユーザーのトークン延長が cookie に保存されず、
+  // 時間経過で突然ログアウトされ得る（2026-07 監査 2-6 で発見）。
+  // コスト面: 未ログイン訪問者は auth cookie が無く getUser() はネットワークを
+  // 叩かずに即 null を返すため、匿名アクセスにはほぼ乗らない。
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };
