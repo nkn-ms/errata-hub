@@ -51,6 +51,8 @@ export const config = {
   // 時間経過で突然ログアウトされ得る（2026-07 監査 2-6 で発見）。
   // コスト面: 未ログイン訪問者は auth cookie が無く getUser() はネットワークを
   // 叩かずに即 null を返すため、匿名アクセスにはほぼ乗らない。
+  // パターンの出典: https://supabase.com/docs/guides/auth/server-side/nextjs
+  // （否定先読みの解説は node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md の Matcher 節）
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
