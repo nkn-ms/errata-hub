@@ -19,7 +19,7 @@ const BookUpdateSchema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || sanitizeCoverImageUrl(v) !== null, {
-      message: "書影URLは OpenBD（cover.openbd.jp）または Google Books（books.google.com）のURLのみ設定できます",
+      message: "書影URLは OpenBD / Google Books 由来（cover.openbd.jp・books.google.com・books.googleusercontent.com）のURLのみ設定できます",
     }),
 });
 
@@ -44,12 +44,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     const { title, author, publisherName, coverImageUrl } = parsed.data;
 
-    // 出版社は名前で検索または作成（api/reports/route.ts と同型）。空なら紐付け無し（null）。
+    // 出版社は名前で upsert（api/reports/route.ts と同型）。findFirst→create の2段だと
+    // 同時実行の隙間で name @unique に衝突（P2002→500）し得るため、1命令で競合安全にする。
+    // 空なら紐付け無し（null）。
     let publisherId: string | null = null;
     if (publisherName) {
-      const publisher =
-        (await prisma.publisher.findFirst({ where: { name: publisherName } })) ??
-        (await prisma.publisher.create({ data: { name: publisherName } }));
+      const publisher = await prisma.publisher.upsert({
+        where: { name: publisherName },
+        update: {},
+        create: { name: publisherName },
+      });
       publisherId = publisher.id;
     }
 
