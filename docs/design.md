@@ -5,6 +5,8 @@
 前提認識: これは「投稿フォーム付き CRUD」ではなく、**信頼性が命の UGC コンテンツ・プラットフォーム**。
 誰でも任意の本に「ここが誤り」と書ける = 信頼性・モデレーション・発見性（SEO）が製品の本体。
 
+※ §1〜6 の「実装状況」注記は 2026-07-10 時点。マークは ✅=実装済 / 🔶=一部実装 / ❌=未実装。確定済みの運用方針は §7 に集約。
+
 ---
 
 ## 1. ドメインモデル
@@ -22,9 +24,11 @@ AuditLog           管理操作ログ
 ```
 
 主な変更:
-- **Feedback → Report** に改名（実体は「正誤報告」）。
-- **出版社コメントを文字列カラム → `PublisherResponse` エンティティへ昇格**（誰が・いつ・どの肩書きで・複数回答・編集履歴）。
-- **Confirmation（賛同）追加** — 重複報告を「別レコード乱立」でなく「賛同が集まる」形に誘導。公開 DB の信頼性とノイズ除去の生命線。
+- **Feedback → Report** に改名（実体は「正誤報告」）。 — ✅実装済（旧 `/feedbacks` は `/reports` へ）
+- **出版社コメントを文字列カラム → `PublisherResponse` エンティティへ昇格**（誰が・いつ・どの肩書きで・複数回答・編集履歴）。 — ❌未実装（`Report.publisherComment` 文字列のまま）
+- **Confirmation（賛同）追加** — 重複報告を「別レコード乱立」でなく「賛同が集まる」形に誘導。公開 DB の信頼性とノイズ除去の生命線。 — ✅実装済（実装名は **`Upvote`**・UI は「自分も見つけた」）
+
+実装状況: 上記のほか `Flag`（通報）は❌未実装、`PublisherMembership` は旧 `PublisherAccess` のまま（改名・`verified` フラグとも❌未実装）。
 
 ---
 
@@ -38,6 +42,8 @@ AuditLog           管理操作ログ
 
 - 3者モデル（管理者・一般・出版社）は `getUserKind()` で読み手に見せる。スキーマには重複を持たない → role と access の同期ズレが構造的に消える。
 - 出版社化は「メールドメイン一致で**申請候補** → 管理者承認 or ドメイン所有検証」。ドメイン一致だけで公式回答権を与えない（なりすまし対策）。`PublisherMembership.verified`。
+
+実装状況: `Profile.role = ADMIN | USER` への縮小（PUBLISHER ロール廃止・出版社かは `PublisherAccess` から導出する方針）は✅実装済。`getUserKind()`・verified 付き membership・出版社の申請/承認フローは❌未実装（出版社向け機能自体をまだ提供していない）。
 
 ---
 
@@ -53,6 +59,8 @@ fixedEdition / fixedPrinting は FIXED に付随
 - 「却下（スパム）」と「出版社が対応しない（WONT_FIX）」は意味が全く違うのに今は混在。
 - 公開ポリシー: **即時公開 + 通報で PENDING_REVIEW に落とす**（性善説 + 事後モデレーション + 監査）。
 
+実装状況: ❌未実装（現状は 1 enum 8値の `ReportStatus` のまま。即時公開の運用のみ実態と一致）。
+
 ---
 
 ## 4. 公開プラットフォーム必須層（現状の空白）
@@ -66,39 +74,41 @@ fixedEdition / fixedPrinting は FIXED に付随
 4. **通知**: 自分の報告に出版社回答が付いたらメール通知（Resend 等）。
 5. **法務・プライバシー**: 免責、退会（GDPR: **§7 の匿名化方針**＝auth.users 削除＋Profile の PII スクラブ・Report は保全）、削除依頼フロー、利用規約。
 
+実装状況: 1=❌未実装。2=🔶一部（賛同数✅・投稿者実績は `/users/[id]` の統計で一部✅・出版社 verified 回答バッジ❌・免責バナー✅維持中）。3=❌未実装（noindex ソフトローンチ中・sitemap 無し・動的レンダリング。public 化時に着手）。4=❌未実装。5=🔶一部（利用規約/プライバシー実ページ＋登録・ログイン画面の同意文言✅・退会=匿名化✅・免責✅。削除依頼フローとモデレーション方針の明文化は❌）。
+
 ---
 
 ## 5. アーキテクチャ / 技術
 
-- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データは `services/` を直接呼ぶ（HTTP 越し自前 API は外部公開時のみ）。
-- 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。
-- **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。
-- 検索: まず Postgres 全文検索（pg_trgm）。
-- 画像: Supabase Storage、削除はカスケード + ファイル削除を退会・報告削除に統合。
-- テスト: `utils/isbn.ts` など純粋関数から Vitest 導入。
+- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データは `services/` を直接呼ぶ（HTTP 越し自前 API は外部公開時のみ）。 — 🔶SC + `services/` 直呼びは✅・ISR は❌未導入（動的レンダリング）
+- 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。 — ✅実装済
+- **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。 — ✅実装済（全テーブル RLS 有効・ポリシー無し=全拒否ロック。認可はサーバー層で行う。→ `docs/learnings.md`）
+- 検索: まず Postgres 全文検索（pg_trgm）。 — ❌未実装（現状は一覧のクライアント側フィルタのみ）
+- 画像: Supabase Storage、削除はカスケード + ファイル削除を退会・報告削除に統合。 — ❌未実装（`ReportImage` モデルのみ存在・画像投稿機能なし。書影は外部 URL 直リンク方針）
+- テスト: `utils/isbn.ts` など純粋関数から Vitest 導入。 — ✅実装済（純粋関数＋コンポーネント/API ルートのユニットテストあり。e2e は Playwright）
 
 ---
 
 ## 6. 現状からの差分
 
-| 領域 | 今 | 提案 |
-|---|---|---|
-| role | ADMIN/PUBLISHER/USER 保存 | ADMIN/USER + membership 導出 |
-| 出版社回答 | 文字列カラム | `PublisherResponse` 第一級 |
-| status | 8値1軸 | moderation × resolution 2軸 |
-| 賛同/通報 | なし | `Confirmation` / `Flag` |
-| 公開性 | 動的レンダリング | ISR + SEO + sitemap |
-| RLS | 未設定（露出リスク） | 全有効化で締める |
-| 命名 | Feedback | Report |
+| 領域 | 今（初版執筆時） | 提案 | 実装状況 |
+|---|---|---|---|
+| role | ADMIN/PUBLISHER/USER 保存 | ADMIN/USER + membership 導出 | ✅済 |
+| 出版社回答 | 文字列カラム | `PublisherResponse` 第一級 | ❌未 |
+| status | 8値1軸 | moderation × resolution 2軸 | ❌未 |
+| 賛同/通報 | なし | `Confirmation` / `Flag` | 🔶賛同✅（`Upvote`）/ 通報❌ |
+| 公開性 | 動的レンダリング | ISR + SEO + sitemap | ❌未（public 化時に着手） |
+| RLS | 未設定（露出リスク） | 全有効化で締める | ✅済（全拒否ロック） |
+| 命名 | Feedback | Report | ✅済 |
 
 ---
 
 ## 優先度（ポートフォリオとして効く順）
 
-1. 認可（identity/capability 分離）— 設計力の証明
-2. ステータス 2 軸 + モデレーション — 実プロダクト感
-3. SEO / ISR — 公開で伸びる本体
-4. RLS 締め — 公開前セキュリティ必須
+1. 認可（identity/capability 分離）— 設計力の証明 — 🔶role 縮小✅・membership/verified❌
+2. ステータス 2 軸 + モデレーション — 実プロダクト感 — ❌未着手
+3. SEO / ISR — 公開で伸びる本体 — ❌未着手（public 化時）
+4. RLS 締め — 公開前セキュリティ必須 — ✅完了
 
 全部を一度にやる必要はない。段階移行する。
 
