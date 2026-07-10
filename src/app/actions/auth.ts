@@ -118,6 +118,11 @@ const UpdatePasswordSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
 
+/**
+ * パスワード再発行メールの送信。
+ * フロー全体（resetPasswordForEmail → メール → /auth/callback → パスワード更新）は公式の形。
+ * 参考: https://supabase.com/docs/guides/auth/passwords
+ */
 export async function requestPasswordReset(
   _prevState: AuthState,
   formData: FormData,

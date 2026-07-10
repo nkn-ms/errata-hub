@@ -4,6 +4,11 @@
 // フォントデータを明示的に渡さないと豆腐（□）になる。Noto Sans JP 全量は
 // 数MBあるため、Google Fonts の `text=` パラメータで「描画する文字だけ」の
 // サブセットを都度取得する（リクエスト内の文字数なら数KB〜数十KB）。
+//
+// 出典: opengraph-image の規約（alt/size/contentType/ImageResponse）は
+//   https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
+// `text=` でのサブセット取得は Google Fonts CSS API の公式機能:
+//   https://developers.google.com/fonts/docs/css2
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 

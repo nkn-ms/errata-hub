@@ -11,6 +11,9 @@
  * DB の @unique 制約と名寄せ（upsert）が正しく機能する。
  *
  * チェック数字（末尾の検算用数字）が不正なものは null を返す。
+ *
+ * チェック数字の計算式と 10→13 変換規則の出典: International ISBN Agency「ISBN Users' Manual」
+ * https://www.isbn-international.org/content/isbn-users-manual
  */
 export function toCanonicalIsbn(raw: string): string | null {
   const s = raw.replace(/[^0-9Xx]/g, "").toUpperCase();
