@@ -518,3 +518,40 @@ Supabase Auth のユーザー本体（`auth.users`）には認証に必要な情
 **表示名の正は `Profile.displayName` のみ。`user_metadata.display_name` は「会員登録フォーム → メール確認後の callback で Profile を作る」までの一度きりの運搬役で、以後は参照も同期もしない。**
 
 かつては「Profile が正・user_metadata も整合のため合わせて更新する」という二重管理だったが、ログイン経路（メール登録・GitHub・将来の Google）が増えるたびに同期漏れが起きる構造で、実際に GitHub ログインでヘッダーがメール表示になるバグが出た（GitHub 由来の metadata には `display_name` というキーが無いため）。読む場所を Profile に一本化して同期コード自体を廃止した（コミット b1492de）。
+
+## Next.js の `metadata` / `generateMetadata` は「予約 export」— 呼び出しコードはどこにも無い
+
+### きっかけ
+
+「`/users/[id]` だけブラウザのタブ表示が『Errata Hub』のままなのはなぜか」を調べた際の疑問。「`metadata` は各ページで明示的に呼ばれているのか？ grep しても呼び出しが見当たらない」→ **見つからないのが正解**で、どこにも呼び出しコードは存在しない。
+
+### 「フレームワークがあなたのファイルを呼ぶ」構造（規約ベース）
+
+App Router は「アプリのコードがフレームワークを呼ぶ」のではなく、**フレームワークが決まった場所・決まった名前の export を探して呼ぶ**（いわゆる規約ベース convention-based）。ルートを描画するとき Next.js が `page.tsx` / `layout.tsx` から探しに行く「予約 export」の代表：
+
+| export 名 | Next.js がやること |
+|-----------|--------------------|
+| `default`（ページ/レイアウト本体） | ページの中身として描画 |
+| `metadata`（オブジェクト・静的） | `<head>` 内の `<title>` や `<meta>` を生成 |
+| `generateMetadata`（関数・動的） | 描画前に実行し、返り値から同じく `<head>` を生成 |
+
+考えてみればページコンポーネント自体も同じで、`page.tsx` の `export default` を import して呼んでいるコードは無い。ファイル配置（`app/reports/[id]/page.tsx` という置き場所）を見て Next.js が勝手に呼んでいる。`metadata` / `generateMetadata` はその予約名の仲間。
+
+### 静的 `metadata` と動的 `generateMetadata` の使い分け
+
+- `export const metadata = {...}` — **静的**。ビルド時に決まる固定値。本プロジェクトでは `app/layout.tsx` がサイト全体のデフォルト（`title: "Errata Hub"` ＋公開前の一時的な `robots: noindex`）を持つ。
+- `export async function generateMetadata()` — **動的**。リクエストごとに実行され、DB を引いて値を作れる。`app/reports/[id]/page.tsx` がこれで投稿タイトルを `<title>` に入れている。**サーバーコンポーネント限定**。
+- 副作用の注意: `generateMetadata` とページ本体が**同じデータを別々に取りに行く**構造になるため、素朴に書くと同一リクエスト内で同じ DB クエリが2回走る。`reports/[id]/page.tsx` では React の `cache()` で `findReportById` を包み、リクエスト内で1回に重複排除している（`getReport`）。
+
+### layout と page のマージ規則（ページが勝つ・フィールド単位）
+
+layout と page の両方に定義がある場合、**フィールド単位の浅いマージでページ側が勝つ**。
+
+- `/reports/[id]`: `title` はページの `generateMetadata` が上書き、`robots: noindex` はページが何も言っていないので layout の値が残る。
+- `/users/[id]`: ページ側の宣言が無い → layout のデフォルトが素通し。**タブが常に「Errata Hub」になる正体はこれ**（SEO 着手時に `generateMetadata` を追加予定）。
+
+### 確認方法
+
+ブラウザで任意のページを開き、開発者ツールの Elements タブで `<head>` を見る。生成された `<title>` と `<meta name="robots" content="noindex, nofollow">` が確認できる（`<title>` はページの見た目には出ないので devtools かタブ表示でしか気づけない）。
+
+出典: `node_modules/next/dist/docs/01-app/01-getting-started/14-metadata-and-og-images.md`（このリポジトリの Next 同梱ドキュメント。バージョン齟齬の無い一次情報）・ https://nextjs.org/docs/app/getting-started/metadata-and-og-images
