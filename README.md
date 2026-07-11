@@ -146,6 +146,7 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 | [docs/erd.svg](docs/erd.svg) | ER 図（`prisma generate` で自動更新） |
 | [docs/learnings.md](docs/learnings.md) | 開発中の学習メモ |
 | [docs/legal/](docs/legal/) | 利用規約・プライバシーポリシー（ドラフト） |
+| [docs/moderation-policy.md](docs/moderation-policy.md) | 投稿モデレーション方針（運用内規） |
 | [docs/project-requirements.md](docs/project-requirements.md) | 初期要件メモ（歴史資料。現状とは差異あり） |
 | [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) | AI エージェント開発時のルール（**本番反映の安全ルール**は人間にも適用） |
 | [.env.local.example](.env.local.example) ほか `*.example` | 環境変数テンプレート（変数名と取得方法の説明つき） |
