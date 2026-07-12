@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
+import { createReport } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 import {
@@ -100,35 +101,34 @@ export function ReportForm() {
     setError("");
 
     try {
-      const res = await fetch(routes.api.reports, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
-        body: JSON.stringify({
-          book,
-          edition: isPaper && edition ? parseInt(edition) : null,
-          printing: isPaper && printing ? parseInt(printing) : null,
-          title,
-          type: reportType,
-          medium,
-          page: isPaper && page ? parseInt(page) : null,
-          line: isPaper && line ? parseInt(line) : null,
-          hasMultiplePages: isPaper && hasMultiplePages,
-          locationNote: medium === "EBOOK" ? null : locationNote || null,
-          ebookLocation: medium === "EBOOK" ? ebookLocation : null,
-          wrong: isErrataType ? wrong : null,
-          correct: isErrataType ? correct : null,
-          content: isErrataType ? null : content,
-          note: note || null,
-        }),
+      // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
+      const created = await createReport({
+        book,
+        edition: isPaper && edition ? parseInt(edition) : null,
+        printing: isPaper && printing ? parseInt(printing) : null,
+        title,
+        type: reportType,
+        medium,
+        page: isPaper && page ? parseInt(page) : null,
+        line: isPaper && line ? parseInt(line) : null,
+        hasMultiplePages: isPaper && hasMultiplePages,
+        locationNote: medium === "EBOOK" ? null : locationNote || null,
+        ebookLocation: medium === "EBOOK" ? ebookLocation : null,
+        wrong: isErrataType ? wrong : null,
+        correct: isErrataType ? correct : null,
+        content: isErrataType ? null : content,
+        note: note || null,
       });
 
-      if (!res.ok) throw new Error("投稿に失敗しました");
+      if (created.error !== undefined) {
+        setError(created.error);
+        return;
+      }
 
       // 画像は投稿の作成後に1枚ずつアップロードする（1リクエスト1ファイル。
-      // まとめて送ると Vercel のボディ上限 4.5MB を超えうるため）。
+      // Server Actions のボディ上限 1MB を超えるため、画像だけは API Route で送る。
+      // まとめて送ると Vercel のボディ上限 4.5MB も超えうるため直列送信）。
       if (images.length > 0) {
-        const created: { id: string } = await res.json();
         let failedCount = 0;
         for (const { file } of images) {
           const formData = new FormData();

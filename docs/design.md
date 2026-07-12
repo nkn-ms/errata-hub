@@ -119,7 +119,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 ※ §1〜6 は将来像（未実装の提案を含む）。この §7 は**現時点で確定・実装済みの方針**を集約する（背景・解説は `docs/learnings.md`、個別の判断ログは Claude メモリ参照）。
 
 ### 削除と退会（別々の2系統）
-- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（将来は画像ファイル実体も削除に統合）。実装済 `DELETE /api/reports/[id]`（ADMIN限定）。
+- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `app/actions/report.ts` の `deleteReport`（ADMIN限定）。
 - **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
 
 ### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
@@ -139,3 +139,8 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### レスポンシブ
 - **Tailwind 標準ブレークポイントを据え置き**（カスタムしない。sm640/md768/lg1024/xl1280/2xl1536・min-width 積み上げ式）。対応は breakpoint の数値変更ではなく「**崩れるコンポーネント単位**」で行う（例：モバイルのテーブル横溢れはカード型化）。
+
+### データアクセスの境界（2026-07 に Server Actions へ統一）
+- **読み取り（ページ表示）= サーバーコンポーネントからサービス関数/Prisma を直接 await**。内部利用のためだけの自前 API Route は挟まない（同一プロセス内で HTTP 往復と JSON 二重シリアライズを増やすだけで、分離の実も速度も得られないため）。
+- **自アプリ UI からの更新 = Server Actions**（`app/actions/*.ts`）。理由：関数呼び出しの型安全（引数・戻り値をコンパイル時検証）、`useActionState` 等 React 統合、更新と画面反映が1往復で完結（アクション内の `refresh()` / `redirect()`）。エラーは `{ error?: string }` を返し、成功時に一覧へ戻る操作は `redirect()`（publisher.ts 発祥のパターン）。**認可はレンダリングではなく各アクション内で必ず検証する**（アクションは直接 POST 可能な公開エンドポイントであるため。管理系は `requireAdminOrThrow`）。
+- **API Route（Route Handler）は「HTTP 境界が本当に必要なもの」だけ**に限定。現存は次の2種のみ：①画像アップロード `POST /api/reports/[id]/images`（Server Actions のボディ上限は既定 1MB。`bodySizeLimit` を緩めると全アクション共通に効いて DDoS 耐性を削るため、大きいバイナリの受口だけ Route Handler に隔離）②外部書誌 API のプロキシ `GET /api/books/openbd`・`/api/books/search`（外部データ源への読み取り窓口）。

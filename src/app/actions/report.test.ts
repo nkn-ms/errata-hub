@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。
 const { prismaMock, getUserMock, PrismaClientKnownRequestError } = vi.hoisted(() => {
-  // ルートは Prisma.PrismaClientKnownRequestError の instanceof + code 判定に使う
+  // アクションは Prisma.PrismaClientKnownRequestError の instanceof + code 判定に使う
   class PrismaClientKnownRequestError extends Error {
     code: string;
     constructor(code: string) {
@@ -25,39 +25,37 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getUser: getUserMock } }),
 }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/generated/prisma/client", () => ({
   Prisma: { PrismaClientKnownRequestError },
 }));
 
-import { POST, DELETE } from "./route";
-
-const params = Promise.resolve({ id: "report-1" });
-const req = new Request("http://localhost/api/reports/report-1/upvote");
+import { toggleUpvote } from "./report";
 
 beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.upvote.count.mockResolvedValue(1);
 });
 
-describe("POST /api/reports/[id]/upvote", () => {
-  it("未認証は 401", async () => {
+describe("toggleUpvote（賛同を付ける）", () => {
+  it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const res = await POST(req, { params });
-    expect(res.status).toBe(401);
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ error: "認証が必要です" });
   });
 
-  it("投稿が存在しなければ 404", async () => {
+  it("投稿が存在しなければエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.report.findUnique.mockResolvedValue(null);
-    const res = await POST(req, { params });
-    expect(res.status).toBe(404);
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ error: "投稿が見つかりません" });
   });
 
-  it("自分の投稿には 403", async () => {
+  it("自分の投稿にはエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
-    const res = await POST(req, { params });
-    expect(res.status).toBe(403);
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ error: "自分の投稿には賛同できません" });
     expect(prismaMock.upvote.create).not.toHaveBeenCalled();
   });
 
@@ -65,9 +63,8 @@ describe("POST /api/reports/[id]/upvote", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockResolvedValue({});
-    const res = await POST(req, { params });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ upvoted: true, count: 1 });
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ upvoted: true, count: 1 });
     expect(prismaMock.upvote.create).toHaveBeenCalledWith({
       data: { reportId: "report-1", profileId: "user-2" },
     });
@@ -77,36 +74,34 @@ describe("POST /api/reports/[id]/upvote", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockRejectedValue(new PrismaClientKnownRequestError("P2002"));
-    const res = await POST(req, { params });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ upvoted: true, count: 1 });
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ upvoted: true, count: 1 });
   });
 
-  it("P2002 以外の DB エラーは 500", async () => {
+  it("P2002 以外の DB エラーは汎用エラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockRejectedValue(new PrismaClientKnownRequestError("P2003"));
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const res = await POST(req, { params });
-    expect(res.status).toBe(500);
+    const result = await toggleUpvote("report-1", true);
+    expect(result).toEqual({ error: "賛同に失敗しました" });
     consoleSpy.mockRestore();
   });
 });
 
-describe("DELETE /api/reports/[id]/upvote", () => {
-  it("未認証は 401", async () => {
+describe("toggleUpvote（賛同を取り消す）", () => {
+  it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const res = await DELETE(req, { params });
-    expect(res.status).toBe(401);
+    const result = await toggleUpvote("report-1", false);
+    expect(result).toEqual({ error: "認証が必要です" });
   });
 
   it("取り消しは deleteMany（未賛同でも成功）で {upvoted:false, count} を返す", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.upvote.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.upvote.count.mockResolvedValue(0);
-    const res = await DELETE(req, { params });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ upvoted: false, count: 0 });
+    const result = await toggleUpvote("report-1", false);
+    expect(result).toEqual({ upvoted: false, count: 0 });
     expect(prismaMock.upvote.deleteMany).toHaveBeenCalledWith({
       where: { reportId: "report-1", profileId: "user-2" },
     });

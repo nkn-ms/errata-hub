@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { deleteBook, updateBook } from "@/app/actions/book";
 import { routes } from "@/constants/routes";
 
 type Book = {
@@ -112,41 +113,25 @@ export function AdminBookEditor({ book }: { book: Book }) {
     setSaving(true);
     setSaved(false);
     setError("");
-    try {
-      const res = await fetch(routes.api.book(book.id), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, author, publisherName, coverImageUrl }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        // バリデーション詳細（フィールド別メッセージ）があれば汎用文言より優先して見せる
-        const detail = d?.details ? Object.values<string[]>(d.details).flat()[0] : undefined;
-        throw new Error(detail ?? d?.error ?? "保存に失敗しました");
-      }
+    // バリデーションエラーはアクションがフィールド別メッセージをそのまま返す。
+    // 成功時はアクション側の refresh() で画面が最新化される
+    const result = await updateBook(book.id, { title, author, publisherName, coverImageUrl });
+    if (result?.error) {
+      setError(result.error);
+    } else {
       setSaved(true);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "保存に失敗しました");
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
   async function handleDelete() {
     if (!confirm(`「${book.title}」を削除しますか？この操作は取り消せません。`)) return;
     setSaving(true);
     setError("");
-    try {
-      const res = await fetch(routes.api.book(book.id), { method: "DELETE" });
-      if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        throw new Error(d?.error ?? "削除に失敗しました");
-      }
-      router.push(routes.admin.books);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "削除に失敗しました");
+    // 成功時はアクション側が一覧へ redirect する
+    const result = await deleteBook(book.id);
+    if (result?.error) {
+      setError(result.error);
       setSaving(false);
     }
   }
