@@ -148,9 +148,9 @@ export default function HowToUsePage() {
             </Link>
             をご覧ください。
           </p>
-          <ul className="space-y-2">
+          <ul className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
             {RULES.map((rule) => (
-              <li key={rule} className="flex gap-2 bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-600">
+              <li key={rule} className="flex gap-2 text-sm text-gray-600">
                 <span className="shrink-0 text-gray-400">•</span>
                 {rule}
               </li>
