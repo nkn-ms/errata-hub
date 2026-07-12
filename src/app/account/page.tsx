@@ -6,6 +6,7 @@ import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
 import { SiteHeader } from "@/components/site-header";
 import { ProfileLinksForm } from "./profile-links-form";
+import { formatJstDate, shortId } from "@/utils/format";
 
 // アカウント設定ページ。アカウント情報の表示、表示名の変更、退会（Danger Zone）。
 // セルフサービスは表示名変更と退会のみ。メール変更機能は提供しない（需要が低く、
@@ -48,12 +49,12 @@ export default async function AccountPage() {
             {/* 投稿者名の下や自分のユーザーページに出る短縮ID。本人が照合できるようここにも出す */}
             <div className="flex justify-between gap-4">
               <dt className="text-gray-500">ユーザーID</dt>
-              <dd className="text-gray-900">@{user.id.slice(0, 8)}</dd>
+              <dd className="text-gray-900">@{shortId(user.id)}</dd>
             </div>
             {profile?.createdAt && (
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">登録日</dt>
-                <dd className="text-gray-900">{profile.createdAt.toISOString().split("T")[0]}</dd>
+                <dd className="text-gray-900">{formatJstDate(profile.createdAt)}</dd>
               </div>
             )}
           </dl>

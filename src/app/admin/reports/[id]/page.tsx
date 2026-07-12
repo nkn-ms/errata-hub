@@ -3,6 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
 import { TYPE_LABELS } from "@/constants/report-labels";
+import { formatJstDate } from "@/utils/format";
+import type { Report } from "@/generated/prisma/client";
+
+// 位置の1行表示。媒体ごとに入力される項目が違う（紙=ページ/行、電子=位置、その他=メモ）
+// ため、媒体で分岐して組み立てる。公開側の一覧（report-table の getLocationLabel）と
+// 同趣旨だが、こちらは「その他」で位置メモを出す管理画面向け。
+function formatLocation(report: Report): string {
+  if (report.medium === "PAPER") {
+    let label = `p.${report.page}`;
+    if (report.line) label += ` l.${report.line}`;
+    if (report.hasMultiplePages) label += " 他";
+    return label;
+  }
+  if (report.medium === "EBOOK") return `電子書籍 ${report.ebookLocation}`;
+  return report.locationNote ?? "-";
+}
 
 export default async function AdminReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,11 +32,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
 
   if (!report) notFound();
 
-  const locationText = report.medium === "PAPER"
-    ? `p.${report.page}${report.line ? ` l.${report.line}` : ""}${report.hasMultiplePages ? " 他" : ""}`
-    : report.medium === "EBOOK"
-    ? `電子書籍 ${report.ebookLocation}`
-    : report.locationNote ?? "-";
+  const locationText = formatLocation(report);
 
   return (
     <div className="max-w-3xl">
@@ -79,7 +91,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           )}
 
           <dt className="text-gray-500">投稿日</dt>
-          <dd>{report.createdAt.toISOString().split("T")[0]}</dd>
+          <dd>{formatJstDate(report.createdAt)}</dd>
 
           {report.images.length > 0 && (
             <>
