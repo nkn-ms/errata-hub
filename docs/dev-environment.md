@@ -148,8 +148,9 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 - Supabase ダッシュボード → Storage → New bucket
   - 名前: `report-images` / **Public bucket: ON**（公開投稿の画像のため）
-  - Restrict file size: **4MB** / Restrict MIME types: `image/png, image/jpeg, image/webp`
-  - ※ 値は `src/constants/report-images.ts` と揃えること（アプリ側検証とバケット側制限の二重防御）
+  - Restrict file size: **5MB** / Restrict MIME types: `image/png, image/jpeg, image/webp`（末尾に `/` を付けない）
+  - サイズを 5MB にする理由: アプリ側の上限は 4MiB（`src/constants/report-images.ts`）で、ダッシュボードの「MB」が 10進解釈でも**常にアプリ側が先に効く**余裕を持たせるため（バケット側は保険の粗い網）
+  - 2026-07-12 本番作成済み。※初期に作った未使用の `feedback-images` バケットは削除してよい（旧 feedback 時代の遺物・一度も未使用）
 - Storage のポリシーは追加しない（書き込みはサーバーの secret キー経由のみ＝RLSロック方針と同じ）
 - ⚠️ **画像投稿機能を含む PR を main にマージする前に本番バケットを作成しておく**（無いとアップロードが 500 になる。投稿自体は成功する設計）
 
