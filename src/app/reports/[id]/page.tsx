@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { findReportById } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
-import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
+import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -231,8 +231,9 @@ export default async function ReportDetailPage({ params }: Props) {
               initialCount={report.upvoteCount}
               initialUpvoted={upvoted}
               viewer={viewer}
+              type={report.type}
             />
-            <span className="text-xs text-gray-500">同じ誤りを見つけた方は賛同で知らせられます</span>
+            <span className="text-xs text-gray-500">{UPVOTE_HINTS[report.type]}</span>
           </div>
 
           {/* 出版社コメント */}
