@@ -169,3 +169,26 @@ select cron.schedule(
 - 前提: Supabase ダッシュボード → Database → Extensions で `pg_cron` を有効化
 - 実行履歴の確認: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;`
 - 登録済みジョブの確認: `SELECT * FROM cron.job;`
+
+## 10. Node のバージョン（24 = Active LTS）
+
+**`.nvmrc`（= `24`）が単一の正**。ここを直せば全部が追従する:
+
+| どこ | どう追従するか |
+|---|---|
+| ローカル | `nvm use`（リポジトリ直下で実行すると `.nvmrc` を読む） |
+| CI | `actions/setup-node` の `node-version-file: .nvmrc` |
+| Vercel | `package.json` の `engines.node: "24.x"`（プロジェクト設定のドロップダウンより優先される） |
+
+> `.nvmrc` と `engines` の二重管理に見えるが、Vercel は `.nvmrc` を読まないため `engines` が必要。
+> 出典: [Supported Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
+
+### ⚠️ Node 24 は npm 11 を同梱 →  依存パッケージの install スクリプトが既定でブロックされる
+
+`npm install` 時に `npm warn allow-scripts ... packages have install scripts not yet covered by allowScripts` が出る。
+lint / typecheck / test / build / e2e はこれで壊れない（prebuilt バイナリを使う依存ばかりのため）が、
+**postinstall でバイナリを取ってくる依存だけは注意**:
+
+- `puppeteer`（ERD 生成 = `npx prisma generate` の erd generator が使う）は Chrome を postinstall で
+  `~/.cache/puppeteer` に落とす。新しいマシンで ERD を再生成するときに無ければ
+  `npx puppeteer browsers install chrome` で取得する（または `npm approve-scripts` で許可）。

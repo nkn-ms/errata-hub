@@ -20,7 +20,8 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          # ローカル（nvm）と CI のバージョンを 1 か所で管理する
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies

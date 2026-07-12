@@ -69,7 +69,7 @@
 
 ### 必要なもの
 
-- Node.js 20 以上（CI は Node 22 で実行）
+- Node.js 24（Active LTS）— `.nvmrc` に固定。nvm 利用時は `nvm use` で切り替わる
 - Supabase プロジェクト（PostgreSQL + Auth）
 - Google Books API キー
 
