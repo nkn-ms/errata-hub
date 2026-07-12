@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { site } from "@/constants/site";
 import type { ReportStatus } from "@/generated/prisma/client";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 
@@ -43,6 +44,13 @@ const TYPES = [
     name: "その他",
     desc: "上のどちらにも当てはまらない報告・連絡。",
   },
+] as const;
+
+// 投稿のルール（要約。正文は利用規約 第7条）
+const RULES = [
+  "批判は内容へ。著者・出版社など人への攻撃（誹謗中傷）は禁止です。",
+  "本文の転載は、誤りの指摘に必要な最小限の引用にとどめてください。",
+  "事実に基づかない断定、なりすまし、スパム・宣伝は禁止です。",
 ] as const;
 
 // ステータスは constants/report-status.ts の定義順で列挙する
@@ -128,6 +136,40 @@ export default function HowToUsePage() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* 投稿のルールと通報 */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">投稿のルールと通報</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            要約です。正式なルールは
+            <Link href={routes.terms} className="text-blue-600 hover:underline">
+              利用規約
+            </Link>
+            をご覧ください。
+          </p>
+          <ul className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
+            {RULES.map((rule) => (
+              <li key={rule} className="flex gap-2 text-sm text-gray-600">
+                <span className="shrink-0 text-gray-400">•</span>
+                {rule}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-600 space-y-2">
+            <p>
+              ルールに反する投稿や権利侵害を見つけた方（出版社・著者の方を含む）は、対象投稿の URL を添えて{" "}
+              <a href={`mailto:${site.contactEmail}`} className="text-blue-600 hover:underline">
+                {site.contactEmail}
+              </a>{" "}
+              までお知らせください。内容を確認のうえ対応します。
+            </p>
+            <p>
+              なお、「誤りかどうか」に争いがある投稿は、削除ではなく
+              <strong>出版社・著者からの回答を併記して公開する</strong>
+              方針です。運営者が正誤の審判はしません。
+            </p>
+          </div>
         </section>
 
         {/* 免責 */}
