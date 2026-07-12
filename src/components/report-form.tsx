@@ -51,7 +51,9 @@ export function ReportForm() {
     setError("");
     const next = [...images];
     for (const file of files) {
-      if (next.length >= REPORT_IMAGE_MAX_COUNT) {
+      // push する前の空き確認（上限ちょうど＝満杯、なのでこれ以上は追加しない）
+      const isFull = next.length >= REPORT_IMAGE_MAX_COUNT;
+      if (isFull) {
         setError(`画像は${REPORT_IMAGE_MAX_COUNT}枚までです`);
         break;
       }
