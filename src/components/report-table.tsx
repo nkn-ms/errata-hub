@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SearchX } from "lucide-react";
 import { Report, ReportType, ReportStatus } from "@/types/report";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
@@ -284,8 +285,15 @@ export function ReportTable({ data }: { data: Report[] }) {
           </tbody>
         </table>
         {table.getRowModel().rows.length === 0 && (
-          <div className="text-center py-12 text-gray-400 text-sm">
-            該当する投稿がありません
+          <div className="flex flex-col items-center gap-2 py-12 text-center">
+            <SearchX className="w-8 h-8 text-gray-300" aria-hidden />
+            <p className="text-sm text-gray-400">該当する投稿がありません</p>
+            <p className="text-xs text-gray-400">
+              検索条件を変えるか、見つけた誤りを最初に報告してみませんか
+            </p>
+            <Link href={routes.submit} className="mt-1 text-sm text-blue-600 hover:underline">
+              投稿する →
+            </Link>
           </div>
         )}
       </div>
