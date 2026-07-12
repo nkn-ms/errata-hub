@@ -6,7 +6,7 @@ import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
 import { SiteHeader } from "@/components/site-header";
 import { ProfileLinksForm } from "./profile-links-form";
-import { formatUtcDate, shortId } from "@/utils/format";
+import { formatJstDate, shortId } from "@/utils/format";
 
 // アカウント設定ページ。アカウント情報の表示、表示名の変更、退会（Danger Zone）。
 // セルフサービスは表示名変更と退会のみ。メール変更機能は提供しない（需要が低く、
@@ -54,7 +54,7 @@ export default async function AccountPage() {
             {profile?.createdAt && (
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">登録日</dt>
-                <dd className="text-gray-900">{formatUtcDate(profile.createdAt)}</dd>
+                <dd className="text-gray-900">{formatJstDate(profile.createdAt)}</dd>
               </div>
             )}
           </dl>

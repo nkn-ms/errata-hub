@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
 import { TYPE_LABELS } from "@/constants/report-labels";
-import { formatUtcDate } from "@/utils/format";
+import { formatJstDate } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
 
 // 位置の1行表示。媒体ごとに入力される項目が違う（紙=ページ/行、電子=位置、その他=メモ）
@@ -91,7 +91,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           )}
 
           <dt className="text-gray-500">投稿日</dt>
-          <dd>{formatUtcDate(report.createdAt)}</dd>
+          <dd>{formatJstDate(report.createdAt)}</dd>
 
           {report.images.length > 0 && (
             <>

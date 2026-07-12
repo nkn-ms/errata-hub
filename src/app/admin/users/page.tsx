@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { formatUtcDate } from "@/utils/format";
+import { formatJstDate } from "@/utils/format";
 
 const ROLE_LABELS = {
   ADMIN: "管理者",
@@ -61,7 +61,7 @@ export default async function AdminUsersPage() {
                     : p.publisherAccess.map((a) => a.publisher.name).join(", ")}
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                  {formatUtcDate(p.createdAt)}
+                  {formatJstDate(p.createdAt)}
                 </td>
                 <td className="px-4 py-3">
                   <Link

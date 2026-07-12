@@ -11,7 +11,7 @@ import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
-import { formatUtcDate, shortId } from "@/utils/format";
+import { formatJstDate, shortId } from "@/utils/format";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -104,7 +104,7 @@ export default async function UserDetailPage({ params }: Props) {
               </h1>
               <p className="text-sm text-gray-400">@{shortId(profile.id)}</p>
               <p className="text-xs text-gray-400 mt-1">
-                {formatUtcDate(profile.createdAt)} から参加
+                {formatJstDate(profile.createdAt)} から参加
               </p>
             </div>
           </div>

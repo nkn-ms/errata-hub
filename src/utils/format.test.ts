@@ -1,14 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { formatUtcDate, shortId } from "@/utils/format";
+import { formatJstDate, shortId } from "@/utils/format";
 
-describe("formatUtcDate", () => {
-  it("YYYY-MM-DD 形式にする", () => {
-    expect(formatUtcDate(new Date("2026-07-12T10:30:00Z"))).toBe("2026-07-12");
+describe("formatJstDate", () => {
+  it("JST 基準の YYYY-MM-DD にする", () => {
+    expect(formatJstDate(new Date("2026-07-12T01:00:00Z"))).toBe("2026-07-12");
   });
 
-  it("UTC 基準なので JST 早朝（UTC では前日）は前日の日付になる", () => {
-    // JST 2026-07-13 08:59 = UTC 2026-07-12 23:59
-    expect(formatUtcDate(new Date("2026-07-12T23:59:00Z"))).toBe("2026-07-12");
+  it("UTC では前日でも JST の日付になる（UTC 15:00 = JST 翌日 00:00）", () => {
+    expect(formatJstDate(new Date("2026-07-12T15:00:00Z"))).toBe("2026-07-13");
+  });
+
+  it("JST 日付の境界直前は当日のまま（UTC 14:59 = JST 23:59）", () => {
+    expect(formatJstDate(new Date("2026-07-12T14:59:59Z"))).toBe("2026-07-12");
   });
 });
 

@@ -1,7 +1,7 @@
 import type { Report as PrismaReport, Book, Publisher, ReportImage, Profile } from "@/generated/prisma/client";
 import type { Report } from "@/types/report";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
-import { formatUtcDate, shortId } from "@/utils/format";
+import { formatJstDate, shortId } from "@/utils/format";
 
 type PrismaReportWithRelations = PrismaReport & {
   book: Book & { publisher: Publisher | null };
@@ -45,7 +45,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     status: f.status,
     fixedEdition: f.fixedEdition ?? undefined,
     fixedPrinting: f.fixedPrinting ?? undefined,
-    createdAt: formatUtcDate(f.createdAt),
+    createdAt: formatJstDate(f.createdAt),
     upvoteCount: f._count?.upvotes ?? 0,
     imageUrls: f.images.map((image) => image.imageUrl),
   };
