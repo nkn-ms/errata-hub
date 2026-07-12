@@ -33,13 +33,14 @@ export async function requireAdmin() {
 
 /**
  * 認証済み ADMIN ユーザーであることを検証する。
- * Server Actions 用: 失敗時は throw する。
+ * Server Actions 用: 失敗時は throw し、成功時は監査ログ用に user を返す。
  */
 export async function requireAdminOrThrow() {
   const result = await checkAdmin();
   if (!result.ok) {
     throw new Error(result.reason === "unauthenticated" ? "認証が必要です" : "権限がありません");
   }
+  return result.user;
 }
 
 /**

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { deleteReport, updateReport } from "@/app/actions/report";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
 import type { ReportStatus } from "@/generated/prisma/client";
@@ -31,13 +32,10 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     if (!confirm("この投稿を削除しますか？この操作は取り消せません。")) return;
     setSaving(true);
     setError("");
-    try {
-      const res = await fetch(routes.api.report(id), { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      router.push(routes.admin.reports);
-      router.refresh();
-    } catch {
-      setError("削除に失敗しました。");
+    // 成功時はアクション側が一覧へ redirect する
+    const result = await deleteReport(id);
+    if (result?.error) {
+      setError(result.error);
       setSaving(false);
     }
   }
@@ -46,25 +44,19 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     setSaving(true);
     setSaved(false);
     setError("");
-    try {
-      const res = await fetch(routes.api.report(id), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          publisherComment: comment || null,
-          fixedEdition: status === "FIXED" && fixedEdition ? parseInt(fixedEdition) : null,
-          fixedPrinting: status === "FIXED" && fixedPrinting ? parseInt(fixedPrinting) : null,
-        }),
-      });
-      if (!res.ok) throw new Error();
+    // 成功時はアクション側の refresh() で画面が最新化される
+    const result = await updateReport(id, {
+      status,
+      publisherComment: comment || null,
+      fixedEdition: status === "FIXED" && fixedEdition ? parseInt(fixedEdition) : null,
+      fixedPrinting: status === "FIXED" && fixedPrinting ? parseInt(fixedPrinting) : null,
+    });
+    if (result?.error) {
+      setError(result.error);
+    } else {
       setSaved(true);
-      router.refresh();
-    } catch {
-      setError("保存に失敗しました。");
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
   return (

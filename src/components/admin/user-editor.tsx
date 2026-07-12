@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile, Publisher, PublisherAccess } from "@/generated/prisma/client";
+import {
+  grantPublisherAccess,
+  revokePublisherAccess,
+  updateUserRole,
+} from "@/app/actions/user";
 import { routes } from "@/constants/routes";
 
 type ProfileWithAccess = Profile & {
@@ -35,37 +40,24 @@ export default function AdminUserEditor({
   async function handleSaveRole() {
     setSaving(true);
     setRoleSaved(false);
-    await fetch(routes.api.adminUser(profile.id), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
-    });
+    // 成功時はアクション側の refresh() で画面が最新化される
+    await updateUserRole(profile.id, role);
     setSaving(false);
     setRoleSaved(true);
-    router.refresh();
   }
 
   async function handleAddPublisher() {
     if (!selectedPublisherId) return;
-    const res = await fetch(routes.api.adminUserPublishers(profile.id), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publisherId: selectedPublisherId }),
-    });
-    if (res.ok) {
-      const newAccess = await res.json();
-      setAccess((prev) => [...prev, newAccess]);
+    const result = await grantPublisherAccess(profile.id, selectedPublisherId);
+    if (result.access !== undefined) {
+      setAccess((prev) => [...prev, result.access]);
       setSelectedPublisherId("");
       setAccessMessage("追加しました");
     }
   }
 
   async function handleRemovePublisher(publisherId: string) {
-    await fetch(routes.api.adminUserPublishers(profile.id), {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publisherId }),
-    });
+    await revokePublisherAccess(profile.id, publisherId);
     setAccess((prev) => prev.filter((a) => a.publisherId !== publisherId));
     setAccessMessage("削除しました");
   }

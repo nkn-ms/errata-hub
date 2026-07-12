@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsUp } from "lucide-react";
 import type { ReportType } from "@/generated/prisma/client";
+import { toggleUpvote } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
 import { UPVOTE_LABELS } from "@/constants/report-labels";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ type Props = {
 
 /**
  * 賛同ボタン（正誤情報「自分も見つけた」/ 提案・その他「私もそう思う」）。
- * 楽観更新はせず、API のレスポンス（確定した count）で表示を更新する。
+ * 楽観更新はせず、Server Action の戻り値（確定した count）で表示を更新する。
  */
 export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, type }: Props) {
   const router = useRouter();
@@ -36,13 +37,10 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, t
       return;
     }
     startTransition(async () => {
-      const res = await fetch(routes.api.reportUpvote(reportId), {
-        method: upvoted ? "DELETE" : "POST",
-      });
-      if (!res.ok) return;
-      const data: { upvoted: boolean; count: number } = await res.json();
-      setUpvoted(data.upvoted);
-      setCount(data.count);
+      const result = await toggleUpvote(reportId, !upvoted);
+      if (result.error !== undefined) return;
+      setUpvoted(result.upvoted);
+      setCount(result.count);
     });
   }
 

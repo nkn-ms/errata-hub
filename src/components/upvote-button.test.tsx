@@ -8,24 +8,26 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
 }));
 
-const fetchMock = vi.fn();
+// Server Action はネットワーク越しの呼び出しになるため、テストではモジュールごとモックする
+const toggleUpvoteMock = vi.fn();
+vi.mock("@/app/actions/report", () => ({
+  toggleUpvote: (...args: unknown[]) => toggleUpvoteMock(...args),
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal("fetch", fetchMock);
 });
 
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
 });
 
 describe("UpvoteButton", () => {
-  it("未ログイン（guest）はクリックで /login へ誘導し API を呼ばない", () => {
+  it("未ログイン（guest）はクリックで /login へ誘導しアクションを呼ばない", () => {
     render(<UpvoteButton reportId="r1" initialCount={0} initialUpvoted={false} viewer="guest" type="ERRATA" />);
     fireEvent.click(screen.getByRole("button"));
     expect(pushMock).toHaveBeenCalledWith(routes.login);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(toggleUpvoteMock).not.toHaveBeenCalled();
   });
 
   it("投稿者本人（owner）はボタンが無効", () => {
@@ -35,33 +37,27 @@ describe("UpvoteButton", () => {
     expect(button.title).toBe("自分の投稿には賛同できません");
   });
 
-  it("未賛同の user がクリックすると POST され、レスポンスの count に更新される", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ upvoted: true, count: 3 }),
-    });
+  it("未賛同の user がクリックすると賛同が付き、戻り値の count に更新される", async () => {
+    toggleUpvoteMock.mockResolvedValue({ upvoted: true, count: 3 });
     render(<UpvoteButton reportId="r1" initialCount={2} initialUpvoted={false} viewer="user" type="ERRATA" />);
     fireEvent.click(screen.getByRole("button"));
     await waitFor(() => expect(screen.getByText("3")).toBeTruthy());
-    expect(fetchMock).toHaveBeenCalledWith(routes.api.reportUpvote("r1"), { method: "POST" });
+    expect(toggleUpvoteMock).toHaveBeenCalledWith("r1", true);
   });
 
-  it("賛同済みの user がクリックすると DELETE され、取り消しの count に更新される", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ upvoted: false, count: 1 }),
-    });
+  it("賛同済みの user がクリックすると取り消され、戻り値の count に更新される", async () => {
+    toggleUpvoteMock.mockResolvedValue({ upvoted: false, count: 1 });
     render(<UpvoteButton reportId="r1" initialCount={2} initialUpvoted={true} viewer="user" type="ERRATA" />);
     fireEvent.click(screen.getByRole("button"));
     await waitFor(() => expect(screen.getByText("1")).toBeTruthy());
-    expect(fetchMock).toHaveBeenCalledWith(routes.api.reportUpvote("r1"), { method: "DELETE" });
+    expect(toggleUpvoteMock).toHaveBeenCalledWith("r1", false);
   });
 
-  it("API が失敗（!ok）したら表示を変えない", async () => {
-    fetchMock.mockResolvedValue({ ok: false, json: async () => ({}) });
+  it("アクションが失敗（error）を返したら表示を変えない", async () => {
+    toggleUpvoteMock.mockResolvedValue({ error: "賛同に失敗しました" });
     render(<UpvoteButton reportId="r1" initialCount={2} initialUpvoted={false} viewer="user" type="ERRATA" />);
     fireEvent.click(screen.getByRole("button"));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(toggleUpvoteMock).toHaveBeenCalled());
     expect(screen.getByText("2")).toBeTruthy();
   });
 

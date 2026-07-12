@@ -38,17 +38,14 @@ describe("routes", () => {
   });
 
   it("api 配下のパスが期待どおり", () => {
-    expect(routes.api.reports).toBe("/api/reports");
-    expect(routes.api.report("r1")).toBe("/api/reports/r1");
+    expect(routes.api.reportImages("r1")).toBe("/api/reports/r1/images");
     expect(routes.api.booksSearch).toBe("/api/books/search");
-    expect(routes.api.adminUser("u1")).toBe("/api/admin/users/u1");
-    expect(routes.api.adminUserPublishers("u1")).toBe("/api/admin/users/u1/publishers");
+    expect(routes.api.booksOpenbd).toBe("/api/books/openbd");
   });
 
   it("パラメータ付きルートは対応する一覧パスの配下になる", () => {
     // 詳細ページの URL は一覧ページの URL を接頭辞に持つ（リネーム時の整合性確認）
     expect(routes.admin.report("r1").startsWith(routes.admin.reports)).toBe(true);
-    expect(routes.api.report("r1").startsWith(routes.api.reports)).toBe(true);
     expect(routes.admin.user("u1").startsWith(routes.admin.users)).toBe(true);
   });
 });

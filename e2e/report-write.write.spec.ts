@@ -70,34 +70,33 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("正字コード");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
 
-    // 作成 API の応答から投稿 id を取得（後片付けで使う）
-    const [res] = await Promise.all([
-      page.waitForResponse((r) => r.url().includes("/api/reports") && r.request().method() === "POST"),
-      page.getByRole("button", { name: "投稿する" }).click(),
-    ]);
-    expect(res.status()).toBe(201);
-    const { id: reportId } = (await res.json()) as { id: string };
-
-    // トップへ戻り、一覧に新しい投稿が出る
+    // 投稿は Server Action 経由（応答は JSON ではない）ので、成功はトップへの遷移で確認する
+    await page.getByRole("button", { name: "投稿する" }).click();
     await page.waitForURL(/\/$/);
+
+    // 一覧に新しい投稿が出る
     await page.getByPlaceholder("書籍名・タイトルで検索...").fill(uniqueTitle);
     const row = page.getByRole("row").filter({ hasText: uniqueTitle });
     await expect(row).toHaveCount(1);
 
-    // 行クリックで詳細へ。入力した内容が表示される
+    // 行クリックで詳細へ。入力した内容が表示される。投稿 id は URL から取得（後片付けで使う）
     await row.locator("td").last().click();
-    await expect(page).toHaveURL(new RegExp(`/reports/${reportId}$`));
+    await page.waitForURL(/\/reports\/[^/]+$/);
+    const reportId = page.url().split("/").pop()!;
     await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
     await expect(page.getByText("正字コード")).toBeVisible();
     await expect(page.getByText("文字コード")).toBeVisible();
 
-    // 後片付け: 管理者APIで削除し、本Bを「投稿0件」というシードの前提に戻す。
+    // 後片付け: 管理画面の削除ボタンで削除し、本Bを「投稿0件」というシードの前提に戻す。
     // （途中のassert失敗時は残るが、ローカルDBなので seed し直せばよい）
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
     await login(adminPage, ADMIN);
-    const del = await adminContext.request.delete(`/api/reports/${reportId}`);
-    expect(del.status()).toBe(204);
+    await adminPage.goto(`/admin/reports/${reportId}`);
+    adminPage.once("dialog", (dialog) => dialog.accept());
+    await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+    // 削除アクションは成功時に一覧へ redirect する
+    await adminPage.waitForURL(/\/admin\/reports$/);
     await adminContext.close();
   });
 });

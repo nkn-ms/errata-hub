@@ -34,8 +34,8 @@ DB に `@unique` を付けても、文字列が違えば別物扱いなので防
 
 - 正規化ロジック: [`src/utils/isbn.ts`](../src/utils/isbn.ts) の `toCanonicalIsbn(raw)`
   - ハイフン等を除去 → ISBN-10 なら ISBN-13 へ変換 → チェック数字を検証 → 不正なら `null`
-- 投稿時に通す場所: [`src/app/api/reports/route.ts`](../src/app/api/reports/route.ts)（POST。旧 `api/feedbacks` は Feedback→Report リネームで改称済み）
-  - `toCanonicalIsbn` で正規化し、不正なら 400。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
+- 投稿時に通す場所: [`src/app/actions/report.ts`](../src/app/actions/report.ts) の `createReport`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
+  - `toCanonicalIsbn` で正規化し、不正ならエラーを返す。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
 - DB: `Book.isbn` は **必須 + `@unique`**（ISBN-13 を保存）。
 
 ### 関連する方針

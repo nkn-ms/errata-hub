@@ -1,0 +1,298 @@
+"use server";
+
+import { z } from "zod";
+import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createAuditLog } from "@/services/audit";
+import { TARGET_TYPE } from "@/constants/audit";
+import { requireAdminOrThrow } from "@/services/auth";
+import { toCanonicalIsbn } from "@/utils/isbn";
+import { sanitizeCoverImageUrl } from "@/utils/cover-image";
+import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
+import { storagePathFromPublicUrl } from "@/utils/report-images";
+import { routes } from "@/constants/routes";
+import { ReportType, Medium, Prisma } from "@/generated/prisma/client";
+
+// ISBN を本の同一性の基準にする方針のため isbn は必須。
+// 形式の正規化・検証は toCanonicalIsbn（ISBN-13 へ統一）で行う。
+const BookSchema = z.object({
+  googleBooksId: z.string().optional(),
+  title: z.string().min(1, "書籍名は必須です"),
+  author: z.string().optional(),
+  publisher: z.string().optional(),
+  isbn: z.string().min(1, "ISBNは必須です"),
+  coverImageUrl: z.string().optional(),
+});
+
+const ReportSchema = z.object({
+  book: BookSchema,
+  edition: z.number().int().positive().nullable().optional(),
+  printing: z.number().int().positive().nullable().optional(),
+  title: z.string().min(1, "タイトルは必須です"),
+  type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
+  medium: z.enum(["PAPER", "EBOOK", "OTHER"]),
+  page: z.number().int().positive().nullable().optional(),
+  line: z.number().int().positive().nullable().optional(),
+  hasMultiplePages: z.boolean().optional(),
+  locationNote: z.string().nullable().optional(),
+  ebookLocation: z.string().nullable().optional(),
+  wrong: z.string().nullable().optional(),
+  correct: z.string().nullable().optional(),
+  content: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+}).superRefine((data, ctx) => {
+  // 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（アクション直叩き対策）。
+  if (data.type === "ERRATA") {
+    if (!data.wrong?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["wrong"], message: "誤（該当箇所）は必須です" });
+    }
+    if (!data.correct?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）は必須です" });
+    }
+  } else if (!data.content?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });
+  }
+  if (data.medium === "PAPER" && data.edition == null) {
+    ctx.addIssue({ code: "custom", path: ["edition"], message: "版は必須です" });
+  }
+  if (data.medium === "PAPER" && data.page == null) {
+    ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号は必須です" });
+  }
+  if (data.medium === "EBOOK" && !data.ebookLocation?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["ebookLocation"], message: "位置は必須です" });
+  }
+  if (data.medium === "OTHER" && !data.locationNote?.trim()) {
+    ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
+  }
+});
+
+export type ReportInput = z.input<typeof ReportSchema>;
+export type CreateReportResult = { id: string; error?: undefined } | { id?: undefined; error: string };
+
+export async function createReport(input: ReportInput): Promise<CreateReportResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: "認証が必要です" };
+    }
+
+    const parsed = ReportSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0].message };
+    }
+    const { book, edition, printing, title, type, medium, page, line,
+            hasMultiplePages, locationNote, ebookLocation, wrong, correct, content, note } = parsed.data;
+
+    // ISBN-13 に正規化（ISBN-10 は変換、不正な ISBN は弾く）
+    const canonicalIsbn = toCanonicalIsbn(book.isbn);
+    if (!canonicalIsbn) {
+      return { error: "ISBNが正しくありません" };
+    }
+
+    // 出版社を名前で upsert（name は @unique — 同時投稿でも重複作成されない）
+    let publisherId: string | null = null;
+    if (book.publisher) {
+      const publisher = await prisma.publisher.upsert({
+        where: { name: book.publisher },
+        update: {},
+        create: { name: book.publisher },
+      });
+      publisherId = publisher.id;
+    }
+
+    // ISBN を同一性の基準として upsert で名寄せ（@unique 制約により競合にも安全）
+    const bookRecord = await prisma.book.upsert({
+      where: { isbn: canonicalIsbn },
+      update: {},
+      create: {
+        title: book.title,
+        author: book.author || null,
+        isbn: canonicalIsbn,
+        // 許可ホスト（OpenBD / Google Books）以外は null に落とす。書影は装飾情報なので、
+        // 提供元のホスト変更等があっても投稿自体は失敗させない（エラーにしない）。
+        coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+        publisherId,
+      },
+    });
+
+    const report = await prisma.report.create({
+      data: {
+        userId: user.id,
+        bookId: bookRecord.id,
+        title,
+        edition: edition ?? null,
+        printing: printing ?? null,
+        type: type as ReportType,
+        medium: medium as Medium,
+        page: page ?? null,
+        line: line ?? null,
+        hasMultiplePages: hasMultiplePages ?? false,
+        locationNote: locationNote ?? null,
+        ebookLocation: ebookLocation ?? null,
+        wrong: wrong ?? null,
+        correct: correct ?? null,
+        content: content ?? null,
+        note: note ?? null,
+      },
+    });
+
+    // 画像は投稿の作成後にクライアントが別途アップロードするため id を返す
+    return { id: report.id };
+  } catch (error) {
+    console.error(error);
+    return { error: "投稿に失敗しました" };
+  }
+}
+
+const ReportUpdateSchema = z.object({
+  status: z.enum(["PENDING", "FORWARDED", "IN_REVIEW", "REPLIED", "WILL_FIX", "FIXED", "NO_ACTION", "DISMISSED"]).optional(),
+  publisherComment: z.string().nullable().optional(),
+  fixedEdition: z.number().int().positive().nullable().optional(),
+  fixedPrinting: z.number().int().positive().nullable().optional(),
+});
+
+export type ReportUpdateInput = z.input<typeof ReportUpdateSchema>;
+export type ReportActionState = { error?: string };
+
+export async function updateReport(id: string, input: ReportUpdateInput): Promise<ReportActionState> {
+  const admin = await requireAdminOrThrow();
+
+  try {
+    const parsed = ReportUpdateSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: "入力内容が不正です" };
+    }
+
+    const before = await prisma.report.findUnique({ where: { id } });
+    const report = await prisma.report.update({
+      where: { id },
+      data: parsed.data,
+    });
+
+    await createAuditLog({
+      userId: admin.id,
+      userEmail: admin.email,
+      action: "UPDATE_REPORT",
+      targetType: TARGET_TYPE.REPORT,
+      targetId: id,
+      // ReportUpdateSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
+      before: {
+        status: before?.status,
+        publisherComment: before?.publisherComment,
+        fixedEdition: before?.fixedEdition,
+        fixedPrinting: before?.fixedPrinting,
+      },
+      after: {
+        status: report.status,
+        publisherComment: report.publisherComment,
+        fixedEdition: report.fixedEdition,
+        fixedPrinting: report.fixedPrinting,
+      },
+    });
+
+    // 更新後の内容を同一レスポンスで画面に反映する（旧 router.refresh() 相当）
+    refresh();
+    return {};
+  } catch (error) {
+    console.error(error);
+    return { error: "更新に失敗しました" };
+  }
+}
+
+export async function deleteReport(id: string): Promise<ReportActionState> {
+  const admin = await requireAdminOrThrow();
+
+  try {
+    const report = await prisma.report.findUnique({
+      where: { id },
+      include: { images: true },
+    });
+    if (!report) {
+      return { error: "投稿が見つかりません" };
+    }
+
+    // DB の ReportImage 行は onDelete: Cascade で report と一緒に消えるが、
+    // Storage 上のファイル実体は別管理なのでここで削除する。
+    // DB 削除を先に行う（公開ページから参照が消えるのが先。ファイル削除が失敗しても
+    // 投稿の削除自体は成立させ、孤児ファイルはログで追えるようにする）。
+    await prisma.report.delete({ where: { id } });
+
+    const imagePaths = report.images
+      .map((image) => storagePathFromPublicUrl(image.imageUrl))
+      .filter((path): path is string => path !== null);
+    if (imagePaths.length > 0) {
+      const storageAdmin = createAdminClient();
+      const { error: removeError } = await storageAdmin.storage
+        .from(REPORT_IMAGE_BUCKET)
+        .remove(imagePaths);
+      if (removeError) {
+        // 投稿削除は完了しているためエラーにはしない。孤児ファイルの手掛かりとして記録のみ。
+        console.error("画像ファイルの削除に失敗:", imagePaths, removeError);
+      }
+    }
+
+    await createAuditLog({
+      userId: admin.id,
+      userEmail: admin.email,
+      action: "DELETE_REPORT",
+      targetType: TARGET_TYPE.REPORT,
+      targetId: id,
+      before: report as Record<string, unknown>,
+    });
+  } catch (error) {
+    console.error(error);
+    return { error: "削除に失敗しました" };
+  }
+
+  // redirect は制御フロー例外を投げるため try の外で呼ぶ（catch に飲まれないように）
+  redirect(routes.admin.reports);
+}
+
+export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
+
+/** 現在の賛同数を返す共通処理。 */
+function countUpvotes(reportId: string) {
+  return prisma.upvote.count({ where: { reportId } });
+}
+
+/**
+ * 賛同を付ける / 取り消す。自分の投稿には不可。
+ * 付与の重複は @@unique 制約で、取り消しの空振りは deleteMany で、どちらも冪等に扱う。
+ */
+export async function toggleUpvote(reportId: string, upvote: boolean): Promise<UpvoteResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: "認証が必要です" };
+    }
+
+    if (upvote) {
+      const report = await prisma.report.findUnique({ where: { id: reportId }, select: { userId: true } });
+      if (!report) {
+        return { error: "投稿が見つかりません" };
+      }
+      if (report.userId === user.id) {
+        return { error: "自分の投稿には賛同できません" };
+      }
+
+      try {
+        await prisma.upvote.create({ data: { reportId, profileId: user.id } });
+      } catch (e) {
+        // P2002 = unique 制約違反（すでに賛同済み）。二重クリック等を想定し成功扱いにする。
+        if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+      }
+    } else {
+      await prisma.upvote.deleteMany({ where: { reportId, profileId: user.id } });
+    }
+
+    return { upvoted: upvote, count: await countUpvotes(reportId) };
+  } catch (error) {
+    console.error(error);
+    return { error: upvote ? "賛同に失敗しました" : "賛同の取り消しに失敗しました" };
+  }
+}

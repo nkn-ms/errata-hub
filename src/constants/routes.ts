@@ -45,15 +45,13 @@ export const routes = {
     logs: "/admin/logs",
   },
 
+  // 内部 UI からの更新は Server Actions（src/app/actions/）へ移行済み。
+  // ここに残る API Route は「HTTP 境界が本当に必要なもの」だけ:
+  //   - 画像アップロード（Server Actions のボディ上限 1MB を超えるバイナリの受口）
+  //   - 外部書誌 API（OpenBD / Google Books）のプロキシ（読み取り）
   api: {
-    reports: "/api/reports",
-    report: (id: string) => `/api/reports/${id}`,
-    reportUpvote: (id: string) => `/api/reports/${id}/upvote`,
     reportImages: (id: string) => `/api/reports/${id}/images`,
     booksSearch: "/api/books/search",
     booksOpenbd: "/api/books/openbd",
-    book: (id: string) => `/api/books/${id}`,
-    adminUser: (id: string) => `/api/admin/users/${id}`,
-    adminUserPublishers: (id: string) => `/api/admin/users/${id}/publishers`,
   },
 } as const;
