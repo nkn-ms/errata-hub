@@ -47,6 +47,69 @@ function getErrataLabel(report: Report): string {
   return report.content ?? "";
 }
 
+// 「第2版 第3刷」。版・刷はどちらか片方だけの投稿もある
+function getEditionLabel(report: Report): string {
+  const parts = [
+    report.edition ? `第${report.edition}版` : null,
+    report.printing ? `第${report.printing}刷` : null,
+  ].filter((part) => part !== null);
+  return parts.join(" ");
+}
+
+// モバイル（md 未満）用。テーブルは 390px では横に溢れるため、同じ行をカードで見せる。
+// カード全体が投稿詳細へのリンクなので、中の書籍名・投稿者は入れ子リンクにしない。
+function ReportCard({ report }: { report: Report }) {
+  const editionLabel = getEditionLabel(report);
+  const locationLabel = getLocationLabel(report);
+
+  return (
+    <Link
+      href={routes.report(report.id)}
+      className="block px-4 py-3 space-y-2 hover:bg-blue-50 transition-colors"
+    >
+      <div className="flex items-center gap-2">
+        {/* 幅に余裕があるカードでは折り返さない（テーブル側は列幅の都合で折り返しを許す） */}
+        <Badge
+          label={TYPE_LABELS[report.type]}
+          className={cn(TYPE_COLORS[report.type], "whitespace-nowrap")}
+        />
+        <Badge
+          label={STATUS_LABELS[report.status]}
+          className={cn(STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700", "whitespace-nowrap")}
+        />
+        {report.upvoteCount > 0 && (
+          <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">
+            👍 {report.upvoteCount}
+          </span>
+        )}
+      </div>
+
+      <div>
+        <div className="text-sm font-medium text-gray-900">{report.bookTitle}</div>
+        {(editionLabel || locationLabel) && (
+          <div className="text-xs text-gray-500">
+            {[editionLabel, locationLabel].filter(Boolean).join(" ・ ")}
+          </div>
+        )}
+      </div>
+
+      <div className="text-sm text-gray-800">{report.title}</div>
+      <div className="text-sm text-gray-700 line-clamp-2">{getErrataLabel(report)}</div>
+
+      {report.publisherComment && (
+        <div className="text-xs text-gray-600 line-clamp-2 border-l-2 border-gray-200 pl-2">
+          出版社: {report.publisherComment}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>{report.userName}</span>
+        <span>{report.createdAt}</span>
+      </div>
+    </Link>
+  );
+}
+
 const columns: ColumnDef<Report>[] = [
   {
     accessorKey: "bookTitle",
@@ -208,7 +271,7 @@ export function ReportTable({ data }: { data: Report[] }) {
           placeholder="書籍名・タイトルで検索..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
           value={(columnFilters.find((f) => f.id === "type")?.value as string) ?? "all"}
@@ -245,45 +308,54 @@ export function ReportTable({ data }: { data: Report[] }) {
         </span>
       </div>
 
-      {/* テーブル */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    className={cn(
-                      "px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap",
-                      header.column.getCanSort() && "cursor-pointer select-none hover:text-gray-900"
-                    )}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {header.column.getIsSorted() === "asc" && " ↑"}
-                    {header.column.getIsSorted() === "desc" && " ↓"}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="hover:bg-blue-50 cursor-pointer transition-colors"
-                onClick={() => router.push(routes.report(row.original.id))}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* 一覧本体。md 未満はカード、md 以上はテーブル（行は同じ getRowModel から描く） */}
+      <div className="rounded-lg border border-gray-200 shadow-sm">
+        <div className="md:hidden divide-y divide-gray-100">
+          {table.getRowModel().rows.map((row) => (
+            <ReportCard key={row.id} report={row.original} />
+          ))}
+        </div>
+
+        {/* md 以上でも列が多く lg 未満では溢れうるので、横スクロールは残す */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getToggleSortingHandler()}
+                      className={cn(
+                        "px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap",
+                        header.column.getCanSort() && "cursor-pointer select-none hover:text-gray-900"
+                      )}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() === "asc" && " ↑"}
+                      {header.column.getIsSorted() === "desc" && " ↓"}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  onClick={() => router.push(routes.report(row.original.id))}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-4 py-3">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {table.getRowModel().rows.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
             <SearchX className="w-8 h-8 text-gray-300" aria-hidden />
