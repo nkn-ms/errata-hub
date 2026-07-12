@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
+import { login } from "./login";
 
 // 書き込み系（投稿・賛同）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project は BASE_URL がローカルのときだけ有効）。
@@ -22,15 +23,6 @@ const BOOK_B = {
 
 // 管理者がシードで作る投稿（賛同テストの対象＝reader から見て「他人の投稿」）。
 const SEEDED_REPORT_TITLE = "サンプル投稿";
-
-async function login(page: Page, { email, password }: { email: string; password: string }) {
-  await page.goto("/login");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(password);
-  await page.getByRole("button", { name: "ログイン" }).click();
-  // 失敗時は /login に留まるので、ここのタイムアウトが「シード未実行」の目印になる
-  await page.waitForURL(/\/$/, { timeout: 15_000 });
-}
 
 // ISBN検索が叩く書誌APIをシード本Bの応答で差し替える
 async function mockBookApis(page: Page) {
