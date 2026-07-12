@@ -10,7 +10,7 @@
 | **Book** | 書籍マスタ。**ISBN-13 が同一性の基準**（`@unique`）。投稿時に upsert で名寄せ |
 | **Report** | 投稿の本体（正誤情報/改善提案/その他）。位置情報・誤/正・ステータス・出版社コメントを持つ |
 | **Upvote** | 賛同（「自分も見つけた」）。`reportId × profileId` で一意＝1ユーザー1投稿1回 |
-| **ReportImage** | 投稿の証拠画像（アップロード機能は未実装。テーブルだけ先行） |
+| **ReportImage** | 投稿の証拠画像。実体は Supabase Storage バケット `report-images`（公開読み取り・書き込みはサーバー経由のみ）、`imageUrl` に公開 URL を保存。投稿削除時に Storage のファイルも削除 |
 | **AuditLog** | 操作ログ。誰が・いつ・何を・どう変えたか（before/after の JSON）。90日で pg_cron が削除（本番に手動登録済み・リポジトリ管理外。登録SQLは [dev-environment.md §9](./dev-environment.md) 参照） |
 
 ## なぜ「User」テーブルが無いのか

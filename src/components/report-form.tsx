@@ -5,6 +5,11 @@ import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
 import { routes } from "@/constants/routes";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
+import {
+  REPORT_IMAGE_ALLOWED_TYPES,
+  REPORT_IMAGE_MAX_BYTES,
+  REPORT_IMAGE_MAX_COUNT,
+} from "@/constants/report-images";
 
 type BookData = {
   googleBooksId: string;
@@ -35,8 +40,42 @@ export function ReportForm() {
   const [correct, setCorrect] = useState("");
   const [content, setContent] = useState("");
   const [note, setNote] = useState("");
+  // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
+  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 同じファイルの再選択でも change を発火させる
+    setError("");
+    const next = [...images];
+    for (const file of files) {
+      // push する前の空き確認（上限ちょうど＝満杯、なのでこれ以上は追加しない）
+      const isFull = next.length >= REPORT_IMAGE_MAX_COUNT;
+      if (isFull) {
+        setError(`画像は${REPORT_IMAGE_MAX_COUNT}枚までです`);
+        break;
+      }
+      if (!REPORT_IMAGE_ALLOWED_TYPES[file.type]) {
+        setError("画像は JPEG / PNG / WebP のみ添付できます");
+        continue;
+      }
+      if (file.size > REPORT_IMAGE_MAX_BYTES) {
+        setError("画像は1枚4MB以下にしてください");
+        continue;
+      }
+      next.push({ file, previewUrl: URL.createObjectURL(file) });
+    }
+    setImages(next);
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
 
   const isErrataType = reportType === "ERRATA";
   const isPaper = medium === "PAPER";
@@ -85,6 +124,27 @@ export function ReportForm() {
       });
 
       if (!res.ok) throw new Error("投稿に失敗しました");
+
+      // 画像は投稿の作成後に1枚ずつアップロードする（1リクエスト1ファイル。
+      // まとめて送ると Vercel のボディ上限 4.5MB を超えうるため）。
+      if (images.length > 0) {
+        const created: { id: string } = await res.json();
+        let failedCount = 0;
+        for (const { file } of images) {
+          const formData = new FormData();
+          formData.append("file", file);
+          const upload = await fetch(routes.api.reportImages(created.id), {
+            method: "POST",
+            body: formData,
+          });
+          if (!upload.ok) failedCount++;
+        }
+        if (failedCount > 0) {
+          // 投稿自体は作成済みなのでフォームには留めない（再送信で二重投稿になるため）
+          alert(`投稿は作成されましたが、画像${failedCount}枚のアップロードに失敗しました`);
+        }
+      }
+      images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
       router.push(routes.home);
     } catch {
       setError("投稿に失敗しました。もう一度お試しください。");
@@ -339,6 +399,48 @@ export function ReportForm() {
             placeholder="その他補足があれば記載してください"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            該当箇所の<strong>切り抜き</strong>を添付してください。ページ全体の撮影・スクリーンショットは
+            著作権への配慮から避けてください（JPEG / PNG / WebP・1枚4MBまで）。
+          </p>
+          {images.length < REPORT_IMAGE_MAX_COUNT && (
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={handleImageSelect}
+              className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-gray-700 hover:file:bg-gray-50 file:cursor-pointer"
+            />
+          )}
+          {images.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-3">
+              {images.map(({ file, previewUrl }, index) => (
+                <div key={previewUrl} className="relative">
+                  {/* 選択中ファイルのローカルプレビュー（blob: URL）なので next/image は使わない */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrl}
+                    alt={file.name}
+                    className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    aria-label={`${file.name} を削除`}
+                    className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

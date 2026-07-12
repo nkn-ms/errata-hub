@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdmin } from "@/services/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
+import { storagePathFromPublicUrl } from "@/utils/report-images";
 
 const PatchSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "IN_REVIEW", "REPLIED", "WILL_FIX", "FIXED", "NO_ACTION", "DISMISSED"]).optional(),
@@ -26,10 +29,25 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "投稿が見つかりません" }, { status: 404 });
     }
 
-    // TODO(画像投稿機能の実装後): report.images の Supabase Storage 上のファイルも削除する。
-    // 現状アップロード未実装のためファイルは存在しない。DB の ReportImage 行は
-    // schema の onDelete: Cascade により report 削除時に自動で消える。
+    // DB の ReportImage 行は onDelete: Cascade で report と一緒に消えるが、
+    // Storage 上のファイル実体は別管理なのでここで削除する。
+    // DB 削除を先に行う（公開ページから参照が消えるのが先。ファイル削除が失敗しても
+    // 投稿の削除自体は成立させ、孤児ファイルはログで追えるようにする）。
     await prisma.report.delete({ where: { id } });
+
+    const imagePaths = report.images
+      .map((image) => storagePathFromPublicUrl(image.imageUrl))
+      .filter((path): path is string => path !== null);
+    if (imagePaths.length > 0) {
+      const admin = createAdminClient();
+      const { error: removeError } = await admin.storage
+        .from(REPORT_IMAGE_BUCKET)
+        .remove(imagePaths);
+      if (removeError) {
+        // 投稿削除は完了しているため 500 にはしない。孤児ファイルの手掛かりとして記録のみ。
+        console.error("画像ファイルの削除に失敗:", imagePaths, removeError);
+      }
+    }
 
     await createAuditLog({
       userId: user?.id,
