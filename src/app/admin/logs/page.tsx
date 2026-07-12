@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { shortId } from "@/utils/format";
 
 const ACTION_LABELS: Record<string, string> = {
   UPDATE_REPORT: "投稿更新",
@@ -127,7 +128,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono">
-                  {log.targetType}:{log.targetId.slice(0, 8)}…
+                  {log.targetType}:{shortId(log.targetId)}…
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono max-w-[160px] truncate">
                   {log.before ? JSON.stringify(log.before) : "-"}

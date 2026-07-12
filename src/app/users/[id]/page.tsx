@@ -11,6 +11,7 @@ import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
+import { formatUtcDate, shortId } from "@/utils/format";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? WITHDRAWN_DISPLAY_NAME
     : (profile.displayName ?? "匿名");
   return {
-    title: `${name} (@${profile.id.slice(0, 8)}) | Errata Hub`,
+    title: `${name} (@${shortId(profile.id)}) | Errata Hub`,
     description: `${name} さんの投稿一覧。`,
   };
 }
@@ -101,9 +102,9 @@ export default async function UserDetailPage({ params }: Props) {
               <h1 className="text-xl font-bold text-gray-900">
                 {profile.displayName ?? "匿名"}
               </h1>
-              <p className="text-sm text-gray-400">@{profile.id.slice(0, 8)}</p>
+              <p className="text-sm text-gray-400">@{shortId(profile.id)}</p>
               <p className="text-xs text-gray-400 mt-1">
-                {profile.createdAt.toISOString().split("T")[0]} から参加
+                {formatUtcDate(profile.createdAt)} から参加
               </p>
             </div>
           </div>

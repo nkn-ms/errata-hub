@@ -3,6 +3,7 @@ import Link from "next/link";
 import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
+import { formatUtcDate } from "@/utils/format";
 
 export default async function AdminReportsPage() {
   const reports = await prisma.report.findMany({
@@ -64,7 +65,7 @@ export default async function AdminReportsPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                  {f.createdAt.toISOString().split("T")[0]}
+                  {formatUtcDate(f.createdAt)}
                 </td>
                 <td className="px-4 py-3">
                   <Link

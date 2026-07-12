@@ -31,6 +31,12 @@ type Props = {
 
 type Mode = "api" | "isbn";
 
+// Google Books の書影 URL は http で返ることがある。https のページから http 画像は
+// 混在コンテンツとしてブラウザにブロックされるため、https に揃える（books.google.com は https 対応）。
+function toHttpsUrl(url: string | undefined): string {
+  return url?.replace("http://", "https://") ?? "";
+}
+
 // OpenBD に書影が無いとき用に、Google Books から ISBN 一致の書影だけ取得する。
 // 失敗しても書影が無いだけなので空文字を返してプレースホルダーにフォールバック。
 async function fetchGoogleCover(isbn: string): Promise<string> {
@@ -39,9 +45,7 @@ async function fetchGoogleCover(isbn: string): Promise<string> {
     const res = await fetch(`${routes.api.booksSearch}?type=isbn&q=${encodeURIComponent(isbn)}`);
     if (!res.ok) return "";
     const data = await res.json();
-    const thumbnail: string | undefined =
-      data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-    return thumbnail?.replace("http://", "https://") ?? "";
+    return toHttpsUrl(data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail);
   } catch {
     return "";
   }
@@ -182,7 +186,7 @@ export function BookSearch({ onSelect }: Props) {
               author: (info.authors ?? []).join(", "),
               publisher: info.publisher ?? "",
               isbn,
-              coverImageUrl: info.imageLinks?.thumbnail?.replace("http://", "https://") ?? "",
+              coverImageUrl: toHttpsUrl(info.imageLinks?.thumbnail),
             };
           })
           // ISBN を本の同一性の基準にするため、ISBN の無い結果は選択させない
