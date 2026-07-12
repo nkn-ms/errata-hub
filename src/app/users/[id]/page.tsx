@@ -10,6 +10,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
+import { SiteHeader } from "@/components/site-header";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -56,13 +57,7 @@ export default async function UserDetailPage({ params }: Props) {
   if (isWithdrawnEmail(profile.email)) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-            <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-sm text-gray-500">ユーザー</span>
-          </div>
-        </header>
+        <SiteHeader width="lg" crumbs={[{ label: "ユーザー" }]} />
         <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-16">
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
             <p className="text-2xl mb-3">👤</p>
@@ -89,15 +84,10 @@ export default async function UserDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-500">ユーザー</span>
-          <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-500">{profile.displayName ?? "匿名"}</span>
-        </div>
-      </header>
+      <SiteHeader
+        width="lg"
+        crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}
+      />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
         {/* プロフィール情報 */}
