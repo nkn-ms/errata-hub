@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsUp } from "lucide-react";
+import type { ReportType } from "@/generated/prisma/client";
 import { routes } from "@/constants/routes";
+import { UPVOTE_LABELS } from "@/constants/report-labels";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -12,13 +14,15 @@ type Props = {
   initialUpvoted: boolean;
   /** 未ログインなら /login へ誘導、自分の投稿なら無効化する */
   viewer: "guest" | "owner" | "user";
+  /** ボタン文言の切り替えに使う（正誤情報=自分も見つけた / 提案・その他=私もそう思う） */
+  type: ReportType;
 };
 
 /**
- * 「自分も見つけた」賛同ボタン。
+ * 賛同ボタン（正誤情報「自分も見つけた」/ 提案・その他「私もそう思う」）。
  * 楽観更新はせず、API のレスポンス（確定した count）で表示を更新する。
  */
-export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer }: Props) {
+export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, type }: Props) {
   const router = useRouter();
   const [count, setCount] = useState(initialCount);
   const [upvoted, setUpvoted] = useState(initialUpvoted);
@@ -54,7 +58,7 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer }:
             ? "賛同するにはログインが必要です"
             : upvoted
               ? "賛同を取り消す"
-              : "自分も見つけた（賛同する）"
+              : `${UPVOTE_LABELS[type]}（賛同する）`
       }
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer",
@@ -66,7 +70,7 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer }:
       )}
     >
       <ThumbsUp className={cn("w-4 h-4", upvoted && "fill-current")} />
-      <span>自分も見つけた</span>
+      <span>{UPVOTE_LABELS[type]}</span>
       <span className={cn("font-semibold", upvoted ? "text-blue-700" : "text-gray-700")}>{count}</span>
     </button>
   );

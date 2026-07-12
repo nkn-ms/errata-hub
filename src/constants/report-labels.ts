@@ -14,6 +14,20 @@ export const TYPE_COLORS: Record<ReportType, string> = {
   OTHER: "bg-gray-100 text-gray-600",
 };
 
+// 賛同の意味が種別で違う（正誤情報=独立に同じ誤りを確認した事実の追認 / 提案・その他=意見への同意）ため
+// ボタン文言と補足文も種別で切り替える。
+export const UPVOTE_LABELS: Record<ReportType, string> = {
+  ERRATA: "自分も見つけた",
+  SUGGESTION: "私もそう思う",
+  OTHER: "私もそう思う",
+};
+
+export const UPVOTE_HINTS: Record<ReportType, string> = {
+  ERRATA: "同じ誤りを見つけた方は賛同で知らせられます",
+  SUGGESTION: "同じように感じた方は賛同で知らせられます",
+  OTHER: "同じように感じた方は賛同で知らせられます",
+};
+
 export const MEDIUM_LABELS: Record<Medium, string> = {
   PAPER: "紙の書籍",
   EBOOK: "電子書籍",
