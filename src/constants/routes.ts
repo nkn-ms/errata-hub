@@ -49,6 +49,7 @@ export const routes = {
     reports: "/api/reports",
     report: (id: string) => `/api/reports/${id}`,
     reportUpvote: (id: string) => `/api/reports/${id}/upvote`,
+    reportImages: (id: string) => `/api/reports/${id}/images`,
     booksSearch: "/api/books/search",
     booksOpenbd: "/api/books/openbd",
     book: (id: string) => `/api/books/${id}`,

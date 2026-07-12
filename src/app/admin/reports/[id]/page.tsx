@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
@@ -79,6 +80,27 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
 
           <dt className="text-gray-500">投稿日</dt>
           <dd>{report.createdAt.toISOString().split("T")[0]}</dd>
+
+          {report.images.length > 0 && (
+            <>
+              <dt className="text-gray-500">添付画像</dt>
+              <dd className="flex flex-wrap gap-3">
+                {report.images.map((img) => (
+                  <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
+                    {/* 自前 Storage 由来だが書影と同じ unoptimized 恒久運用に合わせる */}
+                    <Image
+                      src={img.imageUrl}
+                      alt="添付画像"
+                      width={128}
+                      height={180}
+                      unoptimized
+                      className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
+                    />
+                  </a>
+                ))}
+              </dd>
+            </>
+          )}
         </dl>
       </div>
 

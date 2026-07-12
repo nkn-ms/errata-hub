@@ -36,4 +36,5 @@ export type Report = {
   fixedPrinting?: number;
   createdAt: string;
   upvoteCount: number;
+  imageUrls: string[];
 };

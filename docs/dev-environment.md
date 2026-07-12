@@ -142,6 +142,17 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 コードや schema.prisma に現れない、本番 Supabase に**直接 SQL で登録した**設定。DBを作り直す・環境を増やす際はここを見て再登録する。
 
+### Storage バケット `report-images`（投稿の添付画像）
+
+ローカルは `supabase/config.toml` の `[storage.buckets.report-images]` に定義し、**`supabase seed buckets` で作成する**（⚠️ `supabase start` だけでは作られない — CLI v2.108 で実測。既存環境・`db reset` 後は明示実行が必要）。**本番はダッシュボードで手動作成**（コードのデプロイでは作られない）。
+
+- Supabase ダッシュボード → Storage → New bucket
+  - 名前: `report-images` / **Public bucket: ON**（公開投稿の画像のため）
+  - Restrict file size: **4MB** / Restrict MIME types: `image/png, image/jpeg, image/webp`
+  - ※ 値は `src/constants/report-images.ts` と揃えること（アプリ側検証とバケット側制限の二重防御）
+- Storage のポリシーは追加しない（書き込みはサーバーの secret キー経由のみ＝RLSロック方針と同じ）
+- ⚠️ **画像投稿機能を含む PR を main にマージする前に本番バケットを作成しておく**（無いとアップロードが 500 になる。投稿自体は成功する設計）
+
 ### AuditLog の90日自動削除（pg_cron）
 
 プライバシーポリシー第6条2項「90日を目安に削除」に対応するジョブ。**2026-07-03 に本番へ登録済み**（SQL Editor で実行・ローカルでも同SQL検証済み）。

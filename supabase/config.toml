@@ -124,6 +124,14 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# 投稿の添付画像。public=true は「URL を知っていれば誰でも読める」＝公開投稿の画像なので意図どおり。
+# 書き込みはサーバー（secret キー）経由のみ。上限はアプリ側の定数（constants/report-images.ts）と揃える。
+# 本番バケットはダッシュボードで手動作成（docs/dev-environment.md §9 参照）。
+[storage.buckets.report-images]
+public = true
+file_size_limit = "4MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
