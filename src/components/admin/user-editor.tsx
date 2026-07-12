@@ -31,7 +31,9 @@ export default function AdminUserEditor({
   const [access, setAccess] = useState(profile.publisherAccess);
   const [saving, setSaving] = useState(false);
   const [roleSaved, setRoleSaved] = useState(false);
+  const [roleError, setRoleError] = useState("");
   const [accessMessage, setAccessMessage] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [selectedPublisherId, setSelectedPublisherId] = useState("");
 
   const grantedIds = new Set(access.map((a) => a.publisherId));
@@ -40,24 +42,41 @@ export default function AdminUserEditor({
   async function handleSaveRole() {
     setSaving(true);
     setRoleSaved(false);
+    setRoleError("");
     // 成功時はアクション側の refresh() で画面が最新化される
-    await updateUserRole(profile.id, role);
+    const result = await updateUserRole(profile.id, role);
+    if (result.error) {
+      setRoleError(result.error);
+    } else {
+      setRoleSaved(true);
+    }
     setSaving(false);
-    setRoleSaved(true);
   }
 
   async function handleAddPublisher() {
     if (!selectedPublisherId) return;
+    setAccessMessage("");
+    setAccessError("");
     const result = await grantPublisherAccess(profile.id, selectedPublisherId);
-    if (result.access !== undefined) {
-      setAccess((prev) => [...prev, result.access]);
-      setSelectedPublisherId("");
-      setAccessMessage("追加しました");
+    if (result.error !== undefined) {
+      setAccessError(result.error);
+      return;
     }
+    // サーバーが成功を返したときだけ画面の一覧に足す
+    setAccess((prev) => [...prev, result.access]);
+    setSelectedPublisherId("");
+    setAccessMessage("追加しました");
   }
 
   async function handleRemovePublisher(publisherId: string) {
-    await revokePublisherAccess(profile.id, publisherId);
+    setAccessMessage("");
+    setAccessError("");
+    const result = await revokePublisherAccess(profile.id, publisherId);
+    if (result.error) {
+      setAccessError(result.error);
+      return;
+    }
+    // サーバーが成功を返したときだけ画面の一覧から消す
     setAccess((prev) => prev.filter((a) => a.publisherId !== publisherId));
     setAccessMessage("削除しました");
   }
@@ -89,6 +108,7 @@ export default function AdminUserEditor({
         >
           {saving ? "保存中..." : "ロールを保存"}
         </button>
+        {roleError && <p className="text-sm text-red-500">{roleError}</p>}
         {roleSaved && <p className="text-sm text-green-600">保存しました</p>}
       </div>
 
@@ -114,6 +134,7 @@ export default function AdminUserEditor({
           </ul>
         )}
 
+        {accessError && <p className="text-sm text-red-500">{accessError}</p>}
         {accessMessage && <p className="text-sm text-green-600">{accessMessage}</p>}
         {ungrantedPublishers.length > 0 && (
           <div className="flex gap-2 pt-2">
