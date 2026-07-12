@@ -11,6 +11,7 @@ import { routes } from "@/constants/routes";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { UpvoteButton } from "@/components/upvote-button";
+import { SiteHeader } from "@/components/site-header";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -53,17 +54,13 @@ export default async function ReportDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
-          <span className="text-gray-300">/</span>
-          <Link href={routes.book(report.bookId)} className="text-sm text-blue-600 hover:underline truncate max-w-xs">
-            {report.bookTitle}
-          </Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-500 truncate max-w-xs">{report.title}</span>
-        </div>
-      </header>
+      <SiteHeader
+        width="lg"
+        crumbs={[
+          { label: report.bookTitle, href: routes.book(report.bookId) },
+          { label: report.title },
+        ]}
+      />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
         {/* 免責バナー */}

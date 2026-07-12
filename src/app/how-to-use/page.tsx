@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
+import { SiteHeader } from "@/components/site-header";
 import type { ReportStatus } from "@/generated/prisma/client";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 
@@ -59,19 +60,14 @@ const STATUS_KEYS = Object.keys(STATUS_LABELS) as ReportStatus[];
 export default function HowToUsePage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <Link href={routes.home} className="text-lg font-bold text-gray-900 hover:text-gray-700 transition-colors">
-            Errata Hub
-          </Link>
-          <Link
-            href={routes.submit}
-            className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-          >
-            投稿する
-          </Link>
-        </div>
-      </header>
+      <SiteHeader>
+        <Link
+          href={routes.submit}
+          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
+        >
+          投稿する
+        </Link>
+      </SiteHeader>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
         <div>

@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
+import { SiteHeader } from "@/components/site-header";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -49,13 +50,7 @@ export default async function BookDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-screen-lg mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href={routes.home} className="text-lg font-bold text-gray-900">Errata Hub</Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-sm text-gray-500 truncate max-w-xs">{book.title}</span>
-        </div>
-      </header>
+      <SiteHeader width="lg" crumbs={[{ label: book.title }]} />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
         {/* 書籍情報 */}
