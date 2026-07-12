@@ -201,9 +201,10 @@ export function HeaderNav({ userName }: { userName: string | null }) {
           >
             会員登録
           </Link>
+          {/* 塗りは主 CTA「投稿する」（青）に譲り、ログインは枠線で階層を下げる */}
           <Link
             href={routes.login}
-            className="hidden sm:block text-sm bg-gray-900 text-white px-4 py-1.5 rounded-md hover:bg-gray-700 transition-colors"
+            className="hidden sm:block text-sm text-gray-700 border border-gray-300 px-4 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
           >
             ログイン
           </Link>

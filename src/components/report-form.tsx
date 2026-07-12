@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
 import { routes } from "@/constants/routes";
@@ -45,7 +45,7 @@ export function ReportForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // 同じファイルの再選択でも change を発火させる
     setError("");
@@ -80,7 +80,7 @@ export function ReportForm() {
   const isErrataType = reportType === "ERRATA";
   const isPaper = medium === "PAPER";
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!book) { setError("書籍を選択してください"); return; }
     if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }

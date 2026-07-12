@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { findReportsByUser } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
@@ -13,10 +15,9 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default async function UserDetailPage({ params }: Props) {
-  const { id } = await params;
-
-  const profile = await prisma.profile.findUnique({
+// generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
+const getProfile = cache((id: string) =>
+  prisma.profile.findUnique({
     where: { id },
     select: {
       id: true,
@@ -26,7 +27,27 @@ export default async function UserDetailPage({ params }: Props) {
       xUsername: true,
       createdAt: true,
     },
-  });
+  })
+);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const profile = await getProfile(id);
+  if (!profile) return { title: "ユーザーが見つかりません | Errata Hub" };
+
+  const name = isWithdrawnEmail(profile.email)
+    ? WITHDRAWN_DISPLAY_NAME
+    : (profile.displayName ?? "匿名");
+  return {
+    title: `${name} (@${profile.id.slice(0, 8)}) | Errata Hub`,
+    description: `${name} さんの投稿一覧。`,
+  };
+}
+
+export default async function UserDetailPage({ params }: Props) {
+  const { id } = await params;
+
+  const profile = await getProfile(id);
 
   if (!profile) notFound();
 
