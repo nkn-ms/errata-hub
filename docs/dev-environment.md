@@ -15,6 +15,8 @@ env で迷ったらここを見る。
   起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
 - **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma db push` が必要**。
   コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。
+- **DBパスワードのリセットは「押した瞬間に本番が 500 になる」作業**（Vercel の env が旧パスワードのままになるため）。
+  リセット〜env 更新〜**Redeploy** までを一息にやる。手順と落とし穴は §7-2（実績: 2026-07-14 に本番ダウン）。
 - **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。
 - **e2e を本番/Preview に向けるときだけ `.env.e2e`** を使う（普段のローカル e2e はシード垢を自動使用）。
   この分離は「うっかり本番に書き込む e2e」を防ぐ安全弁なので、`.env.local` に統合しない。
@@ -111,10 +113,13 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 ```
 
 - inline の env が `.env.local` より優先される（dotenv は既存 env を上書きしない。prisma.config.ts 参照）
-- 接続文字列は Supabase ダッシュボード → Connect → **Direct connection**（port 5432）。DB パスワードが要る
+- 接続文字列は Supabase ダッシュボード → Connect → **Direct connection**（port 5432）。取れないときは **Session pooler**（port 5432）でもスキーマ変更は可能（実績あり 2026-07-14）。**Transaction pooler（6543）は不可**
+  - Session pooler を使う場合、ユーザー名は素の `postgres` ではなく **`postgres.<プロジェクトref>`**（プーラーは共有ホストのためユーザー名でプロジェクトを識別する）。素の `postgres` だと `P1000` になる
   - パスワードはプロジェクト作成時にしか表示されないので**パスワードマネージャに控えておく**
-  - 紛失したら Settings → Database → Reset database password で再発行できるが、**Vercel の DATABASE_URL / DIRECT_URL も貼り替えが必要になる**（Sensitive のため上書き再設定）
+  - 紛失したら Settings → Database → Reset database password で再発行できる。⚠️ **その瞬間から本番が落ちる**（下記 §7-2）
 - 「data loss」系の警告が出たら中断して内容を確認（カラム削除・型変更など破壊的変更のとき）
+  - enum から値を削除する変更では、**旧値を使う行が 0 件でも** `--accept-data-loss` が必要（フラグ無しなら対話で y/N を聞かれる）。先に SQL Editor で `SELECT status, count(*) FROM "Report" GROUP BY 1` して 0 件を確認してから進む（実績 2026-07-14 の 8値→6値）
+  - `prisma db push` は Prisma Client を再生成しない。スキーマ変更後は別途 `npx prisma generate`（tsc が古い型のままエラーを出す）
 
 **なぜこれが正か**: `schema.prisma` が git 管理された唯一の正で、db push はそこから DDL を機械的に導出する（手書きミスが構造的に起きない・実DBとの差分計算と破壊的変更の警告つき）。将来の Prisma Migrate 移行（SQL をファイルとして git 管理）も「schema と実DBの一致」が前提で、db push 運用はそれを保証する。手動 SQL を常用すると一致が人間の注意力頼みになりドリフトの温床になる。
 
@@ -131,6 +136,32 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
   ※ Prisma v7 で `--from-url` は削除され `--from-config-datasource` になった（`--script` を外すと人間向け要約）。差分が無いと `-- This is an empty migration.` と出る＝ローカルDBと schema が一致している確認にも使える
 - テーブル名・カラム名のダブルクォートは必須（Prisma は大文字小文字混在の名前で作るため、外すと別名扱いでエラー）
 - 実績: 2026-07-09 に `Profile.githubUsername` / `xUsername` の追加をこの方法で反映した
+
+## 7-2. ⚠️ DBパスワードのリセット手順（本番が落ちる作業）
+
+**Reset database password を押した瞬間から本番は 500 になる。** Vercel の `DATABASE_URL` / `DIRECT_URL` に焼き込まれた旧パスワードが即無効化されるため。デプロイの有無とは無関係で、次のリクエストから落ちる。**リセット〜Redeploy 完了までが1セットの作業**であり、途中で中断しない（実績: 2026-07-14 に本番ダウン）。
+
+1. **パスワードは Supabase の「Generate a password」ボタンで作る**。自分で記号入りを決めない
+   - 接続文字列は `postgresql://ユーザー:パスワード@ホスト:ポート/DB名` という **URL**。パスワードに `@ / # ? :` などが生で入ると URL の区切りが壊れ、ホスト名が別物として解釈される（実測: ホストが `base` と読まれ `P1001 Can't reach database server at base`）
+   - どうしても記号入りを使うなら**パーセントエンコード必須**（`@`→`%40`、`#`→`%23`、`/`→`%2F`）
+2. パスワードマネージャに保存する（再表示はできない）
+3. Connect から接続文字列を2本取り直す:
+   - `DATABASE_URL` = **Transaction pooler（6543）** … アプリの通常クエリ用
+   - `DIRECT_URL` = **Session pooler / Direct（5432）** … スキーマ操作用
+4. **貼る前に URL として壊れていないか検証する**（パスワードを画面に出さずにホストだけ確認できる）:
+   ```bash
+   read -rs -p "接続文字列を貼り付け: " CONN; echo
+   CONN="$CONN" node -e 'const u=new URL(process.env.CONN); console.log("host:", u.hostname, "/ port:", u.port, "/ user:", u.username)'
+   ```
+   `host:` に `...pooler.supabase.com` 等の正しいホストが出れば OK。別の文字列やエラーが出たらその接続文字列は壊れている
+5. Vercel ダッシュボード → Settings → Environment Variables で 2本とも更新（**Production と Preview の両方**にチェック）。CLI ではなくダッシュボードで行う（接続文字列をローカルの履歴に残さないため = §8）
+6. **Redeploy する**。環境変数は保存しただけでは反映されない（実行中のデプロイには古い値が焼き込まれたまま）
+7. 復旧確認: 本番 URL が 200 を返すか。まだ 500 なら **Vercel のランタイムログでエラーコードを見る**（推測しない）:
+   ```bash
+   npx vercel logs <デプロイURL>
+   ```
+   - `P1000 Authentication failed` = パスワードが違う（貼り替え漏れ・古い値）
+   - `P1001 Can't reach database server at <変な文字列>` = **接続文字列が URL として壊れている**（記号のエンコード漏れ・改行や引用符の混入）
 
 ## 8. なぜこの形にしたか（狙い）
 
