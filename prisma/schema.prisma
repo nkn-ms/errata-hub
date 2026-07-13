@@ -28,13 +28,11 @@ enum Medium {
 
 enum ReportStatus {
   PENDING     // 未対応（管理者未確認）
-  FORWARDED   // 出版社へ送信済み（未回答）
-  IN_REVIEW   // 出版社確認中（一次回答あり）
-  REPLIED     // 出版社回答済み
+  FORWARDED   // 出版社へ連絡済み（回答が来たかは publisherComment の有無で分かる。旧 IN_REVIEW / REPLIED を統合）
   WILL_FIX    // 修正予定
-  FIXED       // 修正済み
-  NO_ACTION   // 対応なし
-  DISMISSED   // 却下（管理者が無効と判断）
+  FIXED       // 修正済み（fixedEdition / fixedPrinting はこの状態に付随）
+  WONT_FIX    // 修正なし（出版社が修正しないと判断。旧 NO_ACTION）
+  DISMISSED   // 却下（管理者が無効な投稿と判断。削除も非公開もせず公開のまま残す = docs/moderation-policy.md）
 }
 
 enum Role {
