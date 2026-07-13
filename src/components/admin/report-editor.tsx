@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { deleteReport, updateReport } from "@/app/actions/report";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
-import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";
 
 type Status = ReportStatus;
@@ -45,15 +44,14 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     setSaving(true);
     setSaved(false);
     setError("");
-    // 修正版・刷は「修正済み」のときだけ意味を持つ欄なので、他ステータスでは送らない
-    const isFixed = status === "FIXED";
-
     // 成功時はアクション側の refresh() で画面が最新化される
     const result = await updateReport(id, {
       status,
       publisherComment: comment || null,
-      fixedEdition: isFixed ? toIntOrNull(fixedEdition) : null,
-      fixedPrinting: isFixed ? toIntOrNull(fixedPrinting) : null,
+      // 「修正済み」以外では修正版・刷は意味を持たないので保存しない（＝欄の入力残りを送らない）。
+      // ここの書き方は ReportStatus の統廃合と一緒に見直す（2026-07-13 保留）
+      fixedEdition: status === "FIXED" && fixedEdition ? parseInt(fixedEdition) : null,
+      fixedPrinting: status === "FIXED" && fixedPrinting ? parseInt(fixedPrinting) : null,
     });
     if (result?.error) {
       setError(result.error);
