@@ -137,31 +137,22 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 - テーブル名・カラム名のダブルクォートは必須（Prisma は大文字小文字混在の名前で作るため、外すと別名扱いでエラー）
 - 実績: 2026-07-09 に `Profile.githubUsername` / `xUsername` の追加をこの方法で反映した
 
-## 7-2. ⚠️ DBパスワードのリセット手順（本番が落ちる作業）
+## 7-2. ⚠️ DBパスワードをリセットしたら Vercel の env 更新まで一息にやる
 
-**Reset database password を押した瞬間から本番は 500 になる。** Vercel の `DATABASE_URL` / `DIRECT_URL` に焼き込まれた旧パスワードが即無効化されるため。デプロイの有無とは無関係で、次のリクエストから落ちる。**リセット〜Redeploy 完了までが1セットの作業**であり、途中で中断しない（実績: 2026-07-14 に本番ダウン）。
+**Reset database password を押した瞬間から本番は 500 になる。** Vercel の `DATABASE_URL` / `DIRECT_URL` には旧パスワードが焼き込まれており、リセットで即無効になるため。**デプロイの有無とは無関係**（コードを何も出していなくても、次のリクエストから落ちる）。**リセット → env 更新 → Redeploy までが不可分の1セット**で、途中で中断しない（実績: 2026-07-14 に本番ダウン）。
 
-1. **パスワードは Supabase の「Generate a password」ボタンで作る**。自分で記号入りを決めない
-   - 接続文字列は `postgresql://ユーザー:パスワード@ホスト:ポート/DB名` という **URL**。パスワードに `@ / # ? :` などが生で入ると URL の区切りが壊れ、ホスト名が別物として解釈される（実測: ホストが `base` と読まれ `P1001 Can't reach database server at base`）
-   - どうしても記号入りを使うなら**パーセントエンコード必須**（`@`→`%40`、`#`→`%23`、`/`→`%2F`）
-2. パスワードマネージャに保存する（再表示はできない）
-3. Connect から接続文字列を2本取り直す:
+1. 新しいパスワードをパスワードマネージャに保存する（再表示はできない）
+2. Supabase → Connect から接続文字列を2本取り直す:
    - `DATABASE_URL` = **Transaction pooler（6543）** … アプリの通常クエリ用
    - `DIRECT_URL` = **Session pooler / Direct（5432）** … スキーマ操作用
-4. **貼る前に URL として壊れていないか検証する**（パスワードを画面に出さずにホストだけ確認できる）:
-   ```bash
-   read -rs -p "接続文字列を貼り付け: " CONN; echo
-   CONN="$CONN" node -e 'const u=new URL(process.env.CONN); console.log("host:", u.hostname, "/ port:", u.port, "/ user:", u.username)'
-   ```
-   `host:` に `...pooler.supabase.com` 等の正しいホストが出れば OK。別の文字列やエラーが出たらその接続文字列は壊れている
-5. Vercel ダッシュボード → Settings → Environment Variables で 2本とも更新（**Production と Preview の両方**にチェック）。CLI ではなくダッシュボードで行う（接続文字列をローカルの履歴に残さないため = §8）
-6. **Redeploy する**。環境変数は保存しただけでは反映されない（実行中のデプロイには古い値が焼き込まれたまま）
-7. 復旧確認: 本番 URL が 200 を返すか。まだ 500 なら **Vercel のランタイムログでエラーコードを見る**（推測しない）:
+3. Vercel ダッシュボード → Settings → Environment Variables で 2本とも更新（**Production と Preview の両方**にチェック）。CLI ではなくダッシュボードで行う（接続文字列をローカルの履歴に残さないため = §8）
+4. **Redeploy する**。環境変数は保存しただけでは反映されない（実行中のデプロイには古い値が焼き込まれたまま）
+5. 本番 URL が 200 を返すか確認する。500 のままなら**ランタイムログでエラーコードを見る**（画面には詳細が出ない）:
    ```bash
    npx vercel logs <デプロイURL>
    ```
-   - `P1000 Authentication failed` = パスワードが違う（貼り替え漏れ・古い値）
-   - `P1001 Can't reach database server at <変な文字列>` = **接続文字列が URL として壊れている**（記号のエンコード漏れ・改行や引用符の混入）
+   - `P1000 Authentication failed` = サーバーには到達している・**資格情報が違う**（貼り替え漏れ・古い値のまま）
+   - `P1001 Can't reach database server at <ホスト名>` = **そのホストに到達できない**。ホスト名が意図と違うなら接続文字列の貼り間違い（実績: コピペミスで壊れた文字列を登録し、実在しないホストに接続しようとしていた）
 
 ## 8. なぜこの形にしたか（狙い）
 
