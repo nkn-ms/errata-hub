@@ -9,12 +9,15 @@ import { routes } from "@/constants/routes";
 import { UPVOTE_LABELS } from "@/constants/report-labels";
 import { cn } from "@/lib/utils";
 
+/** 閲覧者の立場。guest=未ログイン / owner=投稿者本人 / user=それ以外のログイン済み */
+export type ViewerRole = "guest" | "owner" | "user";
+
 type Props = {
   reportId: string;
   initialCount: number;
   initialUpvoted: boolean;
   /** 未ログインなら /login へ誘導、自分の投稿なら無効化する */
-  viewer: "guest" | "owner" | "user";
+  viewer: ViewerRole;
   /** ボタン文言の切り替えに使う（正誤情報=自分も見つけた / 提案・その他=私もそう思う） */
   type: ReportType;
 };

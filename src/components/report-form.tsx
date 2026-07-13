@@ -5,6 +5,7 @@ import { BookSearch } from "@/components/book-search";
 import { useRouter } from "next/navigation";
 import { createReport } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
+import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 import {
   REPORT_IMAGE_ALLOWED_TYPES,
@@ -104,13 +105,13 @@ export function ReportForm() {
       // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
       const created = await createReport({
         book,
-        edition: isPaper && edition ? parseInt(edition) : null,
-        printing: isPaper && printing ? parseInt(printing) : null,
+        edition: isPaper ? toIntOrNull(edition) : null,
+        printing: isPaper ? toIntOrNull(printing) : null,
         title,
         type: reportType,
         medium,
-        page: isPaper && page ? parseInt(page) : null,
-        line: isPaper && line ? parseInt(line) : null,
+        page: isPaper ? toIntOrNull(page) : null,
+        line: isPaper ? toIntOrNull(line) : null,
         hasMultiplePages: isPaper && hasMultiplePages,
         locationNote: medium === "EBOOK" ? null : locationNote || null,
         ebookLocation: medium === "EBOOK" ? ebookLocation : null,

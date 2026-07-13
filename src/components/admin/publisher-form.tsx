@@ -18,6 +18,7 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
   const action = isEdit
     ? updatePublisher.bind(null, publisher.id)
     : createPublisher;
+  const submitLabel = isEdit ? "更新する" : "追加する";
 
   const [state, formAction, pending] = useActionState<PublisherState, FormData>(
     action,
@@ -97,7 +98,7 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
               disabled={pending}
               className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
-              {pending ? "保存中..." : isEdit ? "更新する" : "追加する"}
+              {pending ? "保存中..." : submitLabel}
             </button>
             <button
               type="button"
