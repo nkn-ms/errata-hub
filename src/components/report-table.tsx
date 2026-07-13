@@ -47,7 +47,8 @@ function getErrataLabel(report: Report): string {
   return report.content ?? "";
 }
 
-// 「第2版 第3刷」。版・刷はどちらか片方だけの投稿もある
+// 「第2版 第3刷」。紙は版が必須・刷は任意（actions/report.ts の superRefine）、
+// 電子書籍は版も刷も持たない（どちらも null）ので空文字になる
 function getEditionLabel(report: Report): string {
   const parts = [
     report.edition ? `第${report.edition}版` : null,
