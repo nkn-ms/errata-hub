@@ -149,7 +149,7 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
 }
 
 const ReportUpdateSchema = z.object({
-  status: z.enum(["PENDING", "FORWARDED", "IN_REVIEW", "REPLIED", "WILL_FIX", "FIXED", "NO_ACTION", "DISMISSED"]).optional(),
+  status: z.enum(["PENDING", "FORWARDED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED"]).optional(),
   publisherComment: z.string().nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),
   fixedPrinting: z.number().int().positive().nullable().optional(),

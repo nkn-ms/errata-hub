@@ -59,7 +59,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 - 「却下（スパム）」と「出版社が対応しない（WONT_FIX）」は意味が全く違うのに今は混在。
 - 公開ポリシー: **即時公開 + 通報で PENDING_REVIEW に落とす**（性善説 + 事後モデレーション + 監査）。
 
-実装状況: ❌未実装（現状は 1 enum 8値の `ReportStatus` のまま。即時公開の運用のみ実態と一致）。
+実装状況: 🔶一部（対応状態の軸は 2026-07 に 8値→**6値へ統合して確定** = §7「ステータス（1軸6値）」。moderation 軸の分離は通報（Flag）実装時に**列の追加**で行う — 列追加は既存データに触れない安い変更なので後回しが得。なお本節の REJECTED=非公開という発想は、その後確定した「却下は公開のまま残す」方針（docs/moderation-policy.md）と食い違うため採らない。即時公開の運用は実態と一致）。
 
 ---
 
@@ -95,7 +95,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 |---|---|---|---|
 | role | ADMIN/PUBLISHER/USER 保存 | ADMIN/USER + membership 導出 | ✅済 |
 | 出版社回答 | 文字列カラム | `PublisherResponse` 第一級 | ❌未 |
-| status | 8値1軸 | moderation × resolution 2軸 | ❌未 |
+| status | 8値1軸 | moderation × resolution 2軸 | 🔶resolution 側は6値に統合済（§7）/ moderation 列は通報実装時 |
 | 賛同/通報 | なし | `Confirmation` / `Flag` | 🔶賛同✅（`Upvote`）/ 通報❌ |
 | 公開性 | 動的レンダリング | ISR + SEO + sitemap | ❌未（public 化時に着手） |
 | RLS | 未設定（露出リスク） | 全有効化で締める | ✅済（全拒否ロック） |
@@ -106,7 +106,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 ## 優先度（ポートフォリオとして効く順）
 
 1. 認可（identity/capability 分離）— 設計力の証明 — 🔶role 縮小✅・membership/verified❌
-2. ステータス 2 軸 + モデレーション — 実プロダクト感 — ❌未着手
+2. ステータス 2 軸 + モデレーション — 実プロダクト感 — 🔶6値統合✅（§7）・moderation 列＋Flag は❌
 3. SEO / ISR — 公開で伸びる本体 — ❌未着手（public 化時）
 4. RLS 締め — 公開前セキュリティ必須 — ✅完了
 
@@ -144,3 +144,11 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **読み取り（ページ表示）= サーバーコンポーネントからサービス関数/Prisma を直接 await**。内部利用のためだけの自前 API Route は挟まない（同一プロセス内で HTTP 往復と JSON 二重シリアライズを増やすだけで、分離の実も速度も得られないため）。
 - **自アプリ UI からの更新 = Server Actions**（`app/actions/*.ts`）。理由：関数呼び出しの型安全（引数・戻り値をコンパイル時検証）、`useActionState` 等 React 統合、更新と画面反映が1往復で完結（アクション内の `refresh()` / `redirect()`）。エラーは `{ error?: string }` を返し、成功時に一覧へ戻る操作は `redirect()`（publisher.ts 発祥のパターン）。**認可はレンダリングではなく各アクション内で必ず検証する**（アクションは直接 POST 可能な公開エンドポイントであるため。管理系は `requireAdminOrThrow`）。
 - **API Route（Route Handler）は「HTTP 境界が本当に必要なもの」だけ**に限定。現存は次の2種のみ：①画像アップロード `POST /api/reports/[id]/images`（Server Actions のボディ上限は既定 1MB。`bodySizeLimit` を緩めると全アクション共通に効いて DDoS 耐性を削るため、大きいバイナリの受口だけ Route Handler に隔離）②外部書誌 API のプロキシ `GET /api/books/openbd`・`/api/books/search`（外部データ源への読み取り窓口）。
+
+### ステータス（1軸6値・2026-07 統合）
+
+`ReportStatus` は 1 enum 6値で確定: **未対応 → 出版社へ連絡済み → 修正予定 → 修正済み / 修正なし、外れ値が 却下**。
+
+- 旧 8値からの変更: FORWARDED / IN_REVIEW / REPLIED を **FORWARDED（出版社へ連絡済み）に統合**（3状態は読者から区別がつかず、回答の有無は publisherComment の有無で分かるため情報の損失なし）。NO_ACTION → **WONT_FIX（修正なし）に改名**（「未対応」と「対応なし」がラベルとして紛らわしかったのを解消。修正予定/修正済み/修正なしの対称な語族にする。WONTFIX はバグトラッカーの慣用語）。
+- ラベルの原則: **どの時点で見ても嘘にならない文言を選ぶ**。「確認中」「対応中」は出版社が無反応でも活動中に見えるため採らず、「連絡済み」（運営がやった事実のみ主張）とした。
+- 却下（DISMISSED）は公開の審判であり非公開化ではない（削除もしない = docs/moderation-policy.md）。公開可否は将来の通報（Flag）実装時に別カラムとして追加する（§3）。
