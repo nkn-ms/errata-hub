@@ -89,6 +89,14 @@ npm run dev                    # http://localhost:3000
 - ローカル Studio（DB の中身を見る）: http://127.0.0.1:54323
 - 受信メール（確認メール等）: http://127.0.0.1:54324
 
+### ⚠️ ローカルでは「画面からの会員登録」だけでは Profile 行ができない
+
+`Profile` 行を作るのは **`/auth/callback`**（メール確認 or OAuth の戻り）だけ。ローカルは `supabase/config.toml` が `enable_confirmations = false` なので**確認メールが飛ばず callback を通らない** ＝ 画面から登録したユーザーは `auth.users` にはいるが `Profile` が無い状態になる（`Report.userId` は Profile への FK なので、そのままでは投稿できない）。本番は確認メールが有効なので起きない、**ローカル限定の挙動**。
+
+- 手元で試すときは**シードアカウント**（`admin@local.test` / `reader@local.test`）を使う
+- テストで別のユーザーが要るときは `e2e/throwaway-user.ts` のように **管理API でユーザー作成 ＋ `Profile` 行を直接 INSERT** する（`prisma/seed.ts` と同じ方式）
+- ちなみに Profile の直接 INSERT に **PostgREST（supabase-js の `.from()`）は使えない**。service_role でも `permission denied for schema public` になる ＝ RLS 全拒否ロック（design.md §7）が効いている**正しい状態**。DB へ直接つなぐ（`pg` / Prisma）
+
 シード（`prisma/seed.ts`・Prisma 公式の `prisma db seed` 方式）は冪等で、`supabase status` から接続情報を取り、
 接続先がローカル(127.0.0.1)でなければ中止する安全装置付き。`supabase db reset` 後もこれ一発で復元できる。
 
