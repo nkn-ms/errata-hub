@@ -1,17 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_READER as READER } from "./seed-accounts";
+import { login } from "./login";
 
 // 公開リンク（GitHub / X）の書き込み系 e2e。ローカル dev＋ローカル Supabase 限定
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
 // `supabase start` ＋ `npm run seed:local` 済みであること。
-
-async function login(page: Page, { email, password }: { email: string; password: string }) {
-  await page.goto("/login");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(password);
-  await page.getByRole("button", { name: "ログイン" }).click();
-  await page.waitForURL(/\/$/, { timeout: 15_000 });
-}
 
 // Supabase の auth cookie（sb-*-auth-token、大きいと .0/.1 に分割される）から
 // 自分の user id を取り出す。UI に自分のユーザーページへの導線がまだ無く、
