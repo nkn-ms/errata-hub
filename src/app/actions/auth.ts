@@ -310,11 +310,19 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     return { error: "退会処理に失敗しました。時間をおいて再度お試しください。" };
   }
 
-  // 2) Profile の PII をスクラブ（email は @unique・必須なのでダミーで衝突回避、displayName は null）。
-  const anonymizedEmail = buildWithdrawnEmail(user.id);
+  // 2) Profile の PII をスクラブ（email は @unique・必須なのでダミーで衝突回避、それ以外は null）。
+  //    公開リンク（GitHub / X）も本人の外部アカウントに直結する個人情報なので併せて消す。
+  //    ⚠️ Profile に PII 列を追加したら、必ずこのスクラブにも追従させること
+  //    （githubUsername / xUsername は列の追加時に追従が漏れていた実績がある）。
+  const scrubbedProfile = {
+    email: buildWithdrawnEmail(user.id),
+    displayName: null,
+    githubUsername: null,
+    xUsername: null,
+  };
   await prisma.profile.update({
     where: { id: user.id },
-    data: { email: anonymizedEmail, displayName: null },
+    data: scrubbedProfile,
   });
 
   // 3) 監査ログに退会を記録する。誰がいつ退会したかは userId で追える。
@@ -326,7 +334,7 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     action: "WITHDRAW_USER",
     targetType: TARGET_TYPE.PROFILE,
     targetId: user.id,
-    after: { email: anonymizedEmail, displayName: null },
+    after: scrubbedProfile,
   });
 
   // 4) セッションを破棄して退会完了ページへ。
