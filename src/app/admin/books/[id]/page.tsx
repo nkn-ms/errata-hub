@@ -33,6 +33,7 @@ export default async function AdminBookDetailPage({
           isbn: book.isbn,
           publisherName: book.publisher?.name ?? null,
           coverImageUrl: book.coverImageUrl,
+          erratumUrl: book.erratumUrl,
           reportCount: book._count.reports,
         }}
       />

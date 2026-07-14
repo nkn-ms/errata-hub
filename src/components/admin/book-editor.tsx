@@ -12,6 +12,7 @@ type Book = {
   isbn: string;
   publisherName: string | null;
   coverImageUrl: string | null;
+  erratumUrl: string | null;
   reportCount: number;
 };
 
@@ -40,6 +41,8 @@ export function AdminBookEditor({ book }: { book: Book }) {
   const [author, setAuthor] = useState(book.author ?? "");
   const [publisherName, setPublisherName] = useState(book.publisherName ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(book.coverImageUrl ?? "");
+  // 正誤表URLは OpenBD から取れない（出版社サイトの情報）ので、上の差分取得の対象外
+  const [erratumUrl, setErratumUrl] = useState(book.erratumUrl ?? "");
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -115,7 +118,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
     setError("");
     // バリデーションエラーはアクションがフィールド別メッセージをそのまま返す。
     // 成功時はアクション側の refresh() で画面が最新化される
-    const result = await updateBook(book.id, { title, author, publisherName, coverImageUrl });
+    const result = await updateBook(book.id, { title, author, publisherName, coverImageUrl, erratumUrl });
     if (result?.error) {
       setError(result.error);
     } else {
@@ -171,6 +174,19 @@ export function AdminBookEditor({ book }: { book: Book }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverImageUrl} alt="書影プレビュー" className="mt-2 h-24 w-auto rounded border border-gray-200 object-contain" />
           )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">正誤表URL（出版社の公式ページ）</label>
+          <input
+            value={erratumUrl}
+            onChange={(e) => { setErratumUrl(e.target.value); dirtyReset(); }}
+            placeholder="https://..."
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            書籍ページと投稿詳細に公式リンクとして表示されます。読者の申告は各投稿の管理画面から採用できます（https のみ）。
+          </p>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}

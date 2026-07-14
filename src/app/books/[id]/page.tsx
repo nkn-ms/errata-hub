@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
+import { hostnameOf } from "@/utils/external-url";
 import { SiteHeader } from "@/components/site-header";
 
 type Props = {
@@ -65,6 +66,16 @@ export default async function BookDetailPage({ params }: Props) {
               {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
               {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher.name}</p>}
               {book.isbn && <p className="text-xs text-gray-400 mt-2">ISBN: {book.isbn}</p>}
+              {book.erratumUrl && (
+                <a
+                  href={book.erratumUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-block mt-3 text-sm text-blue-700 hover:underline"
+                >
+                  出版社の正誤表を見る（{hostnameOf(book.erratumUrl)}）→
+                </a>
+              )}
             </div>
           </div>
         </div>

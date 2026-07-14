@@ -11,6 +11,7 @@ import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdminOrThrow } from "@/services/auth";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
+import { sanitizeExternalUrl } from "@/utils/external-url";
 import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
 import { routes } from "@/constants/routes";
@@ -43,6 +44,8 @@ const ReportSchema = z.object({
   correct: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   note: z.string().nullable().optional(),
+  // 投稿者が見つけた出版社の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する
+  reportedErratumUrl: z.string().nullable().optional(),
 }).superRefine((data, ctx) => {
   // 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（アクション直叩き対策）。
   if (data.type === "ERRATA") {
@@ -67,6 +70,14 @@ const ReportSchema = z.object({
   if (data.medium === "OTHER" && !data.locationNote?.trim()) {
     ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
   }
+  // 正誤表 URL は任意だが、入力するなら https の正しい URL であること（外部リンクは攻撃面なので厳しめに）
+  if (data.reportedErratumUrl?.trim() && !sanitizeExternalUrl(data.reportedErratumUrl)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["reportedErratumUrl"],
+      message: "正誤表のURLは https:// から始まる正しいURLを入力してください",
+    });
+  }
 });
 
 export type ReportInput = z.input<typeof ReportSchema>;
@@ -85,7 +96,8 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
       return { error: parsed.error.issues[0].message };
     }
     const { book, edition, printing, title, type, medium, page, line,
-            hasMultiplePages, locationNote, ebookLocation, wrong, correct, content, note } = parsed.data;
+            hasMultiplePages, locationNote, ebookLocation, wrong, correct, content, note,
+            reportedErratumUrl } = parsed.data;
 
     // ISBN-13 に正規化（ISBN-10 は変換、不正な ISBN は弾く）
     const canonicalIsbn = toCanonicalIsbn(book.isbn);
@@ -137,6 +149,8 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
         correct: correct ?? null,
         content: content ?? null,
         note: note ?? null,
+        // 申告 URL は公開しないが、保存時にもサニタイズしておく（不正な値を DB に入れない）
+        reportedErratumUrl: sanitizeExternalUrl(reportedErratumUrl),
       },
     });
 
@@ -149,10 +163,20 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
 }
 
 const ReportUpdateSchema = z.object({
-  status: z.enum(["PENDING", "FORWARDED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED"]).optional(),
+  status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),
   publisherComment: z.string().nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),
   fixedPrinting: z.number().int().positive().nullable().optional(),
+}).superRefine((data, ctx) => {
+  // OTHER（その他）は「上記で表せない事情」を意味するので、説明が無いと読者に何も伝わらない。
+  // 空の OTHER を作れなくすることで、迷ったときの掃きだめになるのを防ぐ。
+  if (data.status === "OTHER" && !data.publisherComment?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["publisherComment"],
+      message: "「その他」を選んだときは、出版社コメント欄に事情を記載してください",
+    });
+  }
 });
 
 export type ReportUpdateInput = z.input<typeof ReportUpdateSchema>;
@@ -164,7 +188,7 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
   try {
     const parsed = ReportUpdateSchema.safeParse(input);
     if (!parsed.success) {
-      return { error: "入力内容が不正です" };
+      return { error: parsed.error.issues[0].message };
     }
 
     const before = await prisma.report.findUnique({ where: { id } });

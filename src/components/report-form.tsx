@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { BookSearch } from "@/components/book-search";
+import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
 import { createReport } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
@@ -41,6 +42,9 @@ export function ReportForm() {
   const [correct, setCorrect] = useState("");
   const [content, setContent] = useState("");
   const [note, setNote] = useState("");
+  const [reportedErratumUrl, setReportedErratumUrl] = useState("");
+  // 選んだ本に公式の正誤表が既に登録されていれば、投稿前にそれを案内する（重複投稿を減らす）
+  const [knownErratumUrl, setKnownErratumUrl] = useState<string | null>(null);
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -118,6 +122,7 @@ export function ReportForm() {
         correct: isErrataType ? correct : null,
         content: isErrataType ? null : content,
         note: note || null,
+        reportedErratumUrl: reportedErratumUrl.trim() || null,
       });
 
       if (created.error !== undefined) {
@@ -155,6 +160,10 @@ export function ReportForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      <p className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+        投稿の前に、<strong>出版社の公式な正誤表を確認してください</strong>。すでに掲載されている誤りは投稿不要です。
+        正誤表を見つけた場合は、下の「出版社の正誤表URL」欄で教えていただけると助かります。
+      </p>
       {/* 書籍情報 */}
       <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <h2 className="text-base font-semibold text-gray-900">書籍情報</h2>
@@ -163,7 +172,31 @@ export function ReportForm() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             書籍名 <span className="text-red-500">*</span>
           </label>
-          <BookSearch onSelect={setBook} />
+          <BookSearch
+            onSelect={async (selected) => {
+              setBook(selected);
+              setKnownErratumUrl(null);
+              if (selected.isbn) {
+                const { erratumUrl } = await findErratumUrlByIsbn(selected.isbn);
+                setKnownErratumUrl(erratumUrl);
+              }
+            }}
+          />
+          {knownErratumUrl && (
+            <p className="mt-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
+              この本には出版社の正誤表があります。
+              <a
+                href={knownErratumUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline font-medium"
+              >
+                正誤表を確認する →
+              </a>
+              <br />
+              すでに掲載されている誤りは投稿不要です。
+            </p>
+          )}
         </div>
 
         <div>
@@ -398,6 +431,23 @@ export function ReportForm() {
             rows={2}
             placeholder="その他補足があれば記載してください"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            出版社の正誤表URL（任意）
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            出版社の正誤表を見つけた場合は、そのページのURLを教えてください。管理者が確認のうえ、
+            書籍ページに公式リンクとして掲載します（すぐには公開されません）。
+          </p>
+          <input
+            type="url"
+            value={reportedErratumUrl}
+            onChange={(e) => setReportedErratumUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
