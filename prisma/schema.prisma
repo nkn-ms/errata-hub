@@ -63,7 +63,7 @@ model Profile {
 model Publisher {
   id              String           @id @default(uuid())
   name            String           @unique // 名前で upsert して名寄せする（同時投稿での重複作成を防ぐ）
-  email           String?
+  email           String?          // 連絡先（管理者が正誤の連絡に使う。表示は管理画面のみ・公開ページには出さない）
   emailDomain     String?          // 自動権限付与用ドメイン (例: "oreilly.co.jp")
   note            String?
   createdAt       DateTime         @default(now())
@@ -112,15 +112,19 @@ model Report {
   // onDelete未指定 = Restrict（意図的）。投稿が紐づく本は削除不可（管理画面の件数チェックとDBで二重ガード）
   book             Book           @relation(fields: [bookId], references: [id])
   title            String
-  edition          Int?           // PAPER 用（PAPERはアプリ層で必須・EBOOKは版刷を持たないため常にnull）
-  printing         Int?           // PAPER 用（任意）
+  // 位置情報は媒体依存。「必須」はすべてアプリ層の検証（actions/report.ts の superRefine。UI と同条件を
+  // サーバーでも強制）で、媒体に無関係な列を null に強制はしていない（UI が入力欄を出さないだけ）
+  edition          Int?           // PAPER=必須（EBOOKは版・刷の概念を持たないため入力させない）
+  printing         Int?           // PAPER=任意
   type             ReportType
   medium           Medium
-  page             Int?           // PAPER 用
-  line             Int?           // PAPER 用
-  hasMultiplePages Boolean        @default(false) // PAPER 用
+  page             Int?           // PAPER=必須
+  line             Int?           // PAPER=任意
+  hasMultiplePages Boolean        @default(false) // PAPER 用（該当箇所が複数ページに及ぶ。表示はページ番号に「他」を付記）
   locationNote     String?        // PAPER=補足（任意）/ OTHER=位置メモ（必須）
-  ebookLocation    String?        // EBOOK 用（位置No・%・ページ等の自由記述）
+  ebookLocation    String?        // EBOOK=必須（位置No・%・ページ等の自由記述）
+  // 本文系も種別依存の条件付き必須（同じく superRefine）: ERRATA=wrong/correct 必須・
+  // SUGGESTION/OTHER=content 必須。note は常に任意の補足
   wrong            String?
   correct          String?
   content          String?
@@ -162,10 +166,15 @@ model AuditLog {
   createdAt  DateTime @default(now())
 }
 
+// 投稿に添付する画像（枚数・サイズ・MIME の制約は src/constants/report-images.ts に集約。
+// 上限チェックはフォームと API の両方で行う）。投稿の作成後にクライアントが別途アップロードする
+// （Server Actions のボディ上限 1MB を超えるため、ここだけ Route Handler = api/reports/[id]/images）。
+// 投稿削除時は DB の行を先に消し、Storage のファイル削除が失敗しても投稿削除は成立させる
+// （孤児ファイルはログで追う = actions/report.ts）
 model ReportImage {
   id         String   @id @default(uuid())
   reportId String
   report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  imageUrl   String
+  imageUrl   String   // Supabase Storage 公開バケット report-images の公開URL
   createdAt  DateTime @default(now())
 }
