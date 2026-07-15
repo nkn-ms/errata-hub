@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
+import { hostnameOf } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { UpvoteButton } from "@/components/upvote-button";
@@ -111,6 +112,16 @@ export default async function ReportDetailPage({ params }: Props) {
               {report.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{report.bookAuthor}</p>}
               {report.publisher && <p className="text-sm text-gray-500">{report.publisher}</p>}
               {report.isbn && <p className="text-xs text-gray-400 mt-1">ISBN: {report.isbn}</p>}
+              {raw.book.erratumUrl && (
+                <a
+                  href={raw.book.erratumUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-block mt-2 text-sm text-blue-700 hover:underline"
+                >
+                  出版社の正誤表を見る（{hostnameOf(raw.book.erratumUrl)}）→
+                </a>
+              )}
             </div>
           </div>
 

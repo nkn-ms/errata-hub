@@ -13,7 +13,7 @@ const { prismaMock, getUserMock, PrismaClientKnownRequestError } = vi.hoisted(()
   }
   return {
     prismaMock: {
-      report: { findUnique: vi.fn() },
+      report: { findUnique: vi.fn(), update: vi.fn() },
       upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
     },
     getUserMock: vi.fn(),
@@ -29,8 +29,14 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/generated/prisma/client", () => ({
   Prisma: { PrismaClientKnownRequestError },
 }));
+// updateReport（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
+vi.mock("@/services/auth", () => ({
+  requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
+}));
+vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
+vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { toggleUpvote } from "./report";
+import { toggleUpvote, updateReport } from "./report";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,5 +111,37 @@ describe("toggleUpvote（賛同を取り消す）", () => {
     expect(prismaMock.upvote.deleteMany).toHaveBeenCalledWith({
       where: { reportId: "report-1", profileId: "user-2" },
     });
+  });
+});
+
+describe("updateReport（ステータス更新のバリデーション）", () => {
+  it("「その他」は出版社コメントが無いと保存できない（空の OTHER を作らせない）", async () => {
+    const result = await updateReport("r1", { status: "OTHER", publisherComment: "" });
+
+    expect(result.error).toBe("「その他」を選んだときは、出版社コメント欄に事情を記載してください");
+    expect(prismaMock.report.update).not.toHaveBeenCalled();
+  });
+
+  it("「その他」でも出版社コメントがあれば保存できる", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
+    prismaMock.report.update.mockResolvedValue({ id: "r1", status: "OTHER" });
+
+    const result = await updateReport("r1", {
+      status: "OTHER",
+      publisherComment: "出版社が廃業しており連絡が取れません",
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(prismaMock.report.update).toHaveBeenCalled();
+  });
+
+  it("「その他」以外はコメント無しでも保存できる", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
+    prismaMock.report.update.mockResolvedValue({ id: "r1", status: "LISTED" });
+
+    const result = await updateReport("r1", { status: "LISTED", publisherComment: "" });
+
+    expect(result.error).toBeUndefined();
+    expect(prismaMock.report.update).toHaveBeenCalled();
   });
 });

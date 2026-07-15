@@ -2,6 +2,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
+import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { formatJstDate } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
@@ -142,6 +143,17 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           )}
         </dl>
       </div>
+
+      {/* 投稿者が申告した正誤表URL（公開はされていない。管理者が採用の可否を判断する） */}
+      {report.reportedErratumUrl && (
+        <div className="mb-6">
+          <ErratumUrlAdopter
+            reportId={report.id}
+            reportedUrl={report.reportedErratumUrl}
+            currentBookErratumUrl={report.book.erratumUrl}
+          />
+        </div>
+      )}
 
       {/* ステータス・出版社コメント編集 */}
       <AdminReportEditor

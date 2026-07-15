@@ -26,13 +26,17 @@ enum Medium {
   OTHER // PDF・Web資料など
 }
 
+// ステータスは一本道の進行で、到達した「最も先の状態」を表す（後戻りさせない）。
+// PENDING → FORWARDED → LISTED → FIXED。詳細は docs/design.md §7。
 enum ReportStatus {
   PENDING     // 未対応（管理者未確認）
-  FORWARDED   // 出版社へ連絡済み（回答が来たかは publisherComment の有無で分かる。旧 IN_REVIEW / REPLIED を統合）
-  WILL_FIX    // 修正予定
-  FIXED       // 修正済み（fixedEdition / fixedPrinting はこの状態に付随）
-  WONT_FIX    // 修正なし（出版社が修正しないと判断。旧 NO_ACTION）
+  FORWARDED   // 出版社へ連絡済み（回答が来たかは publisherComment の有無で分かる）
+  LISTED      // 出版社の正誤表に掲載された（＝出版社が誤りと公式に認めた。紙の本での現実的なゴール）
+  WILL_FIX    // 修正予定（正誤表には未掲載だが「次の刷で直す」と回答があった等）
+  FIXED       // 実物が修正済み（重版=刷 / 改訂版 / 電子版の更新。fixedEdition / fixedPrinting が付随）
+  WONT_FIX    // 修正なし（出版社が修正しないと判断）
   DISMISSED   // 却下（管理者が無効な投稿と判断。削除も非公開もせず公開のまま残す = docs/moderation-policy.md）
+  OTHER       // その他（上記で表せない事情。publisherComment での説明を必須にしている = actions/report.ts）
 }
 
 enum Role {
@@ -97,6 +101,10 @@ model Book {
   author        String?
   isbn          String     @unique // ISBN-13 に正規化して保存（本の同一性の基準）
   coverImageUrl String?
+  // 出版社の公式な正誤表ページ。正誤表は「本ごとに1ページ」なので Report ではなく Book に持つ
+  // （Report ごとに持つと同じ URL が重複し、移転時に直し漏れる）。編集は管理者のみ（読者の申告は
+  // Report.reportedErratumUrl に入り、管理者が採用してここへ昇格させる）。
+  erratumUrl    String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   reports     Report[]
@@ -131,8 +139,14 @@ model Report {
   note             String?
   publisherComment String?
   status           ReportStatus @default(PENDING)
-  fixedEdition     Int?           // 修正済みの版（status=FIXEDの時に使用）
-  fixedPrinting    Int?           // 修正済みの刷（status=FIXEDの時に使用）
+  // その誤りが「どの版・刷で直ったか」の出版社側の記録（投稿者が見つけた版 = edition とは別物）。
+  // 紙は重版（刷）で直るのが普通なので実務の主役は fixedPrinting。status=FIXED のときだけ使う。
+  fixedEdition     Int?
+  fixedPrinting    Int?
+  // 投稿者が見つけた「出版社の正誤表 URL」の申告（任意）。**公開ページには出さない**。
+  // 管理者が管理画面で内容を確認し、妥当なら Book.erratumUrl に採用する（＝リンクの公開は管理者の判断を通す。
+  // 外部リンクはフィッシング等の攻撃面になるため、監視の仕組み=通報機能ができるまでは開放しない）。
+  reportedErratumUrl String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   images           ReportImage[]
