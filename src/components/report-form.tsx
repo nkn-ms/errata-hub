@@ -162,7 +162,7 @@ export function ReportForm() {
     <form onSubmit={handleSubmit} className="space-y-8">
       <p className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
         投稿の前に、<strong>出版社の公式な正誤表を確認してください</strong>。すでに掲載されている誤りは投稿不要です。
-        正誤表のページがあれば、そのURLを下の「出版社の正誤表URL」欄に貼ってください。
+        正誤表がまだ登録されていない場合は、下の「出版社の正誤表URL」欄から登録にご協力ください。
       </p>
       {/* 書籍情報 */}
       <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
@@ -439,8 +439,8 @@ export function ReportForm() {
             出版社の正誤表URL（任意）
           </label>
           <p className="text-xs text-gray-500 mb-2">
-            確認した正誤表のURLを貼ってください。管理者が内容を確認のうえ、書籍ページに公式リンクとして
-            掲載します（すぐには公開されません）。
+            確認した正誤表のURLを登録してください。管理者が正規のURLであることを確認のうえ、書籍ページに
+            公式リンクとして掲載します（すぐには公開されません）。
           </p>
           <input
             type="url"
