@@ -440,7 +440,7 @@ export function ReportForm() {
           </label>
           <p className="text-xs text-gray-500 mb-2">
             確認した正誤表のURLを登録してください。管理者が正規のURLであることを確認のうえ、書籍ページに
-            公式リンクとして掲載します（すぐには公開されません）。
+            公式リンクとして掲載します。
           </p>
           <input
             type="url"
