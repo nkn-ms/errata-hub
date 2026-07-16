@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # ローカル（nvm）と CI のバージョンを 1 か所で管理する
           node-version-file: .nvmrc
