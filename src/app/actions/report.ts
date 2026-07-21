@@ -177,6 +177,16 @@ const ReportUpdateSchema = z.object({
       message: "「その他」を選んだときは、出版社コメント欄に事情を記載してください",
     });
   }
+}).transform((data) => {
+  // 修正版・刷は「修正済み(FIXED)」でのみ意味を持つ欄。FIXED 以外へ変更するときは、
+  // クライアントが何を送ってきても null に倒す。UI 側の入力欄制御だけに頼らず、ここで
+  // 不変条件を保証する（アクション直叩きでも不整合な状態を保存させない ＝ createReport が
+  // 「UI と同じ条件をサーバーでも強制する」のと同じ考え方）。
+  // status を含まない部分更新では現在の status が不明なので、fixed* には触れない。
+  if (data.status !== undefined && data.status !== "FIXED") {
+    return { ...data, fixedEdition: null, fixedPrinting: null };
+  }
+  return data;
 });
 
 export type ReportUpdateInput = z.input<typeof ReportUpdateSchema>;
