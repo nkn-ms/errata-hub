@@ -25,6 +25,18 @@ const RegisterSchema = z.object({
 
 export type AuthState = { error?: string } | undefined;
 
+// 確認メール / OAuth / パスワード再発行の戻り先を、環境を跨がずリクエスト元に合わせるための origin。
+// これを明示しないと Supabase の Site URL にフォールバックし、環境跨ぎの誤リダイレクト
+// （本番なのに localhost へ等）や callback を経由せず未ログインになる不具合が起きる。
+// origin ヘッダが無い場合は x-forwarded-proto/host（無ければ host）から組み立てる。
+async function getRequestOrigin(): Promise<string> {
+  const h = await headers();
+  return (
+    h.get("origin") ??
+    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`
+  );
+}
+
 export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = LoginSchema.safeParse({
     email: formData.get("email"),
@@ -56,13 +68,8 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
     return { error: parsed.error.issues[0].message };
   }
 
-  // 確認メールのリンクから戻る先を、リクエスト元の origin に合わせて明示する。
-  // これが無いと Supabase の Site URL にフォールバックし、環境を跨いだ誤リダイレクト
-  // （本番なのに localhost へ等）や、callback を経由せず未ログインになる不具合が起きる。
-  const h = await headers();
-  const origin =
-    h.get("origin") ??
-    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  // 確認メールのリンクから戻る先をリクエスト元に合わせて明示する（理由は getRequestOrigin 参照）。
+  const origin = await getRequestOrigin();
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -92,11 +99,7 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
  * 参考: https://supabase.com/docs/guides/auth/social-login/auth-github
  */
 export async function signInWithGitHub() {
-  // 登録フローと同様に、戻り先 origin をリクエスト元に合わせる（Site URL フォールバック対策）。
-  const h = await headers();
-  const origin =
-    h.get("origin") ??
-    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  const origin = await getRequestOrigin();
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -135,12 +138,7 @@ export async function requestPasswordReset(
     return { error: parsed.error.issues[0].message };
   }
 
-  // 登録フローと同様に、戻り先 origin を明示してリクエスト元に合わせる
-  // （Site URL へのフォールバックによる環境跨ぎの誤リダイレクトを防ぐ）。
-  const h = await headers();
-  const origin =
-    h.get("origin") ??
-    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  const origin = await getRequestOrigin();
 
   const supabase = await createClient();
   // メールのリンクは PKCE code 付きで /auth/callback に戻る。callback が code を
@@ -216,10 +214,16 @@ export async function updateDisplayName(
     redirect(routes.login);
   }
 
-  await prisma.profile.update({
-    where: { id: user.id },
-    data: { displayName: parsed.data.displayName },
-  });
+  try {
+    await prisma.profile.update({
+      where: { id: user.id },
+      data: { displayName: parsed.data.displayName },
+    });
+  } catch (error) {
+    // Profile 行が無い（P2025）等の失敗はエラーページにせず、他アクションと同じく {error} を返す
+    console.error(error);
+    return { error: "表示名の更新に失敗しました" };
+  }
 
   revalidatePath(routes.account);
   return { success: true };
@@ -276,10 +280,16 @@ export async function updateProfileLinks(
     redirect(routes.login);
   }
 
-  await prisma.profile.update({
-    where: { id: user.id },
-    data: parsed.data,
-  });
+  try {
+    await prisma.profile.update({
+      where: { id: user.id },
+      data: parsed.data,
+    });
+  } catch (error) {
+    // Profile 行が無い（P2025）等の失敗はエラーページにせず、他アクションと同じく {error} を返す
+    console.error(error);
+    return { error: "公開リンクの更新に失敗しました" };
+  }
 
   revalidatePath(routes.account);
   return { success: true };
