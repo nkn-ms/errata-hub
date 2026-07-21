@@ -11,12 +11,17 @@ import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { UpvoteButton } from "@/components/upvote-button";
+import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
 import { SiteHeader } from "@/components/site-header";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+function getViewerRole(viewerId: string | undefined, authorId: string): ViewerRole {
+  if (!viewerId) return "guest";
+  return viewerId === authorId ? "owner" : "user";
+}
 
 // generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
 const getReport = cache(findReportById);
@@ -45,7 +50,7 @@ export default async function ReportDetailPage({ params }: Props) {
   // 賛同ボタンの初期状態: 閲覧者の立場（未ログイン/投稿者本人/他ユーザー）と賛同済みか
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const viewer = !user ? "guest" : user.id === report.userId ? "owner" : "user";
+  const viewer = getViewerRole(user?.id, report.userId);
   const upvoted = user
     ? (await prisma.upvote.findUnique({
         where: { reportId_profileId: { reportId: report.id, profileId: user.id } },

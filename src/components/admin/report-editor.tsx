@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { deleteReport, updateReport } from "@/app/actions/report";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { routes } from "@/constants/routes";
+import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";
 
 type Status = ReportStatus;
@@ -28,6 +29,9 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // 修正版・刷は「修正済み」でのみ意味を持つ欄（下の入力欄の表示も保存時の値もこれで切り替える）
+  const isFixed = status === "FIXED";
+
   async function handleDelete() {
     if (!confirm("この投稿を削除しますか？この操作は取り消せません。")) return;
     setSaving(true);
@@ -44,12 +48,16 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     setSaving(true);
     setSaved(false);
     setError("");
+
     // 成功時はアクション側の refresh() で画面が最新化される
     const result = await updateReport(id, {
       status,
       publisherComment: comment || null,
-      fixedEdition: status === "FIXED" && fixedEdition ? parseInt(fixedEdition) : null,
-      fixedPrinting: status === "FIXED" && fixedPrinting ? parseInt(fixedPrinting) : null,
+      // 修正版・刷は「修正済み」でのみ意味を持つ欄。他ステータスでは入力欄を出していないので、
+      // 切替前の入力残りは送らず null で消す（report-form の媒体別 null 送信と同じ考え方）。
+      // 「修正済み」で未入力なら toIntOrNull が null にする。
+      fixedEdition: isFixed ? toIntOrNull(fixedEdition) : null,
+      fixedPrinting: isFixed ? toIntOrNull(fixedPrinting) : null,
     });
     if (result?.error) {
       setError(result.error);
@@ -83,7 +91,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         </div>
       </div>
 
-      {status === "FIXED" && (
+      {isFixed && (
         <div className="flex gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">修正済みの版</label>

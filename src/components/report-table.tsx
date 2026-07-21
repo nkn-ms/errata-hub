@@ -130,7 +130,10 @@ const columns: ColumnDef<Report>[] = [
     header: "版・刷",
     cell: ({ row }) => {
       const { edition, printing } = row.original;
-      if (!edition && !printing) return <span className="text-xs text-gray-400">-</span>;
+      // 版も刷も無いのは電子書籍（紙は版が必須）。この列に出せるものが無い
+      // ※ mapReport が DB の null を undefined にして渡すので undefined で判定する
+      const hasEditionInfo = edition !== undefined || printing !== undefined;
+      if (!hasEditionInfo) return <span className="text-xs text-gray-400">-</span>;
       return (
         <div className="text-xs text-gray-600">
           {edition && <div>第{edition}版</div>}
