@@ -9,6 +9,9 @@ import {
   REPORT_IMAGE_MAX_COUNT,
 } from "@/constants/report-images";
 
+// 競合で枚数上限に達していたことを表す番兵。トランザクションを確実にロールバックさせるために投げる。
+class ImageLimitReached extends Error {}
+
 // 投稿への画像添付。multipart/form-data で1リクエスト1ファイル
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (report.userId !== user.id) {
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
+    // 早期チェック（速い失敗用）。厳密な上限判定は作成直前のトランザクションで行う（下の TOCTOU 対策）。
     if (report._count.images >= REPORT_IMAGE_MAX_COUNT) {
       return NextResponse.json(
         { error: `画像は${REPORT_IMAGE_MAX_COUNT}枚までです` },
@@ -67,11 +71,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const { data: { publicUrl } } = admin.storage.from(REPORT_IMAGE_BUCKET).getPublicUrl(path);
-    const image = await prisma.reportImage.create({
-      data: { reportId: id, imageUrl: publicUrl },
-    });
 
-    return NextResponse.json(image, { status: 201 });
+    try {
+      // 枚数上限の最終ガード。上の早期チェックは速い失敗のためのもので、並列送信では
+      // チェックと作成の間（＝時間のかかる Storage アップロードの間）に別リクエストが割り込める（TOCTOU）。
+      // 親 Report 行を FOR UPDATE でロックして同一投稿への並列アップロードを直列化し、
+      // 確定した枚数で判定してから作成する。別投稿どうしは id が違うので競合しない。
+      const image = await prisma.$transaction(async (tx) => {
+        // 生 SQL のテーブル名は @@map なしの既定（モデル名）に一致する
+        await tx.$queryRaw`SELECT 1 FROM "Report" WHERE id = ${id} FOR UPDATE`;
+        const count = await tx.reportImage.count({ where: { reportId: id } });
+        if (count >= REPORT_IMAGE_MAX_COUNT) {
+          throw new ImageLimitReached();
+        }
+        return tx.reportImage.create({ data: { reportId: id, imageUrl: publicUrl } });
+      });
+      return NextResponse.json(image, { status: 201 });
+    } catch (e) {
+      if (e instanceof ImageLimitReached) {
+        // 競合に負けて上限に達していた: 先にアップロード済みのファイルは DB 行を持たない孤児に
+        // なるため、掃除してから 400 を返す。
+        await admin.storage.from(REPORT_IMAGE_BUCKET).remove([path]);
+        return NextResponse.json(
+          { error: `画像は${REPORT_IMAGE_MAX_COUNT}枚までです` },
+          { status: 400 }
+        );
+      }
+      throw e; // 想定外は下の catch で 500
+    }
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
