@@ -88,14 +88,29 @@ test.describe("投稿一覧テーブル", () => {
     await expect(page).toHaveURL(/\/reports\/[^/]+$/);
   });
 
-  test("書籍名リンクから書籍ページ /books/[id] に遷移する", async ({ page }) => {
+  test("書籍名リンクから書籍ページ /books/[isbn] に遷移する", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
     const bookLinks = page.locator('tbody a[href^="/books/"]');
     test.skip((await bookLinks.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
 
     await bookLinks.first().click();
-    await expect(page).toHaveURL(/\/books\/[^/]+$/);
+    // 書籍 URL は UUID ではなく ISBN-13。公開後に変えられない URL を自然キーに固定する担保
+    await expect(page).toHaveURL(/\/books\/97\d{11}$/);
+  });
+
+  test("非正規な ISBN の書籍 URL は正規の ISBN-13 へ寄せられる", async ({ page }) => {
+    await page.goto("/");
+    const bookLinks = page.locator('tbody a[href^="/books/"]');
+    test.skip((await bookLinks.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
+
+    const canonical = (await bookLinks.first().getAttribute("href"))!;
+    // 同じ本をハイフン入りで指しても、1冊=1 URL になるよう正規形へリダイレクトされる
+    const hyphenated = canonical.replace(/^\/books\/(\d{3})(\d)(\d{4})(\d{4})(\d)$/, "/books/$1-$2-$3-$4-$5");
+    expect(hyphenated).not.toBe(canonical);
+
+    await page.goto(hyphenated);
+    await expect(page).toHaveURL(canonical);
   });
 });
 

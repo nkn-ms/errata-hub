@@ -13,7 +13,8 @@ describe("routes", () => {
 
   it("パラメータ付きルートは id を埋め込んだパスを返す", () => {
     expect(routes.report("abc")).toBe("/reports/abc");
-    expect(routes.book("xyz")).toBe("/books/xyz");
+    // 書籍だけ UUID でなく ISBN を埋める（公開 URL を自然キーに寄せる）
+    expect(routes.book("9784873115658")).toBe("/books/9784873115658");
     expect(routes.user("u1")).toBe("/users/u1");
   });
 

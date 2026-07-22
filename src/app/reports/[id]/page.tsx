@@ -63,7 +63,7 @@ export default async function ReportDetailPage({ params }: Props) {
       <SiteHeader
         width="lg"
         crumbs={[
-          { label: report.bookTitle, href: routes.book(report.bookId) },
+          { label: report.bookTitle, href: routes.book(report.isbn) },
           { label: report.title },
         ]}
       />
@@ -111,7 +111,7 @@ export default async function ReportDetailPage({ params }: Props) {
               <Image src={report.coverImage} alt={report.bookTitle} width={64} height={90} unoptimized className="w-16 h-auto object-cover rounded shadow-sm" />
             )}
             <div>
-              <Link href={routes.book(report.bookId)} className="font-medium text-blue-700 hover:underline">
+              <Link href={routes.book(report.isbn)} className="font-medium text-blue-700 hover:underline">
                 {report.bookTitle}
               </Link>
               {report.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{report.bookAuthor}</p>}
@@ -261,7 +261,7 @@ export default async function ReportDetailPage({ params }: Props) {
         <div className="mt-4 flex items-center justify-between">
           <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
           <div className="flex items-center gap-3">
-            <Link href={routes.book(report.bookId)} className="text-sm text-blue-600 hover:underline">
+            <Link href={routes.book(report.isbn)} className="text-sm text-blue-600 hover:underline">
               この本の投稿一覧
             </Link>
             <Link

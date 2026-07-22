@@ -17,7 +17,6 @@ export function mapReport(f: PrismaReportWithRelations): Report {
 
   return {
     id: f.id,
-    bookId: f.bookId,
     userId: f.userId,
     userName: withdrawn ? WITHDRAWN_DISPLAY_NAME : f.user?.displayName ?? "匿名",
     userIdShort: shortId(f.userId),

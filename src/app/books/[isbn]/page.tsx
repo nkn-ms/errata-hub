@@ -4,21 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { reportInclude } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
+import { toCanonicalIsbn } from "@/utils/isbn";
 import { SiteHeader } from "@/components/site-header";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ isbn: string }>;
 };
 
-// generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
-const getBook = cache((id: string) =>
+// generateMetadata と本体で同じ ISBN を引くため、リクエスト内で1回に重複排除する
+const getBook = cache((isbn: string) =>
   prisma.book.findUnique({
-    where: { id },
+    where: { isbn },
     include: {
       publisher: true,
       reports: {
@@ -30,8 +31,8 @@ const getBook = cache((id: string) =>
 );
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const book = await getBook(id);
+  const { isbn } = await params;
+  const book = await getBook(toCanonicalIsbn(isbn) ?? isbn);
   if (!book) return { title: "書籍が見つかりません | Errata Hub" };
 
   return {
@@ -41,9 +42,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BookDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { isbn } = await params;
 
-  const book = await getBook(id);
+  // 外部から来る ISBN は ISBN-10 やハイフン入りもあり得る。DB は ISBN-13 で保存しているので
+  // 正規形へ寄せ、URL が正規形でなければ 308 で正規 URL へ寄せる（1冊=1 URL を保つ）。
+  const canonicalIsbn = toCanonicalIsbn(isbn);
+  if (!canonicalIsbn) notFound();
+  if (canonicalIsbn !== isbn) permanentRedirect(routes.book(canonicalIsbn));
+
+  const book = await getBook(canonicalIsbn);
 
   if (!book) notFound();
 
