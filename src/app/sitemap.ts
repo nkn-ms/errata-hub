@@ -10,10 +10,12 @@ import { routes } from "@/constants/routes";
 // 投稿が10件を超えると古い投稿と書籍ページへはリンクを辿って到達できなくなる。
 // sitemap がそれらを検索エンジンに知らせる唯一の経路になる。
 //
-// 出力するのは url と lastModified だけ。sitemap 仕様には changefreq / priority もあるが、
-// Google はこの2つを使わない（lastmod は使う）ので、効かない値を書いて後から読む人を
-// 誤解させないために出さない。
-//   出典: https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap
+// 出力するのは url と lastModified だけ。Next.js の API は仕様どおり changefreq / priority も
+// 出せるが、書かない。仕様（sitemaps.org）自身が changefreq を「ヒントであり命令ではない」、
+// priority を「順位に影響する可能性は低い」としており、Google は明示的にこの2つを無視する
+// （lastmod は正確なら使う）。効かない値を書くと、後から読む人が効くものと誤解する。
+//   仕様: https://www.sitemaps.org/protocol.html
+//   Google: https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap
 //
 // 載せるのは公開ページだけ。次は意図的に除外している:
 //   - ログイン必須（/submit・/account 配下・/admin 配下）と認証フロー（/auth 配下）
