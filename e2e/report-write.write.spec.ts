@@ -91,6 +91,58 @@ test.describe("投稿フォーム（書き込み）", () => {
     await adminPage.waitForURL(/\/admin\/reports$/);
     await adminContext.close();
   });
+
+  test("書籍ページの「この本に投稿する」から入ると、書籍を選び直さずに投稿できる", async ({ page, browser }) => {
+    const uniqueTitle = `E2E確定書籍テスト ${Date.now()}`;
+
+    await login(page, READER);
+    await page.goto(`/books/${BOOK_B.isbn}`);
+    await page.getByRole("link", { name: "この本に投稿する" }).click();
+    await page.waitForURL(/\/submit\?isbn=/);
+
+    // 書籍は確定表示。検索させられない（＝この導線の目的）
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+    await expect(page.getByText(`ISBN: ${BOOK_B.isbn}`)).toBeVisible();
+    await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toHaveCount(0);
+    // 逃げ道は残っている
+    await expect(page.getByRole("link", { name: "別の本を選ぶ" })).toBeVisible();
+
+    // 版・刷は書籍データではなく投稿ごとの値なので、確定表示でも入力できる
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("2");
+    await page.getByPlaceholder("例: 42", { exact: true }).fill("15");
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った記述");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい記述");
+    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.waitForURL(/\/$/);
+
+    // 検索し直していないのに、正しい本に紐づいている
+    await page.goto(`/books/${BOOK_B.isbn}`);
+    await expect(page.getByText(uniqueTitle)).toBeVisible();
+
+    // 後片付け: 本Bを「投稿0件」というシードの前提に戻す
+    await page.getByText(uniqueTitle).click();
+    await page.waitForURL(/\/reports\/[^/]+$/);
+    const reportId = page.url().split("/").pop()!;
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, ADMIN);
+    await adminPage.goto(`/admin/reports/${reportId}`);
+    adminPage.once("dialog", (dialog) => dialog.accept());
+    await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+    await adminPage.waitForURL(/\/admin\/reports$/);
+    await adminContext.close();
+  });
+
+  test("未登録・不正な ISBN で /submit を開いても 404 にせず通常の投稿フォームを出す", async ({ page }) => {
+    await login(page, READER);
+    // チェック数字が不正な ISBN（＝そもそも本を特定できない）
+    await page.goto("/submit?isbn=9784873116861");
+    await expect(page.getByRole("heading", { name: "投稿する" })).toBeVisible();
+    // 書籍検索が出ている＝通常のフォームにフォールバックしている
+    await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "別の本を選ぶ" })).toHaveCount(0);
+  });
 });
 
 test.describe("賛同（書き込み）", () => {

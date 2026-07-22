@@ -93,7 +93,7 @@ export default async function BookDetailPage({ params }: Props) {
             投稿 <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
           </h2>
           <Link
-            href={routes.submit}
+            href={routes.submitForBook(book.isbn)}
             className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
           >
             この本に投稿する

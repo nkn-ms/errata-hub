@@ -16,6 +16,8 @@ describe("routes", () => {
     // 書籍だけ UUID でなく ISBN を埋める（公開 URL を自然キーに寄せる）
     expect(routes.book("9784873115658")).toBe("/books/9784873115658");
     expect(routes.user("u1")).toBe("/users/u1");
+    // 「この本に投稿する」の導線。素の /submit と同じページを ISBN 付きで開く
+    expect(routes.submitForBook("9784873116860")).toBe("/submit?isbn=9784873116860");
   });
 
   it("auth 配下のパスが期待どおり", () => {

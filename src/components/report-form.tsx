@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
 import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
@@ -26,9 +28,18 @@ type BookData = {
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
 
-export function ReportForm() {
+type Props = {
+  // 書籍ページの「この本に投稿する」から来たとき、その本を確定済みとして受け取る。
+  // 渡された場合は書籍検索を出さず、確定表示（編集不可）にする。
+  initialBook?: BookData | null;
+  initialErratumUrl?: string | null;
+};
+
+export function ReportForm({ initialBook = null, initialErratumUrl = null }: Props = {}) {
   const router = useRouter();
-  const [book, setBook] = useState<BookData | null>(null);
+  // 書籍が確定済みで来たかどうか。以降「検索欄を出すか」「別の本へ逃げる導線を出すか」の判断に使う
+  const bookPreselected = initialBook !== null;
+  const [book, setBook] = useState<BookData | null>(initialBook);
   const [edition, setEdition] = useState("");
   const [printing, setPrinting] = useState("");
   const [reportType, setReportType] = useState<ReportType>("ERRATA");
@@ -45,7 +56,7 @@ export function ReportForm() {
   const [note, setNote] = useState("");
   const [reportedErratumUrl, setReportedErratumUrl] = useState("");
   // 選んだ本に公式の正誤表が既に登録されていれば、投稿前にそれを案内する（重複投稿を減らす）
-  const [knownErratumUrl, setKnownErratumUrl] = useState<string | null>(null);
+  const [knownErratumUrl, setKnownErratumUrl] = useState<string | null>(initialErratumUrl);
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -171,18 +182,41 @@ export function ReportForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            書籍名 <span className="text-red-500">*</span>
+            書籍名 {!bookPreselected && <span className="text-red-500">*</span>}
           </label>
-          <BookSearch
-            onSelect={async (selected) => {
-              setBook(selected);
-              setKnownErratumUrl(null);
-              if (selected.isbn) {
-                const { erratumUrl } = await findErratumUrlByIsbn(selected.isbn);
-                setKnownErratumUrl(erratumUrl);
-              }
-            }}
-          />
+          {bookPreselected && book ? (
+            // 確定済みなので検索させない。見た目は検索で選んだ直後と同じカードに揃える
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                {book.coverImageUrl ? (
+                  <Image src={book.coverImageUrl} alt="" width={48} height={64} unoptimized className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0" />
+                )}
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-gray-900">{book.title}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{book.author}</div>
+                  <div className="text-xs text-gray-500">{book.publisher}</div>
+                  {book.isbn && <div className="text-xs text-gray-400 mt-0.5">ISBN: {book.isbn}</div>}
+                </div>
+              </div>
+              {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す */}
+              <Link href={routes.submit} className="text-xs text-blue-600 hover:underline">
+                別の本を選ぶ
+              </Link>
+            </div>
+          ) : (
+            <BookSearch
+              onSelect={async (selected) => {
+                setBook(selected);
+                setKnownErratumUrl(null);
+                if (selected.isbn) {
+                  const { erratumUrl } = await findErratumUrlByIsbn(selected.isbn);
+                  setKnownErratumUrl(erratumUrl);
+                }
+              }}
+            />
+          )}
           {knownErratumUrl && (
             <p className="mt-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
               この本には出版社の正誤表があります。
