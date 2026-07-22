@@ -10,6 +10,9 @@ export const routes = {
   login: "/login",
   register: "/register",
   submit: "/submit",
+  // 書籍ページの「この本に投稿する」用。対象の本を確定した状態で投稿フォームを開く
+  // （素の /submit と同じページで、書籍検索の代わりに確定表示を出す）。
+  submitForBook: (isbn: string) => `/submit?isbn=${isbn}`,
   howToUse: "/how-to-use",
   tech: "/tech",
   terms: "/terms",

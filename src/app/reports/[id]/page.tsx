@@ -265,7 +265,7 @@ export default async function ReportDetailPage({ params }: Props) {
               この本の投稿一覧
             </Link>
             <Link
-              href={routes.submit}
+              href={routes.submitForBook(report.isbn)}
               className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
             >
               この本に投稿する
