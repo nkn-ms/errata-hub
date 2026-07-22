@@ -5,6 +5,16 @@ import { routes } from "@/constants/routes";
 
 // 検索エンジンに「見つけて欲しいページ」の一覧を渡す（https://www.sitemaps.org/protocol.html）。
 //
+// このサイトでは必須。投稿一覧はクライアントサイドのページネーション（1ページ10件・
+// components/report-table.tsx）で、2ページ目以降の行は HTML に現れず URL も変わらないため、
+// 投稿が10件を超えると古い投稿と書籍ページへはリンクを辿って到達できなくなる。
+// sitemap がそれらを検索エンジンに知らせる唯一の経路になる。
+//
+// 出力するのは url と lastModified だけ。sitemap 仕様には changefreq / priority もあるが、
+// Google はこの2つを使わない（lastmod は使う）ので、効かない値を書いて後から読む人を
+// 誤解させないために出さない。
+//   出典: https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap
+//
 // 載せるのは公開ページだけ。次は意図的に除外している:
 //   - ログイン必須（/submit・/account 配下・/admin 配下）と認証フロー（/auth 配下）
 //     … そもそも検索から来ても使えない
@@ -21,32 +31,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.report.findMany({ select: { id: true, updatedAt: true } }),
   ]);
 
-  // as const が無いと changeFrequency が string に広がり、Sitemap の列挙型に代入できない
-  const staticPages: MetadataRoute.Sitemap = (
-    [
-      // トップは投稿が増えるたびに変わるので更新頻度が最も高い
-      { path: routes.home, changeFrequency: "daily", priority: 1 },
-      { path: routes.howToUse, changeFrequency: "monthly", priority: 0.5 },
-      { path: routes.tech, changeFrequency: "monthly", priority: 0.5 },
-      { path: routes.terms, changeFrequency: "yearly", priority: 0.3 },
-      { path: routes.privacy, changeFrequency: "yearly", priority: 0.3 },
-    ] as const
-  ).map(({ path, ...rest }) => ({ ...rest, url: `${site.url}${path}`, lastModified: new Date() }));
+  // 静的ページは更新日を持たないので、ビルド（再検証）時刻を lastModified にする
+  const builtAt = new Date();
+  const staticPages = [routes.home, routes.howToUse, routes.tech, routes.terms, routes.privacy].map(
+    (path) => ({ url: `${site.url}${path}`, lastModified: builtAt })
+  );
 
   return [
     ...staticPages,
-    // 書籍ページ＝「書名 正誤表」で流入する主戦場なので、投稿ページより優先度を高くする
     ...books.map((book) => ({
       url: `${site.url}${routes.book(book.isbn)}`,
       lastModified: book.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
     })),
     ...reports.map((report) => ({
       url: `${site.url}${routes.report(report.id)}`,
       lastModified: report.updatedAt,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
     })),
   ];
 }
