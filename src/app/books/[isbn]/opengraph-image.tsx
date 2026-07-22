@@ -1,15 +1,17 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
+import { toCanonicalIsbn } from "@/utils/isbn";
 
 export const alt = "書籍の投稿一覧";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
-export default async function Image({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function Image({ params }: { params: Promise<{ isbn: string }> }) {
+  const { isbn } = await params;
   const book = await prisma.book.findUnique({
-    where: { id },
+    // 非正規な ISBN でも本体ページと同じ本を指すよう正規形に寄せる（見つからなければ既定の文言）
+    where: { isbn: toCanonicalIsbn(isbn) ?? isbn },
     include: { publisher: true, _count: { select: { reports: true } } },
   });
 

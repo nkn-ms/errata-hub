@@ -6,7 +6,7 @@ export type { ReportType, ReportStatus, Medium };
 // 日本語ラベルは constants/report-labels.ts・report-status.ts で表示直前に引く。
 export type Report = {
   id: string;
-  bookId: string;
+  // 書籍への導線は URL が ISBN ベースなので isbn だけで足りる（Book の UUID はクライアントに出さない）
   userId: string;
   userName: string;
   userIdShort: string;

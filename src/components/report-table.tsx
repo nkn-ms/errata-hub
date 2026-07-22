@@ -117,7 +117,7 @@ const columns: ColumnDef<Report>[] = [
     header: "書籍名",
     cell: ({ row }) => (
       <Link
-        href={routes.book(row.original.bookId)}
+        href={routes.book(row.original.isbn)}
         className="font-medium text-sm text-blue-700 hover:underline whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}
       >

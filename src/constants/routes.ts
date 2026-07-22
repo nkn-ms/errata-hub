@@ -19,7 +19,9 @@ export const routes = {
   accountWithdrawn: "/account/withdrawn",
 
   report: (id: string) => `/reports/${id}`,
-  book: (id: string) => `/books/${id}`,
+  // 書籍だけ UUID でなく ISBN を URL に使う。ISBN は「本の同一性の基準」（Book.isbn は @unique）で
+  // 外部から参照・共有される値なので、公開後に変えられない URL は自然キー側に寄せる。
+  book: (isbn: string) => `/books/${isbn}`,
   user: (id: string) => `/users/${id}`,
 
   auth: {
