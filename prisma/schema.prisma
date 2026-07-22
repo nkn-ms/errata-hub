@@ -57,6 +57,13 @@ model Profile {
   githubUsername String?          // 公開リンク用（本人が任意で入力。ログイン手段とは独立。退会時にスクラブ = actions/auth.ts withdraw）
   xUsername      String?          // 公開リンク用（X / Twitter。任意。退会時にスクラブ）
   role           Role             @default(USER)
+  // 利用規約・プライバシーポリシーへの同意の記録。Profile 作成時（/auth/callback の初回 upsert）に刻む。
+  // 同意自体は規約第2条の「利用することにより同意したものとみなす」建て付けで成立しており、
+  // この2列は「いつ・どの版に同意したか」を後から示せるようにするための記録。
+  // nullable なのは、この列を足す前に登録した既存ユーザーの分を遡って作れないため（null=記録なし）。
+  termsAgreedAt  DateTime?
+  // 同意した時点の規約の版。正は src/constants/legal.ts の TERMS_VERSION（規約本文を改訂したら上げる）。
+  termsVersion   String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   publisherAccess PublisherAccess[]

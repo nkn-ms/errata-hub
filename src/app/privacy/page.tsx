@@ -35,6 +35,9 @@ export default function PrivacyPage() {
                 パスワードは認証基盤（Supabase
                 Authentication）にてハッシュ化等の安全な形式で管理され、運営者が平文のパスワードを取得・閲覧することはありません。
               </li>
+              <li>
+                利用規約に同意した日時と、その時点の規約の版（同意の記録として保存します。公開されません）
+              </li>
             </BulletList>
           </li>
           <li>

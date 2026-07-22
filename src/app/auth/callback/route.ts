@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { TERMS_VERSION } from "@/constants/legal";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -42,6 +43,9 @@ export async function GET(request: NextRequest) {
 
   // role は identity（ADMIN/USER）のみ。出版社かどうかは PublisherAccess から導出するため
   // ここではロールに焼き込まず、下で PublisherAccess を付与する（capability）。
+  //
+  // 規約への同意は Profile 作成時（＝このサービスを初めて使う瞬間）にだけ刻む。update:{} なのは
+  // 「同意したのはこの版・この時点」という事実を後のログインで上書きしないため。
   const profile = await prisma.profile.upsert({
     where: { id: data.user.id },
     update: {},
@@ -50,6 +54,8 @@ export async function GET(request: NextRequest) {
       email,
       displayName,
       role: "USER",
+      termsAgreedAt: new Date(),
+      termsVersion: TERMS_VERSION,
     },
   });
 
