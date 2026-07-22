@@ -38,10 +38,11 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
     <div className="max-w-lg">
       <form action={formAction} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="publisher-name" className="block text-sm font-medium text-gray-700 mb-1">
             出版社名 <span className="text-red-500">*</span>
           </label>
           <input
+            id="publisher-name"
             name="name"
             defaultValue={publisher?.name ?? ""}
             required
@@ -50,8 +51,9 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+          <label htmlFor="publisher-email" className="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
           <input
+            id="publisher-email"
             name="email"
             type="email"
             defaultValue={publisher?.email ?? ""}
@@ -60,10 +62,11 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="publisher-email-domain" className="block text-sm font-medium text-gray-700 mb-1">
             メールドメイン
           </label>
           <input
+            id="publisher-email-domain"
             name="emailDomain"
             placeholder="例: oreilly.co.jp"
             defaultValue={publisher?.emailDomain ?? ""}
@@ -75,8 +78,9 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">備考</label>
+          <label htmlFor="publisher-note" className="block text-sm font-medium text-gray-700 mb-1">備考</label>
           <textarea
+            id="publisher-note"
             name="note"
             defaultValue={publisher?.note ?? ""}
             rows={3}
