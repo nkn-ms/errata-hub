@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
@@ -25,9 +26,16 @@ import { routes } from "@/constants/routes";
 //
 // ⚠️ public 化までは app/robots.ts が全体を disallow しているため、この sitemap は参照されない。
 // 公開時に robots を「Allow: / ＋ sitemap: <このURL>」へ差し替えること。
-export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // ⚠️ これが無いとビルド時に事前生成されようとして DB に繋ぎにいく。CI の DATABASE_URL は
+  // ダミー値なので ECONNREFUSED でビルドが落ちる（実際に落ちた）。connection() は
+  // 「ここから先はリクエスト時にだけ実行する」という宣言で、事前生成を打ち切る。
+  //   出典: https://nextjs.org/docs/app/api-reference/functions/connection
+  //         （同ページ「Synchronous database drivers」の項がこのケースそのもの）
+  // sitemap はクローラが稀に取りに来るだけなので、毎回 DB を引くコストは問題にならない。
+  await connection();
+
   const [books, reports] = await Promise.all([
     prisma.book.findMany({ select: { isbn: true, updatedAt: true } }),
     prisma.report.findMany({ select: { id: true, updatedAt: true } }),
