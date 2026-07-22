@@ -127,6 +127,37 @@ test.describe("情報ページ", () => {
   });
 });
 
+test.describe("検索エンジン向けのファイル", () => {
+  test("sitemap.xml が公開ページだけを列挙する", async ({ request }) => {
+    const res = await request.get("/sitemap.xml");
+    expect(res.status()).toBe(200);
+    const xml = await res.text();
+
+    // 静的な公開ページは必ず載る
+    for (const path of ["/how-to-use", "/tech", "/terms", "/privacy"]) {
+      expect(xml).toContain(`${path}</loc>`);
+    }
+    // 書籍は ISBN URL で載る（UUID が漏れていないことの担保も兼ねる）
+    expect(xml).toMatch(/<loc>[^<]*\/books\/97\d{11}<\/loc>/);
+
+    // ログイン必須・認証フロー・プロフィールは載せない
+    for (const excluded of ["/admin", "/account", "/auth/", "/submit", "/login", "/register", "/users/"]) {
+      expect(xml).not.toContain(excluded);
+    }
+  });
+
+  test("robots.txt が sitemap の場所を示す", async ({ request }) => {
+    const res = await request.get("/robots.txt");
+    expect(res.status()).toBe(200);
+    expect(await res.text()).toContain("Sitemap: ");
+  });
+
+  test("トップページの lang が ja になっている", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  });
+});
+
 test.describe("存在しないルート", () => {
   test("404 を返す", async ({ page }) => {
     const res = await page.goto("/this-route-does-not-exist-xyz");
