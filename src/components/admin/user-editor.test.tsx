@@ -45,6 +45,8 @@ const profile: Profile & { publisherAccess: (PublisherAccess & { publisher: Publ
   githubUsername: null,
   xUsername: null,
   role: "USER",
+  termsAgreedAt: now,
+  termsVersion: "2026-07-22",
   createdAt: now,
   updatedAt: now,
   publisherAccess: [accessToA],

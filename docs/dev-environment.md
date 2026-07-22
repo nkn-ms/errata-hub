@@ -13,8 +13,9 @@ env で迷ったらここを見る。
   GitHub ログインのローカル用 client_id/secret はここから `supabase/config.toml` の `env()` に入る。
 - **`supabase/config.toml` や Supabase 向け env 値を変えたら `supabase stop && supabase start`**。
   起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
-- **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma db push` が必要**。
-  コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。
+- **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma migrate deploy` が必要**。
+  コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。**本番の初回だけ `migrate resolve --applied 0_init`
+  でベースラインを切る**（2026-07-22 に Prisma Migrate へ移行。それ以前は `db push` 運用だった＝§7-0）。
 - **DBパスワードのリセットは「押した瞬間に本番が 500 になる」作業**（Vercel の env が旧パスワードのままになるため）。
   リセット〜env 更新〜**Redeploy** までを一息にやる。手順と落とし穴は §7-2（実績: 2026-07-14 に本番ダウン）。
 - **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。
@@ -109,11 +110,47 @@ npm run dev                    # http://localhost:3000
 | `git push` → main → Vercel 本番デプロイ | **本番** Supabase |
 | 本番にスキーマを反映したい（稀） | §7 の手順で。**正は `prisma db push`**・SQL 直打ちは代替 |
 
-## 7. 本番DBへのスキーマ反映手順（正: `prisma db push`）
+## 7. 本番DBへのスキーマ反映手順（正: `prisma migrate deploy`）
 
 `schema.prisma` の model/enum を変更した機能を本番反映するとき、**コードの main マージでは DB スキーマは変わらない（別作業）**。マージ前に本番 DB へ反映しておく（先にコードだけ本番に出ると、新カラムを参照した瞬間に落ちるため）。
 
-### 方法A（正）: `prisma db push`
+> **2026-07-22 に Prisma Migrate へ移行した。** それ以前は `prisma db push`（スキーマから DDL を直接当てる）運用で、
+> マイグレーション履歴が残らなかった。以降は **`prisma/migrations/` の SQL が git 管理された正**で、本番へは
+> `migrate deploy` で当てる。理由と移行手順は §7-0。**方法A・Bは移行前の記録として残す**（`db push` は
+> ローカルで履歴を汚さず試すときのみ使う。本番には使わない）。
+
+### 7-0. Prisma Migrate 運用（現行）
+
+**日常（ローカルでスキーマを変えたとき）:**
+
+```bash
+npx prisma migrate dev --name <変更の要約>   # migration.sql を生成しローカルに適用
+npx prisma generate                          # ⚠️ migrate dev は Client を再生成しない（この構成では別途必要）
+```
+
+**本番へ反映:**
+
+```bash
+# 別ターミナルで、対象ブランチを checkout した状態で（この会話・ファイルに URL を残さない）
+DIRECT_URL="<本番の direct 接続文字列>" npx prisma migrate status   # 先に差分を確認
+DIRECT_URL="<本番の direct 接続文字列>" npx prisma migrate deploy   # 未適用の migration を順に当てる
+```
+
+**⚠️ 本番の初回だけ必要な「ベースライン」:** 本番 DB は `db push` で作られており `_prisma_migrations`
+テーブルが無い。`0_init`（現行スキーマ全体を作る SQL）を**実行せず「適用済み」として記録**する必要がある。
+これをやらずに `migrate deploy` すると、既にあるテーブルを作ろうとして失敗する。
+
+```bash
+DIRECT_URL="<本番の direct 接続文字列>" npx prisma migrate resolve --applied 0_init
+```
+
+- 出典: Prisma「Baselining a database」 https://www.prisma.io/docs/orm/prisma-migrate/getting-started
+- **`0_init` は本番・ローカルとも一度も実行されない**（実 DB は既にその形になっているため）。新しく空の DB を
+  作るときだけ実行される
+- ⚠️ **RLS ポリシー・pg_cron ジョブ・Supabase の `auth` スキーマは Prisma の管理外**なので `0_init` に含まれない。
+  空の DB から作り直す場合はそれらを別途当てること（この点は `db push` 時代と同じ）
+
+### 方法A（移行前の記録）: `prisma db push`
 
 ```bash
 # 別ターミナルで、対象ブランチを checkout した状態で（この会話・ファイルに URL を残さない）
@@ -131,7 +168,7 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 **なぜこれが正か**: `schema.prisma` が git 管理された唯一の正で、db push はそこから DDL を機械的に導出する（手書きミスが構造的に起きない・実DBとの差分計算と破壊的変更の警告つき）。将来の Prisma Migrate 移行（SQL をファイルとして git 管理）も「schema と実DBの一致」が前提で、db push 運用はそれを保証する。手動 SQL を常用すると一致が人間の注意力頼みになりドリフトの温床になる。
 
-### 方法B（代替）: SQL Editor で DDL 直打ち
+### 方法B（移行前の記録・緊急時の代替）: SQL Editor で DDL 直打ち
 
 接続文字列がすぐ取れないとき（例: パスワード不明で Reset は避けたい）は、Supabase ダッシュボード → SQL Editor で DDL を直接実行してもよい。ただし:
 
