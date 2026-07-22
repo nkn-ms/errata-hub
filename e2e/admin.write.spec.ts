@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
+import { createThrowawayAccount } from "./throwaway-user";
 
 // 管理画面（書き込み）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
@@ -89,5 +90,60 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
     await page.goto("/admin/users");
     const readerRow = page.getByRole("row").filter({ hasText: READER.email });
     await expect(readerRow).not.toContainText(SEED_PUBLISHER);
+  });
+});
+
+test.describe("管理者による代行退会", () => {
+  // ⚠️ 取り消せない操作なので、対象は必ず使い捨てアカウント（シード垢・管理者垢は絶対に使わない）。
+  test("表示名を確認入力すると退会させられ、ログインできなくなる", async ({ page }) => {
+    const account = await createThrowawayAccount();
+
+    await login(page, ADMIN);
+    await page.goto(`/admin/users/${account.id}`);
+
+    // 確認入力が空／一致しないうちは押せない（押し間違いの砦）
+    const withdrawButton = page.getByRole("button", { name: "退会させる" });
+    await expect(withdrawButton).toBeDisabled();
+    const confirmation = page.getByLabel(/入力してください/);
+    await confirmation.fill(account.displayName.slice(0, -1));
+    await expect(withdrawButton).toBeDisabled();
+
+    await confirmation.fill(account.displayName);
+    await expect(withdrawButton).toBeEnabled();
+    await withdrawButton.click();
+
+    // 成功すると一覧へ戻り、対象は匿名メールになっている（＝ Profile はスクラブ済みで残る）
+    await page.waitForURL(/\/admin\/users$/);
+    await expect(page.getByRole("row").filter({ hasText: account.email })).toHaveCount(0);
+    await expect(
+      page.getByRole("row").filter({ hasText: `deleted-${account.id}@deleted.local` })
+    ).toBeVisible();
+
+    // 操作ログに残る（誰が代行したかを後から追える）
+    await page.goto("/admin/logs");
+    await expect(page.getByRole("row").filter({ hasText: "退会（管理者代行）" }).first()).toBeVisible();
+
+    // auth.users が消えているので、本人はもうログインできない
+    await page.goto("/login");
+    await page.locator("#email").fill(account.email);
+    await page.locator("#password").fill(account.password);
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await expect(page.getByText("メールアドレスまたはパスワードが正しくありません")).toBeVisible();
+  });
+
+  test("管理者自身と他の管理者は退会させられない（理由が出て入力欄も出ない）", async ({ page }) => {
+    await login(page, ADMIN);
+
+    await page.goto("/admin/users");
+    await page
+      .getByRole("row")
+      .filter({ hasText: ADMIN.email })
+      .getByRole("link", { name: "編集" })
+      .click();
+    await page.waitForURL(/\/admin\/users\/[0-9a-f-]+$/);
+
+    await expect(page.getByText("自分自身を退会させることはできません。")).toBeVisible();
+    await expect(page.getByRole("button", { name: "退会させる" })).toHaveCount(0);
+    await expect(page.getByLabel(/入力してください/)).toHaveCount(0);
   });
 });

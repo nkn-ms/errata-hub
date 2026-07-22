@@ -18,3 +18,18 @@ export function buildWithdrawnEmail(userId: string): string {
 export function isWithdrawnEmail(email: string | null | undefined): boolean {
   return !!email && email.endsWith(`@${WITHDRAWN_EMAIL_DOMAIN}`);
 }
+
+/**
+ * 管理者が代行退会させるとき、確認のために手入力させる文字列。
+ * 「隣の行を押し間違えた」を止めるのが目的なので、対象を一意に指す値を選ぶ
+ * （表示名は退会済み・GitHub 以外の経路で null になり得るのでメールにフォールバックする）。
+ *
+ * ⚠️ 管理画面（入力欄のラベル）とサーバー（照合）の両方から呼ぶこと。
+ * どちらか片方だけで判定すると、画面の表示とサーバーの期待値がずれる。
+ */
+export function withdrawalConfirmationLabel(profile: {
+  displayName: string | null;
+  email: string;
+}): string {
+  return profile.displayName ?? profile.email;
+}

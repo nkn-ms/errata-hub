@@ -5,11 +5,10 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
-import { buildWithdrawnEmail } from "@/lib/withdrawal";
+import { scrubProfileForWithdrawal } from "@/services/withdrawal";
 import { routes } from "@/constants/routes";
 
 const LoginSchema = z.object({
@@ -312,30 +311,13 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     redirect(routes.login);
   }
 
-  // 1) auth.users を物理削除（GDPR の核心: ログイン情報と Auth 側 PII を消す）。
-  //    最も失敗しやすい外部呼び出しを先に行い、失敗時は何も変更せず復帰できるようにする。
-  const admin = createAdminClient();
-  const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
-  if (deleteError) {
+  // 1) auth.users の削除と Profile のスクラブ（管理者による代行退会と共通の処理）。
+  const result = await scrubProfileForWithdrawal(user.id);
+  if (!result.ok) {
     return { error: "退会処理に失敗しました。時間をおいて再度お試しください。" };
   }
 
-  // 2) Profile の PII をスクラブ（email は @unique・必須なのでダミーで衝突回避、それ以外は null）。
-  //    公開リンク（GitHub / X）も本人の外部アカウントに直結する個人情報なので併せて消す。
-  //    ⚠️ Profile に PII 列を追加したら、必ずこのスクラブにも追従させること
-  //    （githubUsername / xUsername は列の追加時に追従が漏れていた実績がある）。
-  const scrubbedProfile = {
-    email: buildWithdrawnEmail(user.id),
-    displayName: null,
-    githubUsername: null,
-    xUsername: null,
-  };
-  await prisma.profile.update({
-    where: { id: user.id },
-    data: scrubbedProfile,
-  });
-
-  // 3) 監査ログに退会を記録する。誰がいつ退会したかは userId で追える。
+  // 2) 監査ログに退会を記録する。誰がいつ退会したかは userId で追える。
   //    退会は本人の PII を消すことが目的なので、元メール・元表示名は監査ログにも残さない。
   //    ここに残すと、auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
   //    無期限で PII を保持することになってしまうため（プライバシーポリシー第6条参照）。
@@ -344,10 +326,10 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     action: "WITHDRAW_USER",
     targetType: TARGET_TYPE.PROFILE,
     targetId: user.id,
-    after: scrubbedProfile,
+    after: result.scrubbed,
   });
 
-  // 4) セッションを破棄して退会完了ページへ。
+  // 3) セッションを破棄して退会完了ページへ。
   await supabase.auth.signOut();
   redirect(routes.accountWithdrawn);
 }

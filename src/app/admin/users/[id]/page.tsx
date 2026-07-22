@@ -1,6 +1,24 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import AdminUserEditor from "@/components/admin/user-editor";
+import { requireAdminPage } from "@/services/auth";
+import { isWithdrawnEmail } from "@/lib/withdrawal";
+import type { Profile } from "@/generated/prisma/client";
+
+/**
+ * 代行退会させられない理由を返す（実行できるなら null）。
+ * 同じ判定はサーバーアクション（withdrawUserAsAdmin）側にもあり、そちらが正の砦。
+ * ここは「押せないボタンを出さない・理由を先に見せる」ための画面側の判定。
+ * 退会済みかの判定は email を見るためサーバー（ここ）だけで行う。
+ */
+function getWithdrawBlockedReason(profile: Profile, adminId: string): string | null {
+  if (profile.id === adminId) return "自分自身を退会させることはできません。";
+  if (isWithdrawnEmail(profile.email)) return "このユーザーは既に退会済みです。";
+  if (profile.role === "ADMIN") {
+    return "管理者は退会させられません。先にロールを「一般」に変更してください。";
+  }
+  return null;
+}
 
 export default async function AdminUserDetailPage({
   params,
@@ -8,6 +26,8 @@ export default async function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // 「自分自身か」の判定に実行者が要る（レイアウトでも認可済みだが user は渡ってこない）
+  const admin = await requireAdminPage();
 
   const [profile, publishers] = await Promise.all([
     prisma.profile.findUnique({
@@ -25,7 +45,11 @@ export default async function AdminUserDetailPage({
         <h1 className="text-xl font-bold text-gray-900">ユーザー編集</h1>
         <p className="mt-1 text-sm text-gray-500">{profile.email}</p>
       </div>
-      <AdminUserEditor profile={profile} publishers={publishers} />
+      <AdminUserEditor
+        profile={profile}
+        publishers={publishers}
+        withdrawBlockedReason={getWithdrawBlockedReason(profile, admin.id)}
+      />
     </div>
   );
 }

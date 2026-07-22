@@ -7,7 +7,9 @@ import {
   grantPublisherAccess,
   revokePublisherAccess,
   updateUserRole,
+  withdrawUserAsAdmin,
 } from "@/app/actions/user";
+import { withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import { routes } from "@/constants/routes";
 
 type ProfileWithAccess = Profile & {
@@ -22,9 +24,12 @@ const ROLES = [
 export default function AdminUserEditor({
   profile,
   publishers,
+  withdrawBlockedReason,
 }: {
   profile: ProfileWithAccess;
   publishers: Publisher[];
+  /** 代行退会させられない理由（自分自身・管理者・退会済み）。null なら実行できる */
+  withdrawBlockedReason: string | null;
 }) {
   const router = useRouter();
   const [role, setRole] = useState(profile.role);
@@ -35,9 +40,16 @@ export default function AdminUserEditor({
   const [accessMessage, setAccessMessage] = useState("");
   const [accessError, setAccessError] = useState("");
   const [selectedPublisherId, setSelectedPublisherId] = useState("");
+  const [withdrawConfirmation, setWithdrawConfirmation] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
 
   const grantedIds = new Set(access.map((a) => a.publisherId));
   const ungrantedPublishers = publishers.filter((p) => !grantedIds.has(p.id));
+
+  // 手入力を対象と突き合わせる（同じ判定をサーバー側でも行う。ここは押し間違いを止めるための前段）。
+  const confirmationLabel = withdrawalConfirmationLabel(profile);
+  const canWithdraw = withdrawBlockedReason === null && withdrawConfirmation === confirmationLabel;
 
   async function handleSaveRole() {
     setSaving(true);
@@ -79,6 +91,19 @@ export default function AdminUserEditor({
     // サーバーが成功を返したときだけ画面の一覧から消す
     setAccess((prev) => prev.filter((a) => a.publisherId !== publisherId));
     setAccessMessage("削除しました");
+  }
+
+  async function handleWithdraw() {
+    setWithdrawing(true);
+    setWithdrawError("");
+    const result = await withdrawUserAsAdmin(profile.id, withdrawConfirmation);
+    if (result.error) {
+      setWithdrawError(result.error);
+      setWithdrawing(false);
+      return;
+    }
+    // 対象はもうこの画面に用が無い（PII が消えた抜け殻）ので一覧へ戻す
+    router.push(routes.admin.users);
   }
 
   return (
@@ -159,6 +184,47 @@ export default function AdminUserEditor({
             </button>
           </div>
         )}
+      </div>
+
+      {/* 代行退会（取り消せない操作なので、他のカードと見た目を分ける） */}
+      <div className="bg-white rounded-lg border border-red-200 p-6 space-y-4">
+        <div>
+          <h2 className="font-semibold text-red-700">このユーザーを退会させる</h2>
+          <p className="mt-1 text-xs leading-relaxed text-gray-600">
+            本人の退会と同じ処理を管理者が代行します。ログインできなくなり、メールアドレス・表示名・
+            公開リンクが消えます。投稿は「退会済みユーザー」の投稿として残ります。
+            <strong className="text-red-700">取り消せません。</strong>
+          </p>
+        </div>
+
+        {withdrawBlockedReason !== null ? (
+          <p className="text-sm text-gray-500">{withdrawBlockedReason}</p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <label htmlFor="withdrawConfirmation" className="block text-xs text-gray-600">
+                確認のため <span className="font-medium text-gray-900">{confirmationLabel}</span>{" "}
+                と入力してください
+              </label>
+              <input
+                id="withdrawConfirmation"
+                type="text"
+                value={withdrawConfirmation}
+                onChange={(e) => setWithdrawConfirmation(e.target.value)}
+                autoComplete="off"
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+              />
+            </div>
+            <button
+              onClick={handleWithdraw}
+              disabled={!canWithdraw || withdrawing}
+              className="w-full py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors"
+            >
+              {withdrawing ? "処理中..." : "退会させる"}
+            </button>
+          </>
+        )}
+        {withdrawError && <p className="text-sm text-red-500">{withdrawError}</p>}
       </div>
 
       <button

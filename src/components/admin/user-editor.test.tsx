@@ -11,10 +11,12 @@ vi.mock("next/navigation", () => ({
 const updateUserRoleMock = vi.fn();
 const grantPublisherAccessMock = vi.fn();
 const revokePublisherAccessMock = vi.fn();
+const withdrawUserAsAdminMock = vi.fn();
 vi.mock("@/app/actions/user", () => ({
   updateUserRole: (...args: unknown[]) => updateUserRoleMock(...args),
   grantPublisherAccess: (...args: unknown[]) => grantPublisherAccessMock(...args),
   revokePublisherAccess: (...args: unknown[]) => revokePublisherAccessMock(...args),
+  withdrawUserAsAdmin: (...args: unknown[]) => withdrawUserAsAdminMock(...args),
 }));
 
 const now = new Date("2026-07-13T00:00:00Z");
@@ -52,9 +54,17 @@ const profile: Profile & { publisherAccess: (PublisherAccess & { publisher: Publ
   publisherAccess: [accessToA],
 };
 
-function renderEditor() {
-  return render(<AdminUserEditor profile={profile} publishers={[publisherA, publisherB]} />);
+function renderEditor(withdrawBlockedReason: string | null = null) {
+  return render(
+    <AdminUserEditor
+      profile={profile}
+      publishers={[publisherA, publisherB]}
+      withdrawBlockedReason={withdrawBlockedReason}
+    />
+  );
 }
+
+const withdrawButton = () => screen.getByRole("button", { name: "退会させる" });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -142,6 +152,46 @@ describe("AdminUserEditor", () => {
 
       await waitFor(() => expect(screen.getByText("保存しました")).toBeTruthy());
       expect(updateUserRoleMock).toHaveBeenCalledWith(profile.id, "ADMIN");
+    });
+  });
+
+  describe("代行退会", () => {
+    it("表示名を正しく入力するまでボタンを押せない（押し間違いの砦）", () => {
+      renderEditor();
+      expect(withdrawButton().hasAttribute("disabled")).toBe(true);
+
+      // 1文字足りない状態ではまだ押せない
+      fireEvent.change(screen.getByLabelText(/入力してください/), {
+        target: { value: "テスト太" },
+      });
+      expect(withdrawButton().hasAttribute("disabled")).toBe(true);
+
+      fireEvent.change(screen.getByLabelText(/入力してください/), {
+        target: { value: profile.displayName! },
+      });
+      expect(withdrawButton().hasAttribute("disabled")).toBe(false);
+    });
+
+    it("実行できないユーザーには入力欄もボタンも出さず、理由を表示する", () => {
+      renderEditor("自分自身を退会させることはできません。");
+
+      expect(screen.getByText("自分自身を退会させることはできません。")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "退会させる" })).toBeNull();
+      expect(screen.queryByLabelText(/入力してください/)).toBeNull();
+    });
+
+    it("サーバーが失敗を返したらエラーを表示し、画面に留まる", async () => {
+      withdrawUserAsAdminMock.mockResolvedValue({ error: "このユーザーは既に退会済みです" });
+      renderEditor();
+
+      fireEvent.change(screen.getByLabelText(/入力してください/), {
+        target: { value: profile.displayName! },
+      });
+      fireEvent.click(withdrawButton());
+
+      await waitFor(() => expect(screen.getByText("このユーザーは既に退会済みです")).toBeTruthy());
+      expect(withdrawUserAsAdminMock).toHaveBeenCalledWith(profile.id, profile.displayName);
+      expect(withdrawButton()).toBeTruthy();
     });
   });
 });
