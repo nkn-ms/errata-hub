@@ -16,14 +16,17 @@ export default async function Home() {
   // user_metadata は参照しない（OAuth ログインでは display_name が入らないため）。
   // 表示名が無いときのみメールにフォールバック。
   const profile = user
-    ? await prisma.profile.findUnique({ where: { id: user.id }, select: { displayName: true } })
+    ? await prisma.profile.findUnique({
+        where: { id: user.id },
+        select: { displayName: true, role: true },
+      })
     : null;
   const userName = user ? (profile?.displayName || user.email || null) : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <SiteHeader logoAsLink={false}>
-        <HeaderNav userName={userName} />
+        <HeaderNav userName={userName} isAdmin={profile?.role === "ADMIN"} />
       </SiteHeader>
 
       {/* メインコンテンツ */}
