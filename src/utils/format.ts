@@ -16,6 +16,27 @@ export function formatJstDate(date: Date): string {
 }
 
 /**
+ * 投稿日時を「たった今 / N分前 / N時間前 / 昨日 / N日前」の相対表記にする（新着フィードのカード用）。
+ *
+ * 「最新の投稿」を名乗るトップでは、絶対日付より相対表記の方が鮮度が直感的に伝わる。
+ * サーバーレンダリング時点を基準に算出する（フィードはリクエストごとに再描画されるので十分）。
+ * 7日より古いものは相対表記が逆に分かりにくいので JST の絶対日付（YYYY-MM-DD）へフォールバックする。
+ * now は既定で現在時刻。テスト用に注入できる。
+ */
+export function formatRelativeJst(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  const diffMin = Math.floor((now.getTime() - then.getTime()) / 60000);
+  if (diffMin < 1) return "たった今"; // 未来（時計ずれ）もここに寄せる
+  if (diffMin < 60) return `${diffMin}分前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}時間前`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return "昨日";
+  if (diffDay < 7) return `${diffDay}日前`;
+  return formatJstDate(then);
+}
+
+/**
  * UUID の先頭8桁の短縮 ID（例: @1034b8a2 の @ の後ろ）。
  *
  * 表示名は重複・変更があり得るため、ユーザーページ・アカウント設定・投稿者名の脇に

@@ -20,96 +20,7 @@ import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/repor
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-
-function Badge({ label, className }: { label: string; className: string }) {
-  return (
-    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", className)}>
-      {label}
-    </span>
-  );
-}
-
-function getLocationLabel(report: Report): string {
-  if (report.medium === "EBOOK") return `電子書籍 ${report.ebookLocation ?? ""}`;
-  if (report.medium === "PAPER") {
-    let label = `p.${report.page}`;
-    if (report.line) label += ` l.${report.line}`;
-    if (report.hasMultiplePages) label += " 他";
-    return label;
-  }
-  return "";
-}
-
-function getErrataLabel(report: Report): string {
-  if (report.wrong && report.correct) {
-    return `${report.wrong} → ${report.correct}`;
-  }
-  return report.content ?? "";
-}
-
-// 「第2版 第3刷」。紙は版が必須・刷は任意（actions/report.ts の superRefine）、
-// 電子書籍は版も刷も持たない（どちらも null）ので空文字になる
-function getEditionLabel(report: Report): string {
-  const parts = [
-    report.edition ? `第${report.edition}版` : null,
-    report.printing ? `第${report.printing}刷` : null,
-  ].filter((part) => part !== null);
-  return parts.join(" ");
-}
-
-// モバイル（md 未満）用。テーブルは 390px では横に溢れるため、同じ行をカードで見せる。
-// カード全体が投稿詳細へのリンクなので、中の書籍名・投稿者は入れ子リンクにしない。
-function ReportCard({ report }: { report: Report }) {
-  const editionLabel = getEditionLabel(report);
-  const locationLabel = getLocationLabel(report);
-
-  return (
-    <Link
-      href={routes.report(report.id)}
-      className="block px-4 py-3 space-y-2 hover:bg-blue-50 transition-colors"
-    >
-      <div className="flex items-center gap-2">
-        {/* 幅に余裕があるカードでは折り返さない（テーブル側は列幅の都合で折り返しを許す） */}
-        <Badge
-          label={TYPE_LABELS[report.type]}
-          className={cn(TYPE_COLORS[report.type], "whitespace-nowrap")}
-        />
-        <Badge
-          label={STATUS_LABELS[report.status]}
-          className={cn(STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700", "whitespace-nowrap")}
-        />
-        {report.upvoteCount > 0 && (
-          <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">
-            👍 {report.upvoteCount}
-          </span>
-        )}
-      </div>
-
-      <div>
-        <div className="text-sm font-medium text-gray-900">{report.bookTitle}</div>
-        {(editionLabel || locationLabel) && (
-          <div className="text-xs text-gray-500">
-            {[editionLabel, locationLabel].filter(Boolean).join(" ・ ")}
-          </div>
-        )}
-      </div>
-
-      <div className="text-sm text-gray-800">{report.title}</div>
-      <div className="text-sm text-gray-700 line-clamp-2">{getErrataLabel(report)}</div>
-
-      {report.publisherComment && (
-        <div className="text-xs text-gray-600 line-clamp-2 border-l-2 border-gray-200 pl-2">
-          出版社: {report.publisherComment}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>{report.userName}</span>
-        <span>{report.createdAt}</span>
-      </div>
-    </Link>
-  );
-}
+import { Badge, ReportCard, getLocationLabel, getErrataLabel } from "@/components/report-card";
 
 const columns: ColumnDef<Report>[] = [
   {
@@ -240,7 +151,7 @@ const columns: ColumnDef<Report>[] = [
   },
 ];
 
-export function ReportTable({ data }: { data: Report[] }) {
+export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initialQuery?: string }) {
   // TanStack Table の useReactTable は React Compiler と非互換（返り値の関数を
   // メモ化すると stale UI になる）ため、このコンポーネントだけ最適化対象から外す。
   "use no memo";
@@ -248,7 +159,8 @@ export function ReportTable({ data }: { data: Report[] }) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  // 一覧ページの ?q= を初期検索語として引き継ぐ（トップの検索ボックスからの遷移）。
+  const [globalFilter, setGlobalFilter] = useState(initialQuery);
 
   // 上の "use no memo" で対処済みだが、このルールは opt-out 済みの関数にも警告を出すため行単位で抑制する
   // eslint-disable-next-line react-hooks/incompatible-library
