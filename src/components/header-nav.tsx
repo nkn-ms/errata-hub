@@ -64,10 +64,27 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
-// ログイン済みのドロップダウン項目（アカウント設定＋ログアウト）。両メニューで共用。
-function AccountMenuItems({ onSelect }: { onSelect?: () => void }) {
+// ログイン済みのドロップダウン項目（管理画面＋アカウント設定＋ログアウト）。両メニューで共用。
+//
+// 管理画面リンクは ADMIN のときだけ出す。これは認可ではなく表示の話で、
+// /admin の砦は proxy.ts と admin/layout.tsx の requireAdminPage（services/auth.ts）が担う。
+// 一般ユーザーに出しても入れはしないが、押せないリンクはノイズなので隠す。
+function AccountMenuItems({ isAdmin, onSelect }: { isAdmin: boolean; onSelect?: () => void }) {
   return (
     <>
+      {isAdmin && (
+        <>
+          <Link
+            href={routes.admin.reports}
+            onClick={onSelect}
+            role="menuitem"
+            className={dropdownItemClass}
+          >
+            管理画面
+          </Link>
+          <div className="my-1 border-t border-gray-100" />
+        </>
+      )}
       <Link href={routes.account} onClick={onSelect} role="menuitem" className={dropdownItemClass}>
         アカウント設定
       </Link>
@@ -82,7 +99,7 @@ function AccountMenuItems({ onSelect }: { onSelect?: () => void }) {
 
 // デスクトップのユーザーメニュー。表示名クリックで開き、ログアウトをここに集約する
 // （主 CTA「投稿する」の真横に並べないことで誤操作を防ぐ）。
-function DesktopUserMenu({ userName }: { userName: string }) {
+function DesktopUserMenu({ userName, isAdmin }: { userName: string; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -112,7 +129,7 @@ function DesktopUserMenu({ userName }: { userName: string }) {
             role="menu"
             className="absolute right-0 top-full mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg z-20"
           >
-            <AccountMenuItems onSelect={close} />
+            <AccountMenuItems isAdmin={isAdmin} onSelect={close} />
           </div>
         </>
       )}
@@ -121,7 +138,7 @@ function DesktopUserMenu({ userName }: { userName: string }) {
 }
 
 // モバイル（sm 未満）用。ハンバーガーで全ナビ＋認証操作を1つのメニューに集約する。
-function MobileMenu({ userName }: { userName: string | null }) {
+function MobileMenu({ userName, isAdmin }: { userName: string | null; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -156,7 +173,7 @@ function MobileMenu({ userName }: { userName: string | null }) {
           {userName ? (
             <>
               <span className="block px-4 py-2 text-xs text-gray-500 truncate">{userName}</span>
-              <AccountMenuItems onSelect={close} />
+              <AccountMenuItems isAdmin={isAdmin} onSelect={close} />
             </>
           ) : (
             <>
@@ -176,7 +193,14 @@ function MobileMenu({ userName }: { userName: string | null }) {
 
 // ヘッダー右側のナビ。sm 以上はインライン、sm 未満は MobileMenu に集約。
 // 主 CTA「投稿する」だけは常時表示。
-export function HeaderNav({ userName }: { userName: string | null }) {
+export function HeaderNav({
+  userName,
+  isAdmin = false,
+}: {
+  userName: string | null;
+  /** ADMIN のときだけユーザーメニューに管理画面リンクを出す（表示の出し分けであって認可ではない） */
+  isAdmin?: boolean;
+}) {
   return (
     <div className="relative flex items-center gap-3">
       {/* デスクトップの情報ページリンク（sm 以上） */}
@@ -192,7 +216,7 @@ export function HeaderNav({ userName }: { userName: string | null }) {
 
       {/* デスクトップの認証状態（sm 以上） */}
       {userName ? (
-        <DesktopUserMenu userName={userName} />
+        <DesktopUserMenu userName={userName} isAdmin={isAdmin} />
       ) : (
         <>
           <Link
@@ -219,7 +243,7 @@ export function HeaderNav({ userName }: { userName: string | null }) {
         投稿する
       </Link>
 
-      <MobileMenu userName={userName} />
+      <MobileMenu userName={userName} isAdmin={isAdmin} />
     </div>
   );
 }
