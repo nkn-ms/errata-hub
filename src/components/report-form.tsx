@@ -180,10 +180,10 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
       <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <h2 className="text-base font-semibold text-gray-900">書籍情報</h2>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div role="group" aria-labelledby="book-label">
+          <span id="book-label" className="block text-sm font-medium text-gray-700 mb-1">
             書籍名 {!bookPreselected && <span className="text-red-500">*</span>}
-          </label>
+          </span>
           {bookPreselected && book ? (
             // 確定済みなので検索させない。見た目は検索で選んだ直後と同じカードに揃える
             <div className="space-y-2">
@@ -234,8 +234,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">読んだ媒体</label>
+        <div role="group" aria-labelledby="medium-label">
+          <span id="medium-label" className="block text-sm font-medium text-gray-700 mb-2">読んだ媒体</span>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(MEDIUM_LABELS) as Medium[]).map((m) => (
               <button
@@ -263,10 +263,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         <div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="edition" className="block text-sm font-medium text-gray-700 mb-1">
               版 <span className="text-red-500">*</span>
             </label>
             <input
+              id="edition"
               type="number"
               min={1}
               value={edition}
@@ -276,8 +277,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">刷（任意）</label>
+            <label htmlFor="printing" className="block text-sm font-medium text-gray-700 mb-1">刷（任意）</label>
             <input
+              id="printing"
               type="number"
               min={1}
               value={printing}
@@ -297,10 +299,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         <h2 className="text-base font-semibold text-gray-900">投稿内容</h2>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
             タイトル <span className="text-red-500">*</span>
           </label>
           <input
+            id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -309,8 +312,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">種別</label>
+        <div role="group" aria-labelledby="type-label">
+          <span id="type-label" className="block text-sm font-medium text-gray-700 mb-2">種別</span>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(TYPE_LABELS) as ReportType[]).map((t) => (
               <button
@@ -334,10 +337,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <div className="space-y-3 pl-4 border-l-2 border-gray-200">
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="page" className="block text-sm font-medium text-gray-700 mb-1">
                   ページ番号 <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="page"
                   type="number"
                   min={1}
                   value={page}
@@ -347,8 +351,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">行番号（任意）</label>
+                <label htmlFor="line" className="block text-sm font-medium text-gray-700 mb-1">行番号（任意）</label>
                 <input
+                  id="line"
                   type="number"
                   min={1}
                   value={line}
@@ -373,8 +378,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               </p>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">位置備考（任意）</label>
+              <label htmlFor="location-note" className="block text-sm font-medium text-gray-700 mb-1">位置備考（任意）</label>
               <input
+                id="location-note"
                 type="text"
                 value={locationNote}
                 onChange={(e) => setLocationNote(e.target.value)}
@@ -387,10 +393,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
 
         {medium === "EBOOK" && (
           <div className="pl-4 border-l-2 border-gray-200">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="ebook-location" className="block text-sm font-medium text-gray-700 mb-1">
               位置 <span className="text-red-500">*</span>
             </label>
             <input
+              id="ebook-location"
               type="text"
               value={ebookLocation}
               onChange={(e) => setEbookLocation(e.target.value)}
@@ -402,10 +409,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
 
         {medium === "OTHER" && (
           <div className="pl-4 border-l-2 border-gray-200">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="location-memo" className="block text-sm font-medium text-gray-700 mb-1">
               位置メモ <span className="text-red-500">*</span>
             </label>
             <input
+              id="location-memo"
               type="text"
               value={locationNote}
               onChange={(e) => setLocationNote(e.target.value)}
@@ -419,10 +427,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         {isErrataType ? (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="wrong" className="block text-sm font-medium text-gray-700 mb-1">
                 誤（該当箇所） <span className="text-red-500">*</span>
               </label>
               <textarea
+                id="wrong"
                 value={wrong}
                 onChange={(e) => setWrong(e.target.value)}
                 rows={2}
@@ -431,10 +440,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
                 正（正しい内容） <span className="text-red-500">*</span>
               </label>
               <textarea
+                id="correct"
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
                 rows={2}
@@ -445,10 +455,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           </div>
         ) : (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
               内容・提案 <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}
@@ -459,8 +470,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">備考（任意）</label>
+          <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">備考（任意）</label>
           <textarea
+            id="note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
@@ -470,7 +482,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="reported-erratum-url" className="block text-sm font-medium text-gray-700 mb-1">
             出版社の正誤表URL（任意）
           </label>
           <p className="text-xs text-gray-500 mb-2">
@@ -478,6 +490,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             公式リンクとして掲載します。
           </p>
           <input
+            id="reported-erratum-url"
             type="url"
             value={reportedErratumUrl}
             onChange={(e) => setReportedErratumUrl(e.target.value)}
@@ -487,7 +500,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">
             画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
           </label>
           <p className="text-xs text-gray-500 mb-2">
@@ -496,6 +509,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
             <input
+              id="images"
               type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple

@@ -146,30 +146,30 @@ export function AdminBookEditor({ book }: { book: Book }) {
     <div className="space-y-6">
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">ISBN（変更不可）</label>
-          <input value={book.isbn} readOnly className={`${inputClass} bg-gray-50 text-gray-500 font-mono`} />
+          <label htmlFor="book-isbn" className="block text-sm font-medium text-gray-700 mb-1">ISBN（変更不可）</label>
+          <input id="book-isbn" value={book.isbn} readOnly className={`${inputClass} bg-gray-50 text-gray-500 font-mono`} />
           <p className="mt-1 text-xs text-gray-400">ISBN は本の同一性の基準のため編集できません。</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">書籍名</label>
-          <input value={title} onChange={(e) => { setTitle(e.target.value); dirtyReset(); }} className={inputClass} />
+          <label htmlFor="book-title" className="block text-sm font-medium text-gray-700 mb-1">書籍名</label>
+          <input id="book-title" value={title} onChange={(e) => { setTitle(e.target.value); dirtyReset(); }} className={inputClass} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">著者</label>
-          <input value={author} onChange={(e) => { setAuthor(e.target.value); dirtyReset(); }} className={inputClass} />
+          <label htmlFor="book-author" className="block text-sm font-medium text-gray-700 mb-1">著者</label>
+          <input id="book-author" value={author} onChange={(e) => { setAuthor(e.target.value); dirtyReset(); }} className={inputClass} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">出版社</label>
-          <input value={publisherName} onChange={(e) => { setPublisherName(e.target.value); dirtyReset(); }} className={inputClass} />
+          <label htmlFor="book-publisher" className="block text-sm font-medium text-gray-700 mb-1">出版社</label>
+          <input id="book-publisher" value={publisherName} onChange={(e) => { setPublisherName(e.target.value); dirtyReset(); }} className={inputClass} />
           <p className="mt-1 text-xs text-gray-400">同名の出版社が無ければ新規作成されます。空にすると紐付けを外します。</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">書影URL</label>
-          <input value={coverImageUrl} onChange={(e) => { setCoverImageUrl(e.target.value); dirtyReset(); }} className={inputClass} />
+          <label htmlFor="book-cover-url" className="block text-sm font-medium text-gray-700 mb-1">書影URL</label>
+          <input id="book-cover-url" value={coverImageUrl} onChange={(e) => { setCoverImageUrl(e.target.value); dirtyReset(); }} className={inputClass} />
           {coverImageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverImageUrl} alt="書影プレビュー" className="mt-2 h-24 w-auto rounded border border-gray-200 object-contain" />
@@ -177,8 +177,9 @@ export function AdminBookEditor({ book }: { book: Book }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">正誤表URL（出版社の公式ページ）</label>
+          <label htmlFor="book-erratum-url" className="block text-sm font-medium text-gray-700 mb-1">正誤表URL（出版社の公式ページ）</label>
           <input
+            id="book-erratum-url"
             value={erratumUrl}
             onChange={(e) => { setErratumUrl(e.target.value); dirtyReset(); }}
             placeholder="https://..."

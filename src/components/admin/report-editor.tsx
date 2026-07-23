@@ -70,8 +70,8 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
       <h2 className="text-sm font-semibold text-gray-700">ステータス・対応記録</h2>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">ステータス</label>
+      <div role="group" aria-labelledby="status-label">
+        <span id="status-label" className="block text-sm font-medium text-gray-700 mb-2">ステータス</span>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(STATUS_LABELS) as Status[]).map((s) => (
             <button
@@ -93,8 +93,9 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
       {isFixed && (
         <div className="flex gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">修正済みの版</label>
+            <label htmlFor="fixed-edition" className="block text-sm font-medium text-gray-700 mb-1">修正済みの版</label>
             <input
+              id="fixed-edition"
               type="number"
               min={1}
               value={fixedEdition}
@@ -104,8 +105,9 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">修正済みの刷</label>
+            <label htmlFor="fixed-printing" className="block text-sm font-medium text-gray-700 mb-1">修正済みの刷</label>
             <input
+              id="fixed-printing"
               type="number"
               min={1}
               value={fixedPrinting}
@@ -118,8 +120,9 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">出版社コメント</label>
+        <label htmlFor="publisher-comment" className="block text-sm font-medium text-gray-700 mb-1">出版社コメント</label>
         <textarea
+          id="publisher-comment"
           value={comment}
           onChange={(e) => { setComment(e.target.value); setSaved(false); }}
           rows={4}
