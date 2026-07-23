@@ -121,6 +121,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 ### 削除と退会（別々の2系統）
 - **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `app/actions/report.ts` の `deleteReport`（ADMIN限定）。
 - **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
+- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `app/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`services/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
 
 ### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
 - onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意だが **Restrict**（出版社削除ガード。optional の既定 SetNull から意図的に変更）。

@@ -179,7 +179,7 @@ model AuditLog {
   id         String   @id @default(uuid())
   userId     String?  // 操作者のSupabase user UUID（システム操作はnull）。ProfileへのFKは意図的に張らない（ユーザー削除後もログを保全するため）
   userEmail  String?  // 操作者のメール（ユーザー削除後も記録が残るよう非正規化）
-  action     String   // 例: "UPDATE_REPORT" "DELETE_REPORT" "UPDATE_USER_ROLE" "WITHDRAW_USER"（ベタ書き。網羅は grep で確認）
+  action     String   // 例: "UPDATE_REPORT" "DELETE_REPORT" "UPDATE_USER_ROLE" "WITHDRAW_USER" "ADMIN_WITHDRAW_USER"（ベタ書き。網羅は grep で確認）
   targetType String   // "Report" | "Profile" | "PublisherAccess" | "Book" — 正解の文字列は src/constants/audit.ts の TARGET_TYPE に集約
   targetId   String   // 操作対象のID
   before     Json?    // 変更前の値

@@ -12,6 +12,7 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_BOOK: "書籍更新",
   DELETE_BOOK: "書籍削除",
   WITHDRAW_USER: "退会",
+  ADMIN_WITHDRAW_USER: "退会（管理者代行）",
 };
 
 const PAGE_SIZE = 50;
