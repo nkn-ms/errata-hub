@@ -34,7 +34,10 @@ export type Report = {
   status: ReportStatus;
   fixedEdition?: number;
   fixedPrinting?: number;
+  // 表示用に整形済みの投稿日（JST・YYYY-MM-DD）。テーブルの投稿日列・並べ替え用。
   createdAt: string;
+  // 相対表記（「3時間前」等）を出すための生タイムスタンプ（ISO）。新着フィードのカードで使う。
+  createdAtIso: string;
   upvoteCount: number;
   imageUrls: string[];
 };

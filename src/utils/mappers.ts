@@ -45,6 +45,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     fixedEdition: f.fixedEdition ?? undefined,
     fixedPrinting: f.fixedPrinting ?? undefined,
     createdAt: formatJstDate(f.createdAt),
+    createdAtIso: f.createdAt.toISOString(),
     upvoteCount: f._count?.upvotes ?? 0,
     imageUrls: f.images.map((image) => image.imageUrl),
   };

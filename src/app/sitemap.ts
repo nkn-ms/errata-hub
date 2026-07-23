@@ -6,10 +6,10 @@ import { routes } from "@/constants/routes";
 
 // 検索エンジンに「見つけて欲しいページ」の一覧を渡す（https://www.sitemaps.org/protocol.html）。
 //
-// このサイトでは必須。投稿一覧はクライアントサイドのページネーション（1ページ10件・
-// components/report-table.tsx）で、2ページ目以降の行は HTML に現れず URL も変わらないため、
-// 投稿が10件を超えると古い投稿と書籍ページへはリンクを辿って到達できなくなる。
-// sitemap がそれらを検索エンジンに知らせる唯一の経路になる。
+// トップ（app/page.tsx）は ?page=N のサーバーページネーション、/reports は全投稿の一覧なので、
+// 投稿・書籍の各ページはリンクを辿るだけでも到達できる。それでも sitemap を置くのは、
+// lastModified（更新日）を各 URL に付けて「新しさ」を直接伝えられ、新規・更新ページの
+// 発見が早くなるため（辿れることと、早く見つけてもらえることは別）。
 //
 // 出力するのは url と lastModified だけ。Next.js の API は仕様どおり changefreq / priority も
 // 出せるが、書かない。仕様（sitemaps.org）自身が changefreq を「ヒントであり命令ではない」、
@@ -43,9 +43,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 静的ページは更新日を持たないので、ビルド（再検証）時刻を lastModified にする
   const builtAt = new Date();
-  const staticPages = [routes.home, routes.howToUse, routes.tech, routes.terms, routes.privacy].map(
-    (path) => ({ url: `${site.url}${path}`, lastModified: builtAt })
-  );
+  const staticPages = [
+    routes.home,
+    routes.reports,
+    routes.howToUse,
+    routes.tech,
+    routes.terms,
+    routes.privacy,
+  ].map((path) => ({ url: `${site.url}${path}`, lastModified: builtAt }));
 
   return [
     ...staticPages,

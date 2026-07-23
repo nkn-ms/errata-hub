@@ -71,8 +71,11 @@ describe("mapReport", () => {
     expect(mapReport(buildPrismaReport()).userIdShort).toBe("abcdef01");
   });
 
-  it("createdAt は YYYY-MM-DD 形式に整形する", () => {
-    expect(mapReport(buildPrismaReport()).createdAt).toBe("2026-06-18");
+  it("createdAt は YYYY-MM-DD 形式・createdAtIso は生の ISO を保つ", () => {
+    const r = mapReport(buildPrismaReport());
+    expect(r.createdAt).toBe("2026-06-18");
+    // 相対表記（フィード）用に元のタイムスタンプも残す
+    expect(r.createdAtIso).toBe("2026-06-18T09:30:00.000Z");
   });
 
   it("null フィールドは undefined に正規化する", () => {

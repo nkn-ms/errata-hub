@@ -7,6 +7,7 @@ describe("routes", () => {
     expect(routes.login).toBe("/login");
     expect(routes.register).toBe("/register");
     expect(routes.submit).toBe("/submit");
+    expect(routes.reports).toBe("/reports");
     expect(routes.howToUse).toBe("/how-to-use");
     expect(routes.tech).toBe("/tech");
   });
@@ -48,6 +49,7 @@ describe("routes", () => {
 
   it("パラメータ付きルートは対応する一覧パスの配下になる", () => {
     // 詳細ページの URL は一覧ページの URL を接頭辞に持つ（リネーム時の整合性確認）
+    expect(routes.report("r1").startsWith(routes.reports)).toBe(true);
     expect(routes.admin.report("r1").startsWith(routes.admin.reports)).toBe(true);
     expect(routes.admin.user("u1").startsWith(routes.admin.users)).toBe(true);
   });

@@ -20,12 +20,32 @@ export type ReportWithRelations = Prisma.ReportGetPayload<{
   include: typeof reportInclude;
 }>;
 
-/** 最新順の投稿一覧。take で件数を絞れる（トップページは最新 N 件）。 */
-export function findRecentReports(take?: number) {
+/**
+ * トップの新着フィード用。1ページ分の投稿（新着順）と総件数を返す。
+ * skip/take でサーバー側ページングするので、11件目以降も ?page=N で辿れる
+ * （古い投稿が導線から消えないようにするのが目的）。
+ */
+export async function findReportsPage(page: number, pageSize: number) {
+  const [reports, total] = await Promise.all([
+    prisma.report.findMany({
+      include: reportInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.report.count(),
+  ]);
+  return { reports, total };
+}
+
+/**
+ * /reports（検索・一覧ページ）用の全投稿（新着順）。
+ * 絞り込み・並べ替え・ページ送りはクライアント側テーブル（report-table.tsx）が担うため全件返す。
+ */
+export function findAllReports() {
   return prisma.report.findMany({
     include: reportInclude,
     orderBy: { createdAt: "desc" },
-    take,
   });
 }
 
