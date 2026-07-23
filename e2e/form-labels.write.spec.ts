@@ -6,7 +6,7 @@ import { login } from "./login";
 //
 // なぜ必要か: ラベルが紐づいていないと、スクリーンリーダーで入力欄の項目名が読まれず
 // 「編集テキスト」としか案内されない。見た目では気づけない壊れ方なので、テストで固定する。
-// getByLabel は「ラベルと控件が実際に結び付いているか」を DOM から解決するので、
+// getByLabel は「ラベルと入力欄が実際に結び付いているか」を DOM から解決するので、
 // これが通ること自体が紐づけの証明になる（htmlFor/id・入れ子・aria-labelledby のいずれでも可）。
 //
 // 何も保存しないので、シードの状態は変わらない。
@@ -24,12 +24,12 @@ test.describe("投稿フォームのラベル", () => {
     await expect(page.getByLabel("備考（任意）", { exact: true })).toBeVisible();
     await expect(page.getByLabel("出版社の正誤表URL（任意）")).toBeVisible();
 
-    // 実際に値が入る（＝ラベルが指しているのが目当ての控件であることの確認）
+    // 実際に値が入る（＝ラベルが指しているのが目当ての入力欄であることの確認）
     await page.getByLabel("タイトル").fill("ラベル紐づけの確認");
     await expect(page.getByLabel("タイトル")).toHaveValue("ラベル紐づけの確認");
   });
 
-  test("ボタン群には role=group で名前が付く（ラベルが単一の控件を指さない箇所）", async ({
+  test("ボタン群には role=group で名前が付く（ラベルが単一の入力欄を指さない箇所）", async ({
     page,
   }) => {
     await login(page, READER);
