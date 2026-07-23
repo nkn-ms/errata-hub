@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
+import { openReportByTitle } from "./find-report";
 
 // 画像添付つき投稿の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 //
@@ -63,11 +64,7 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await page.waitForURL(/\/$/);
 
     // 詳細ページで「証拠画像」として表示される（＝Storage への保存と ReportImage 行の作成が成功している）
-    await page.getByPlaceholder("書籍名・タイトルで検索...").fill(uniqueTitle);
-    const row = page.getByRole("row").filter({ hasText: uniqueTitle });
-    await row.locator("td").last().click();
-    await page.waitForURL(/\/reports\/[^/]+$/);
-    const reportId = page.url().split("/").pop()!;
+    const reportId = await openReportByTitle(page, uniqueTitle);
 
     const image = page.getByAltText("証拠画像");
     await expect(image).toBeVisible();

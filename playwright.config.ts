@@ -41,8 +41,14 @@ const writeProjects = isLocal
       {
         name: "write-local",
         testMatch: /.*\.write\.spec\.ts/,
-        // 同一データ（シード投稿の賛同数など）を触るため並列にしない
+        // 同一データ（シード投稿のステータス・賛同数など）を触るため並列にしない。
+        // fullyParallel: false は「1ファイル内を直列化」するだけでファイル間は並列に走るので、
+        // 共有データを触るプロジェクトでは workers: 1 まで要る
+        // （出典: https://playwright.dev/docs/api/class-testproject#test-project-workers ）。
+        // 実測: admin.write と report-status.write は同じシード投稿のステータスを書き換えるため、
+        // これが無いと 2 worker に分かれて互いの後片付けを踏む。
         fullyParallel: false,
+        workers: 1,
         use: { ...devices["Desktop Chrome"] },
       },
     ]

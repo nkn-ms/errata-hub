@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { createThrowawayAccount } from "./throwaway-user";
+import { openReportByTitle } from "./find-report";
 
 // アカウント系（退会・表示名変更・パスワード再発行）の e2e。
 // ローカル dev＋ローカル Supabase 限定（write-local project）。前提は他の書き込みテストと同じ。
@@ -48,11 +49,7 @@ async function submitReport(page: Page, title: string): Promise<string> {
   await page.getByRole("button", { name: "投稿する" }).click();
   await page.waitForURL(/\/$/);
 
-  await page.getByPlaceholder("書籍名・タイトルで検索...").fill(title);
-  const row = page.getByRole("row").filter({ hasText: title });
-  await row.locator("td").last().click();
-  await page.waitForURL(/\/reports\/[^/]+$/);
-  return page.url().split("/").pop()!;
+  return openReportByTitle(page, title);
 }
 
 // 管理者として投稿を削除（テストが作った投稿を残さないため）
