@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
+import { openReportByTitle } from "./find-report";
 
 // 出版社の正誤表URL（PR#76）の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
@@ -53,11 +54,7 @@ test.describe("正誤表URLの申告と採用", () => {
     await page.getByRole("button", { name: "投稿する" }).click();
     await page.waitForURL(/\/$/);
 
-    await page.getByPlaceholder("書籍名・タイトルで検索...").fill(reportTitle);
-    const row = page.getByRole("row").filter({ hasText: reportTitle });
-    await row.locator("td").last().click();
-    await page.waitForURL(/\/reports\/[^/]+$/);
-    const reportId = page.url().split("/").pop()!;
+    const reportId = await openReportByTitle(page, reportTitle);
 
     // 申告しただけの URL は公開ページのどこにも出ない（採用前）。
     // 「正誤表リンクが1本も無いこと」ではなく「申告した URL へのリンクが無いこと」を見る
@@ -112,12 +109,8 @@ test.describe("正誤表URLの申告と採用", () => {
         .getByRole("link", { name: "編集" })
         .click();
       await adminPage.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
-      // 書籍編集フォームの <label> は input と紐づいていない（htmlFor/id が無い）ので
-      // getByLabel は使えず、ラベルの隣の input を指す。※紐づけは別途直す価値あり
-      await adminPage
-        .getByText("正誤表URL（出版社の公式ページ）")
-        .locator("xpath=following-sibling::input[1]")
-        .fill(originalErratumUrl ?? "");
+      // PR#96 でフォームの <label> が input と紐づいたので、ラベル名で直接指せる
+      await adminPage.getByLabel("正誤表URL").fill(originalErratumUrl ?? "");
       await adminPage.getByRole("button", { name: "保存する" }).click();
       await expect(adminPage.getByText("保存しました")).toBeVisible();
     } finally {

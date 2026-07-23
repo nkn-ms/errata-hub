@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
+import { openReportByTitle } from "./find-report";
 
 // 書き込み系（投稿・賛同）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project は BASE_URL がローカルのときだけ有効）。
@@ -66,15 +67,9 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByRole("button", { name: "投稿する" }).click();
     await page.waitForURL(/\/$/);
 
-    // 一覧に新しい投稿が出る
-    await page.getByPlaceholder("書籍名・タイトルで検索...").fill(uniqueTitle);
-    const row = page.getByRole("row").filter({ hasText: uniqueTitle });
-    await expect(row).toHaveCount(1);
-
-    // 行クリックで詳細へ。入力した内容が表示される。投稿 id は URL から取得（後片付けで使う）
-    await row.locator("td").last().click();
-    await page.waitForURL(/\/reports\/[^/]+$/);
-    const reportId = page.url().split("/").pop()!;
+    // 検索一覧（/reports）に新しい投稿が出て、行クリックで詳細へ入れる。
+    // 入力した内容が表示される。投稿 id は URL から取得（後片付けで使う）
+    const reportId = await openReportByTitle(page, uniqueTitle);
     await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
     await expect(page.getByText("正字コード")).toBeVisible();
     await expect(page.getByText("文字コード")).toBeVisible();
@@ -148,10 +143,7 @@ test.describe("投稿フォーム（書き込み）", () => {
 test.describe("賛同（書き込み）", () => {
   // シード投稿の詳細ページを開く
   async function openSeededReport(page: Page) {
-    await page.goto("/");
-    const row = page.getByRole("row").filter({ hasText: SEEDED_REPORT_TITLE });
-    await row.first().locator("td").last().click();
-    await page.waitForURL(/\/reports\/[^/]+$/);
+    await openReportByTitle(page, SEEDED_REPORT_TITLE);
   }
 
   test("他人の投稿に賛同でき、取り消すと元に戻る", async ({ page }) => {
