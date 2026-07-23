@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # labeled を含めるのは「PR に e2e ラベルを付けたら e2e を回す」ため
+    # （既定の opened/synchronize/reopened に加える。types を書くと既定は上書きなので明示する）。
+    types: [opened, synchronize, reopened, labeled]
 
 # 同一ブランチで新しい push があれば古い実行をキャンセル
 concurrency:
@@ -49,3 +52,90 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: dummy-publishable-key
           DATABASE_URL: postgresql://user:pass@localhost:5432/postgres
           DIRECT_URL: postgresql://user:pass@localhost:5432/postgres
+
+  # ─────────────────────────────────────────────────────────────
+  # e2e（Playwright）。ローカルの検証手順をそのまま CI で再現する:
+  #   supabase start → prisma migrate deploy → prisma db seed
+  #   → バケット作成 → playwright test
+  #
+  # 実行タイミングは絞る（テストピラミッドの考え方＝ e2e は薄い層に保つ）:
+  #   - main への push（＝マージ後）… 何かが漏れて main に入っていないかの安全網
+  #   - PR に "e2e" ラベルが付いているとき … マージ前に任意で回す
+  # 開発中の毎 push では回さないので、内側の開発ループは軽い CI だけで速いまま。
+  # ラベルの付け外しは gh pr edit <PR> --add-label e2e / --remove-label e2e。
+  # ─────────────────────────────────────────────────────────────
+  e2e:
+    name: e2e (Playwright)
+    needs: ci # 軽いチェックが落ちているときは重い e2e を走らせない（無駄打ち防止）
+    if: >-
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'e2e')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate --generator client
+
+      # ローカル Supabase（Postgres + Auth + Storage）を CI ランナー内に Docker で立てる。
+      # 使い捨て＝本番にもローカルにも触れない。
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase start
+
+      # 起動した使い捨て Supabase の接続情報を後続ステップ／dev サーバーへ渡す。
+      # キーを YAML に直書きせず supabase status から動的に取る（ローカル固有の値なので秘匿情報ではないが、
+      # 版が変わっても壊れないように実値を1か所から引く）。
+      - name: Export Supabase connection into env
+        run: |
+          STATUS=$(supabase status -o json)
+          DB=$(echo "$STATUS" | jq -r .DB_URL)
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$STATUS" | jq -r .API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$STATUS" | jq -r .PUBLISHABLE_KEY)"
+            echo "SUPABASE_SECRET_KEY=$(echo "$STATUS" | jq -r .SECRET_KEY)"
+            # pooler は無効（config.toml）なので DATABASE_URL も直接接続でよい
+            echo "DATABASE_URL=$DB"
+            echo "DIRECT_URL=$DB"
+          } >> "$GITHUB_ENV"
+
+      # スキーマは本番と同じ Prisma Migrate で適用する（migrate deploy は DIRECT_URL を見る）。
+      - name: Apply schema (prisma migrate deploy)
+        run: npx prisma migrate deploy
+
+      # シード（admin@local.test / reader@local.test / 本2冊・投稿1件）。
+      # seed.ts は supabase status から接続情報を読むので env 不要・ローカル判定も通る。
+      - name: Seed data
+        run: npx prisma db seed
+
+      # 画像添付テスト用の Storage バケット（report-images）。start だけでは作られない。
+      - name: Seed storage buckets
+        run: supabase seed buckets
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # webServer（playwright.config.ts）が npm run dev を起動し、上で $GITHUB_ENV に入れた
+      # 接続情報を継承する。BASE_URL は既定の localhost なので write-local project も有効。
+      - name: Run e2e
+        run: npx playwright test
+
+      # 失敗時だけレポートを残す（原因追跡用）。
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
