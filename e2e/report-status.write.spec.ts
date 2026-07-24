@@ -89,7 +89,8 @@ test.describe("ステータス運用（管理者）", () => {
 
     // 公開ページ（詳細）に出る
     await page.goto(`/reports/${reportId}`);
-    await expect(page.getByText("正誤表に掲載")).toBeVisible();
+    // バッジのラベルだけを見る（説明文にも「正誤表に掲載」が出てくるので完全一致で指す）
+    await expect(page.getByText("正誤表に掲載", { exact: true })).toBeVisible();
 
     // 一覧（/reports）の絞り込みでも引ける。まず検索で対象を絞る
     // （一覧は10件ずつのページ送りなので、投稿が増えると素の /reports には出ない）。

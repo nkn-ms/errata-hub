@@ -1,27 +1,22 @@
 import Link from "next/link";
 import { Report } from "@/types/report";
-import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
+import { STATUS_LABELS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
 import { cn } from "@/lib/utils";
-import { Badge, getLocationLabel, getErrataLabel } from "@/components/report-card";
+import { Badge, getEditionLocationLabel, getErrataLabel } from "@/components/report-card";
+import { StatusBadge } from "@/components/status-badge";
 
 // トップ用に列を削ぎ落としたテーブル（11列→6列）。フィード版の対案。
 // サーバー描画・?page=N ページネーション（page.tsx 側）と組み合わせる想定。
 //
 // 落とした列と行き先:
-//   版・刷   → 「位置」セルに統合（"第1版 p.42"）
+//   版・刷   → 「位置」セルに統合（"第1版 第2刷 p.42"＝ getEditionLocationLabel）
 //   タイトル → 「内容」に統合（誤→正・content が本体。タイトルはノイズになりがちで詳細で見せる）
 //   出版社コメント / 投稿者 → 詳細ページ（/reports/[id]）と全件テーブル（/reports）に温存
 //   賛同     → 「投稿」セルに 👍n を同居
 // 残す6列: 種別 / 書籍 / 内容 / 位置 / 状況 / 投稿（日付＋賛同）
-
-// 版と位置を1セルに圧縮（"第1版 p.42" / "電子書籍 位置No.500（43%付近）"）
-function compactLocation(r: Report): string {
-  const edition = r.edition ? `第${r.edition}版` : null;
-  return [edition, getLocationLabel(r)].filter(Boolean).join(" ");
-}
 
 export function CompactReportTable({ data }: { data: Report[] }) {
   return (
@@ -38,7 +33,7 @@ export function CompactReportTable({ data }: { data: Report[] }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {data.map((r) => (
+          {data.map((r, index) => (
             // 行全体をクリック可能にする（書籍セルの Link を疑似要素で行いっぱいに広げる stretched link）。
             // JS 不要でサーバー描画のまま行リンクにできる。
             <tr key={r.id} className="relative hover:bg-blue-50 transition-colors">
@@ -56,16 +51,20 @@ export function CompactReportTable({ data }: { data: Report[] }) {
               <td className="px-4 py-3 align-top">
                 <div className="text-sm text-gray-700 line-clamp-1 max-w-md">{getErrataLabel(r)}</div>
               </td>
-              <td className="px-4 py-3 align-top text-xs text-gray-500 whitespace-nowrap">
-                {compactLocation(r)}
+              {/* 折り返しを許す（電子書籍の位置は長く、nowrap だと表が横スクロールに追い込まれる） */}
+              <td className="px-4 py-3 align-top text-xs text-gray-500">
+                {getEditionLocationLabel(r)}
               </td>
               <td className="px-4 py-3 align-top">
+                {/* 「未対応」は動きが無い状態なので控えめな文字のまま（動いたステータスだけ色で目立たせる）。
+                    それ以外はバッジ＋説明のツールチップ（最終行は上向き＝コンテナに切られないように） */}
                 {r.status === "PENDING" ? (
                   <span className="text-xs text-gray-400 whitespace-nowrap">{STATUS_LABELS[r.status]}</span>
                 ) : (
-                  <Badge
-                    label={STATUS_LABELS[r.status]}
-                    className={cn(STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-700", "whitespace-nowrap")}
+                  <StatusBadge
+                    status={r.status}
+                    tooltipPlacement={index === data.length - 1 ? "top" : "bottom"}
+                    tooltipAlign="right"
                   />
                 )}
               </td>

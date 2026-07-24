@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { reportInclude } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,6 +10,7 @@ import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { SiteHeader } from "@/components/site-header";
+import { StatusBadge } from "@/components/status-badge";
 
 type Props = {
   params: Promise<{ isbn: string }>;
@@ -123,12 +123,7 @@ export default async function BookDetailPage({ params }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS[report.status]}
-                      >
-                        {STATUS_LABELS[report.status]}
-                      </span>
+                      <StatusBadge status={report.status} />
                     </div>
                     <p className="font-medium text-gray-900 truncate">{report.title}</p>
                     {(report.wrong || report.correct) && (

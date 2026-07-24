@@ -34,6 +34,12 @@ export function getErrataLabel(report: Report): string {
   return report.content ?? "";
 }
 
+// 「第2版 第3刷 p.42」。一覧（トップ・/reports）は列数を絞るため、版・刷と位置を1セルにまとめる。
+// 2つの表で同じ見え方にしたいのでここに置く（片方だけ書式が変わるのを防ぐ）。
+export function getEditionLocationLabel(report: Report): string {
+  return [getEditionLabel(report), getLocationLabel(report)].filter(Boolean).join(" ");
+}
+
 // 「第2版 第3刷」。紙は版が必須・刷は任意（actions/report.ts の superRefine）、
 // 電子書籍は版も刷も持たない（どちらも null）ので空文字になる
 function getEditionLabel(report: Report): string {

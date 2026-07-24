@@ -16,20 +16,65 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Report, ReportType, ReportStatus } from "@/types/report";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { STATUS_LABELS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-import { Badge, ReportCard, getLocationLabel, getErrataLabel } from "@/components/report-card";
+import {
+  Badge,
+  ReportCard,
+  getEditionLocationLabel,
+  getErrataLabel,
+} from "@/components/report-card";
+import { StatusBadge } from "@/components/status-badge";
 
+// 列は6つ。以前は11列あり、1280px でも 224px 分が横スクロールの向こう側に隠れていた
+// （＝隠れた列は誰も読まないのに、全部の列幅を細くして読みにくさだけを配っていた）。
+// 落とした情報は捨てずに同じ意味のセルへ寄せてある。トップの CompactReportTable と同じ並び。
+//
+//   版・刷        → 「位置」に統合（"第1版 第2刷 p.42"）
+//   タイトル      → 「内容」の2行目に統合（主役は誤→正・内容の方）
+//   出版社コメント → 「状況」に統合（ステータスと出版社の回答は同じ話）
+//   賛同・投稿者   → 「投稿」に統合（日付と同じ「誰がいつ」の情報）
+//
+// 検索（globalFilter）の対象は列を絞る前と同じに保つため、隠し列 searchText にまとめている。
 const columns: ColumnDef<Report>[] = [
   {
+    // 表示しない検索用の列。TanStack の globalFilter は「accessorFn を持つ列」を見るだけで
+    // 表示状態は問わないので、隠し列でも検索対象になる（table-core: getCanGlobalFilter）。
+    // これが無いと、列を落とした瞬間にその項目で検索できなくなる
+    id: "searchText",
+    accessorFn: (report) =>
+      [
+        report.bookTitle,
+        report.title,
+        report.wrong,
+        report.correct,
+        report.content,
+        report.publisherComment,
+        report.userName,
+      ]
+        .filter(Boolean)
+        .join(" "),
+  },
+  {
+    accessorKey: "type",
+    header: "種別",
+    cell: ({ getValue }) => {
+      const type = getValue() as ReportType;
+      return <Badge label={TYPE_LABELS[type]} className={cn(TYPE_COLORS[type], "whitespace-nowrap")} />;
+    },
+    filterFn: (row, _, filterValue) =>
+      filterValue === "all" || row.original.type === filterValue,
+  },
+  {
     accessorKey: "bookTitle",
-    header: "書籍名",
+    header: "書籍",
     cell: ({ row }) => (
       <Link
         href={routes.book(row.original.isbn)}
-        className="font-medium text-sm text-blue-700 hover:underline whitespace-nowrap"
+        // 実データの書籍名は長い。nowrap にすると1行で横幅を食い潰すので折り返させる
+        className="font-medium text-sm text-blue-700 hover:underline line-clamp-2 max-w-48"
         onClick={(e) => e.stopPropagation()}
       >
         {row.original.bookTitle}
@@ -37,116 +82,80 @@ const columns: ColumnDef<Report>[] = [
     ),
   },
   {
-    id: "edition",
-    header: "版・刷",
-    cell: ({ row }) => {
-      const { edition, printing } = row.original;
-      // 版も刷も無いのは電子書籍（紙は版が必須）。この列に出せるものが無い
-      // ※ mapReport が DB の null を undefined にして渡すので undefined で判定する
-      const hasEditionInfo = edition !== undefined || printing !== undefined;
-      if (!hasEditionInfo) return <span className="text-xs text-gray-400">-</span>;
-      return (
-        <div className="text-xs text-gray-600">
-          {edition && <div>第{edition}版</div>}
-          {printing && <div>第{printing}刷</div>}
-        </div>
-      );
-    },
-  },
-  {
-    id: "location",
-    header: "位置",
+    id: "content",
+    header: "内容",
+    enableSorting: false,
     cell: ({ row }) => (
-      <div className="text-sm text-gray-600 whitespace-nowrap">{getLocationLabel(row.original)}</div>
-    ),
-  },
-  {
-    accessorKey: "title",
-    header: "タイトル",
-    cell: ({ getValue }) => (
-      <div className="text-sm text-gray-800 max-w-48 truncate">{getValue() as string}</div>
-    ),
-  },
-  {
-    id: "errata",
-    header: "正誤・内容",
-    cell: ({ row }) => (
-      <div className="text-sm text-gray-700 max-w-56 truncate">
-        {getErrataLabel(row.original)}
+      <div className="max-w-md">
+        <div className="text-sm text-gray-800 line-clamp-2">{getErrataLabel(row.original)}</div>
+        {/* 投稿タイトルは主役ではないので2行目に小さく置く（検索語が当たった理由が見える） */}
+        <div className="text-xs text-gray-500 line-clamp-1">{row.original.title}</div>
       </div>
     ),
   },
   {
-    accessorKey: "publisherComment",
-    header: "出版社コメント",
-    cell: ({ getValue }) => {
-      const comment = getValue() as string;
-      return comment ? (
-        <div className="text-sm text-gray-700 max-w-56 truncate">{comment}</div>
-      ) : (
-        <span className="text-xs text-gray-400">未回答</span>
-      );
-    },
-  },
-  {
-    accessorKey: "type",
-    header: "種別",
-    cell: ({ getValue }) => {
-      const type = getValue() as ReportType;
-      return <Badge label={TYPE_LABELS[type]} className={TYPE_COLORS[type]} />;
-    },
-    filterFn: (row, _, filterValue) =>
-      filterValue === "all" || row.original.type === filterValue,
-  },
-  {
-    accessorKey: "status",
-    header: "ステータス",
-    cell: ({ getValue }) => {
-      const status = getValue() as ReportStatus;
-      return (
-        <span title={STATUS_TOOLTIPS[status]}>
-          <Badge label={STATUS_LABELS[status]} className={STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700"} />
-        </span>
-      );
-    },
-    filterFn: (row, _, filterValue) =>
-      filterValue === "all" || row.original.status === filterValue,
-  },
-  {
-    accessorKey: "upvoteCount",
-    header: "賛同",
-    cell: ({ getValue }) => {
-      const count = getValue() as number;
-      return count > 0 ? (
-        <div className="text-sm text-gray-700 whitespace-nowrap">👍 {count}</div>
+    id: "location",
+    header: "位置",
+    enableSorting: false,
+    cell: ({ row }) => {
+      // 版も刷も位置も無いのは電子書籍で位置未記入のときだけ（紙は版とページが必須）
+      const label = getEditionLocationLabel(row.original);
+      // 折り返しを許す: 電子書籍の位置（"電子書籍 位置No.500（43%付近）"）は長く、
+      // nowrap にすると1セルで 220px 使って表全体を横スクロールに追い込む
+      return label ? (
+        <div className="text-xs text-gray-600">{label}</div>
       ) : (
         <span className="text-xs text-gray-400">-</span>
       );
     },
   },
   {
-    accessorKey: "userName",
-    header: "投稿者",
-    cell: ({ row }) =>
-      // 退会済みユーザーはプロフィールへのリンクも短縮IDも出さない。
-      row.original.isWithdrawn ? (
-        <div className="text-sm text-gray-400">{row.original.userName}</div>
-      ) : (
-        <Link
-          href={routes.user(row.original.userId)}
-          className="block hover:underline"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="text-sm text-gray-600">{row.original.userName}</div>
-          <div className="text-xs text-gray-400">@{row.original.userIdShort}</div>
-        </Link>
-      ),
+    accessorKey: "status",
+    header: "状況",
+    cell: ({ row, table }) => {
+      const rows = table.getRowModel().rows;
+      // 最終行だけツールチップを上向きにする（下向きだと overflow-x-auto のコンテナに切られる）
+      const isLastRow = rows[rows.length - 1]?.id === row.id;
+      return (
+        <div className="space-y-1">
+          <StatusBadge
+            status={row.original.status}
+            tooltipPlacement={isLastRow ? "top" : "bottom"}
+            tooltipAlign="right"
+          />
+          {row.original.publisherComment ? (
+            <div className="text-xs text-gray-600 line-clamp-2 max-w-48">
+              出版社: {row.original.publisherComment}
+            </div>
+          ) : null}
+        </div>
+      );
+    },
+    filterFn: (row, _, filterValue) =>
+      filterValue === "all" || row.original.status === filterValue,
   },
   {
     accessorKey: "createdAt",
-    header: "投稿日",
-    cell: ({ getValue }) => (
-      <div className="text-sm text-gray-500 whitespace-nowrap">{getValue() as string}</div>
+    header: "投稿",
+    cell: ({ row }) => (
+      <div className="text-right">
+        {row.original.upvoteCount > 0 && (
+          <div className="text-xs text-gray-600 whitespace-nowrap">👍 {row.original.upvoteCount}</div>
+        )}
+        <div className="text-xs text-gray-500 whitespace-nowrap">{row.original.createdAt}</div>
+        {/* 退会済みユーザーはプロフィールへのリンクも短縮IDも出さない */}
+        {row.original.isWithdrawn ? (
+          <div className="text-xs text-gray-400 truncate max-w-32">{row.original.userName}</div>
+        ) : (
+          <Link
+            href={routes.user(row.original.userId)}
+            className="block text-xs text-gray-600 hover:underline truncate max-w-32"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {row.original.userName}
+          </Link>
+        )}
+      </div>
     ),
   },
 ];
@@ -175,7 +184,8 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    // searchText は検索専用の隠し列（列としては描かない）
+    initialState: { pagination: { pageSize: 10 }, columnVisibility: { searchText: false } },
   });
 
   return (
