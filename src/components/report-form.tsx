@@ -29,17 +29,29 @@ type BookData = {
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
 
-// 文字数カウンター（「30/2000」）。maxLength に達すると入力できなくなるので、
+// 文字数カウンター（「820/1000」）。maxLength に達すると入力できなくなるので、
 // 打ち切られる前に残りが見えるようにする。自由記述の欄（タイトル・誤・正・内容/提案・備考）に付け、
 // 位置・URL のような「上限まで書くことがそもそも無い」欄には付けない。
 //
+// 常時は出さず、上限の 80% に達してから出す。常時表示だと上限の数字自体がアンカーになり
+// 「そこまで書いてよい」と読めてしまうため（同じ理由で GOV.UK Design System の Character count は
+// threshold オプションを持つ: https://design-system.service.gov.uk/components/character-count/ ）。
+//
 // 数え方は maxLength と同じ UTF-16 コードユニット（= String#length）なので、表示と
 // ブラウザの打ち切りがずれない。
-// aria-live は付けない（打鍵のたびに読み上げられて邪魔になる）。textarea の aria-describedby
+// aria-live は付けない（打鍵のたびに読み上げられて邪魔になる）。入力欄の aria-describedby
 // から参照させ、フォーカス時に一度読まれる形にしている。
+const COUNTER_VISIBLE_RATIO = 0.8;
+
 function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
+  const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
   return (
-    <p id={id} className="mt-1 text-right text-xs text-gray-500 tabular-nums">
+    <p
+      id={id}
+      // 出現時に下の入力欄がずれないよう、隠している間も高さは確保する（display:none にしない）。
+      // visibility:hidden は読み上げからも外れるので、見えない間は説明としても読まれない。
+      className={`mt-1 text-right text-xs text-gray-500 tabular-nums ${nearLimit ? "" : "invisible"}`}
+    >
       {value.length}/{max}
     </p>
   );

@@ -44,29 +44,41 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
   });
 
-  test("自由記述の欄に文字数カウンターが出て、入力に追従する", async ({ page }) => {
+  test("文字数カウンターは上限の8割に達してから出る", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
 
-    await expect(page.locator("#title-count")).toHaveText("0/100");
-    await expect(page.locator("#note-count")).toHaveText("0/1000");
+    // 空のうちは出さない（上限の数字をアンカーにしないため）
+    await expect(page.locator("#title-count")).toBeHidden();
+    await expect(page.locator("#note-count")).toBeHidden();
 
-    // 既定は正誤（ERRATA）＝「誤」「正」の欄が出る。カウンターは 0/上限 から始まる
+    // 既定は正誤（ERRATA）＝「誤」「正」の欄が出る
     const wrong = page.getByLabel("誤（該当箇所）");
     const wrongCount = page.locator("#wrong-count");
-    await expect(wrongCount).toHaveText("0/1000");
+    await expect(wrongCount).toBeHidden();
 
+    // 8割に届かないうちは出ない
     await wrong.fill("あ".repeat(30));
-    await expect(wrongCount).toHaveText("30/1000");
+    await expect(wrongCount).toBeHidden();
+
+    // 8割（1000 × 0.8）に達したら出る
+    await wrong.fill("あ".repeat(800));
+    await expect(wrongCount).toBeVisible();
+    await expect(wrongCount).toHaveText("800/1000");
 
     // 実際の打ち切りはブラウザの maxlength が行う（fill は DOM に直接代入するので
     // maxlength を経由しない＝ここでは属性が付いていることだけを確かめる）
     await expect(wrong).toHaveAttribute("maxlength", "1000");
-    await expect(page.locator("#correct-count")).toHaveText("0/1000");
 
-    // 改善提案に切り替えると「内容・提案」欄のカウンターに変わる
+    // 隣の「正」欄は空のままなので出ない（欄ごとに独立している）
+    await expect(page.locator("#correct-count")).toBeHidden();
+
+    // 改善提案に切り替えると「内容・提案」欄（上限2000）のカウンターに変わる
     await page.getByRole("button", { name: "改善提案" }).click();
-    await expect(page.locator("#content-count")).toHaveText("0/2000");
+    const contentCount = page.locator("#content-count");
+    await expect(contentCount).toBeHidden();
+    await page.getByLabel("内容・提案").fill("あ".repeat(1600));
+    await expect(contentCount).toHaveText("1600/2000");
   });
 
   test("紙の書籍の正誤投稿が作成でき、一覧と詳細に反映される", async ({ page, browser }) => {
