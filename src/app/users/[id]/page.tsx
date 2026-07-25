@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { findReportsByUser } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +10,7 @@ import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
+import { StatusBadge } from "@/components/status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
 
 type Props = {
@@ -180,12 +180,7 @@ export default async function UserDetailPage({ params }: Props) {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type] ?? "bg-gray-100 text-gray-600"}`}>
                         {TYPE_LABELS[report.type]}
                       </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                        title={STATUS_TOOLTIPS[report.status]}
-                      >
-                        {STATUS_LABELS[report.status]}
-                      </span>
+                      <StatusBadge status={report.status} />
                     </div>
                     <p className="font-medium text-gray-900 truncate">{report.title}</p>
                     <p className="text-sm text-gray-500 mt-0.5 truncate">

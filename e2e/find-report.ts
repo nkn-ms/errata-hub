@@ -26,9 +26,9 @@ export async function searchReports(page: Page, title: string): Promise<Locator>
  */
 export async function openReportByTitle(page: Page, title: string): Promise<string> {
   const row = await searchReports(page, title);
-  // 末尾のセルにはリンクが無い（書籍名・投稿者セルは stopPropagation する Link）ので、
-  // 行の遷移を確かめるにはここを押すのが確実
-  await row.locator("td").last().click();
+  // リンクを含まないセル（位置など）を押す。書籍名・投稿者はセル内リンクなので、
+  // そこを押すと行クリック（tr onClick）ではなくリンク側の遷移になる
+  await row.locator("td:not(:has(a))").first().click();
   await page.waitForURL(/\/reports\/[^/]+$/);
   return page.url().split("/").pop()!;
 }

@@ -2,7 +2,6 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { findReportById } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
 import { SiteHeader } from "@/components/site-header";
+import { StatusBadge } from "@/components/status-badge";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -84,12 +84,7 @@ export default async function ReportDetailPage({ params }: Props) {
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
                 {TYPE_LABELS[report.type]}
               </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[report.status] ?? "bg-gray-100 text-gray-700"}`}
-                title={STATUS_TOOLTIPS[report.status]}
-              >
-                {STATUS_LABELS[report.status]}
-              </span>
+              <StatusBadge status={report.status} />
             </div>
             <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
             <p className="mt-1 text-sm text-gray-500">

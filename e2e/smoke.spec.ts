@@ -131,8 +131,9 @@ test.describe("投稿一覧ページ（/reports）", () => {
     const rows = page.locator("tbody tr");
     test.skip((await rows.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
 
-    // 末尾セル（投稿日）はリンクを含まないので、行クリック（router.push）が確実に発火する。
-    await rows.first().locator("td").last().click();
+    // リンクを含まないセル（位置など）を選ぶ。リンクの上を押すとそちらの遷移になるため、
+    // 行クリック（router.push）を試すにはリンクの無いセルが要る
+    await rows.first().locator("td:not(:has(a))").first().click();
     await expect(page).toHaveURL(/\/reports\/[^/]+$/);
   });
 

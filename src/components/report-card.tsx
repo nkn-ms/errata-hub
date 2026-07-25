@@ -27,11 +27,32 @@ export function getLocationLabel(report: Report): string {
   return "";
 }
 
-export function getErrataLabel(report: Report): string {
+// 投稿の中身（誤→正 or 改善提案の本文）の共有表示。トップの表・/reports の表・スマホカードで使い回す。
+//
+// 正誤情報（誤と正の両方がある）は **2行に分ける**: 1行の "誤 → 正" は実データだと長く、
+// テーブルの列幅で途中で切れると肝心の誤り/訂正が読めなくなるため。行頭に色付きラベルを置いて、
+// どちらが誤でどちらが正かを一目で分けられるようにする（詳細ページの赤/緑ブロックと同じ意味付け）。
+// 改善提案など content だけの投稿は従来どおり1行で出す。
+export function ErrataSummary({ report }: { report: Report }) {
   if (report.wrong && report.correct) {
-    return `${report.wrong} → ${report.correct}`;
+    return (
+      <div className="text-sm space-y-0.5">
+        <div className="line-clamp-1 text-gray-800">
+          <span className="font-semibold text-gray-900">誤:</span> {report.wrong}
+        </div>
+        <div className="line-clamp-1 text-gray-800">
+          <span className="font-semibold text-gray-900">正:</span> {report.correct}
+        </div>
+      </div>
+    );
   }
-  return report.content ?? "";
+  return <div className="text-sm text-gray-800 line-clamp-2">{report.content ?? ""}</div>;
+}
+
+// 「第2版 第3刷 p.42」。一覧（トップ・/reports）は列数を絞るため、版・刷と位置を1セルにまとめる。
+// 2つの表で同じ見え方にしたいのでここに置く（片方だけ書式が変わるのを防ぐ）。
+export function getEditionLocationLabel(report: Report): string {
+  return [getEditionLabel(report), getLocationLabel(report)].filter(Boolean).join(" ");
 }
 
 // 「第2版 第3刷」。紙は版が必須・刷は任意（actions/report.ts の superRefine）、
@@ -114,7 +135,7 @@ export function ReportCard({ report }: { report: Report }) {
         )}
 
         {/* ② 何が間違っているか＝カードの主役 */}
-        <div className="text-sm text-gray-800 line-clamp-2">{getErrataLabel(report)}</div>
+        <ErrataSummary report={report} />
 
         {report.publisherComment && (
           <div className="text-xs text-gray-600 line-clamp-2 border-l-2 border-gray-200 pl-2">
