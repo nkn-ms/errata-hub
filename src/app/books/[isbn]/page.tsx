@@ -5,12 +5,12 @@ import { reportInclude } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
+import { BookCover } from "@/components/book-cover";
 
 type Props = {
   params: Promise<{ isbn: string }>;
@@ -64,10 +64,7 @@ export default async function BookDetailPage({ params }: Props) {
         {/* 書籍情報 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex gap-5">
-            {book.coverImageUrl && (
-              // 書影は外部API由来でホストが可変のため unoptimized（remotePatterns 未登録ホストで落ちない）
-              <Image src={book.coverImageUrl} alt={book.title} width={96} height={134} unoptimized className="w-24 h-auto object-cover rounded shadow-sm shrink-0" />
-            )}
+            <BookCover src={book.coverImageUrl} alt={book.title} width={96} height={134} className="w-24 shrink-0" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
               {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}

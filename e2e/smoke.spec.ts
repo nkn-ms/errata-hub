@@ -157,6 +157,27 @@ test.describe("投稿一覧ページ（/reports）", () => {
     await expect(page.getByPlaceholder("書籍名・タイトルで検索...")).toHaveValue("TCP");
   });
 
+  test("書影が無い本でも、書籍ページ・投稿詳細に「表紙なし」のプレースホルダが出る", async ({ page }) => {
+    await page.goto("/reports");
+    await expect(page.getByText(/\d+ 件/)).toBeVisible();
+    const bookLinks = page.locator('tbody a[href^="/books/"]');
+    test.skip((await bookLinks.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
+
+    // 書影が無い本は珍しくない（外部の書誌データに元から無い）。要素ごと省くと空白になり
+    // 「壊れている／読み込み中」に見えるので、本アイコンの箱を出す。装飾なので aria-hidden。
+    // シードの2冊はどちらも書影なし（＝この検査は常に本番の分岐を通る）
+    const placeholder = page.locator("svg.lucide-book-marked");
+
+    await bookLinks.first().click();
+    await expect(page).toHaveURL(/\/books\/97\d{11}$/);
+    await expect(placeholder).toHaveCount(1);
+
+    await page.goBack();
+    await page.locator("tbody tr").first().locator("td:not(:has(a))").first().click();
+    await expect(page).toHaveURL(/\/reports\/[^/]+$/);
+    await expect(placeholder).toHaveCount(1);
+  });
+
   test("非正規な ISBN の書籍 URL は正規の ISBN-13 へ寄せられる", async ({ page }) => {
     await page.goto("/reports");
     const bookLinks = page.locator('tbody a[href^="/books/"]');

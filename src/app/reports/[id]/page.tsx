@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
+import { BookCover } from "@/components/book-cover";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -101,10 +102,7 @@ export default async function ReportDetailPage({ params }: Props) {
 
           {/* 書籍情報 */}
           <div className="flex gap-4 p-4 bg-gray-50 rounded-md">
-            {report.coverImage && (
-              // 書影は外部API由来でホストが可変のため unoptimized（remotePatterns 未登録ホストで落ちない）
-              <Image src={report.coverImage} alt={report.bookTitle} width={64} height={90} unoptimized className="w-16 h-auto object-cover rounded shadow-sm" />
-            )}
+            <BookCover src={report.coverImage} alt={report.bookTitle} width={64} height={90} className="w-16 shrink-0" />
             <div>
               <Link href={routes.book(report.isbn)} className="font-medium text-blue-700 hover:underline">
                 {report.bookTitle}
