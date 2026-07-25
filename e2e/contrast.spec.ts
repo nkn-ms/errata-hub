@@ -17,6 +17,8 @@ const GUEST_PAGES = [
   "/register",
   "/terms",
   "/privacy",
+  // 退会完了ページ。退会後は signOut 済みなので認証は要らない（＝ゲストで測れる）
+  "/account/withdrawn",
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -46,6 +48,23 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       findings = await findLowContrastText(page);
       expect(findings, `書籍詳細:\n${formatFindings(findings)}`).toEqual([]);
+    });
+
+    test("ユーザーページの全テキストが AA を満たす", async ({ page }) => {
+      // ここも ID は固定せず投稿詳細の投稿者リンクから辿る。
+      // 退会済みユーザーの投稿はリンクにならない（span になる）ので、リンクがある投稿を選ぶ
+      await page.goto("/reports");
+      await page.locator("tbody tr").first().click();
+      await page.waitForURL(/\/reports\/[0-9a-f-]{36}$/);
+
+      const authorLink = page.locator('a[href^="/users/"]').first();
+      test.skip((await authorLink.count()) === 0, "投稿者が退会済みでユーザーページへの導線が無い");
+
+      await authorLink.click();
+      await page.waitForURL(/\/users\/[0-9a-f-]{36}$/);
+
+      const findings = await findLowContrastText(page);
+      expect(findings, `ユーザーページ:\n${formatFindings(findings)}`).toEqual([]);
     });
   });
 }
