@@ -107,7 +107,7 @@ export default async function Home({ searchParams }: Props) {
                   ← 新しい投稿
                 </Link>
               ) : (
-                <span className="px-3 py-1.5 text-sm border border-gray-200 rounded-md text-gray-300">
+                <span aria-disabled="true" className="px-3 py-1.5 text-sm border border-gray-200 rounded-md text-gray-300">
                   ← 新しい投稿
                 </span>
               )}
@@ -123,7 +123,7 @@ export default async function Home({ searchParams }: Props) {
                   古い投稿 →
                 </Link>
               ) : (
-                <span className="px-3 py-1.5 text-sm border border-gray-200 rounded-md text-gray-300">
+                <span aria-disabled="true" className="px-3 py-1.5 text-sm border border-gray-200 rounded-md text-gray-300">
                   古い投稿 →
                 </span>
               )}

@@ -14,14 +14,17 @@ export const STATUS_LABELS: Record<ReportStatus, string> = {
   OTHER: "その他",
 };
 
+// バッジは 12px なので、地と文字は WCAG AA の 4.5:1 が要る（大文字の緩和 3:1 は使えない）。
+// LISTED と DISMISSED はここを割っていたので一段濃くした（実測 4.50 / 3.91 → 6.3 / 6.1）。
+// 全ステータス分の実測は e2e/contrast-light.spec.ts が /how-to-use の一覧で押さえている。
 const STATUS_COLOR_VALUES = {
   PENDING: "bg-gray-100 text-gray-700",
   FORWARDED: "bg-blue-100 text-blue-700",
-  LISTED: "bg-green-100 text-green-700",
+  LISTED: "bg-green-100 text-green-800",
   WILL_FIX: "bg-yellow-100 text-yellow-700",
   FIXED: "bg-green-200 text-green-800",
   WONT_FIX: "bg-red-100 text-red-700",
-  DISMISSED: "bg-gray-200 text-gray-500",
+  DISMISSED: "bg-gray-200 text-gray-600",
   OTHER: "bg-purple-100 text-purple-700",
 } as const satisfies Record<ReportStatus, string>;
 

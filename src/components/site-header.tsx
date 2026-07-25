@@ -53,7 +53,11 @@ export function SiteHeader({
 
         {crumbs?.map((crumb) => (
           <Fragment key={crumb.label}>
-            <span className="text-gray-300">/</span>
+            {/* 区切りの装飾。読み上げでは「スラッシュ」がノイズになるだけで、
+                階層はリンクの並びが表しているので隠す（＝コントラスト基準の対象外にもなる） */}
+            <span aria-hidden className="text-gray-300">
+              /
+            </span>
             {crumb.href ? (
               <Link
                 href={crumb.href}
