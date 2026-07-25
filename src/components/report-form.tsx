@@ -43,6 +43,15 @@ type Medium = "PAPER" | "EBOOK" | "OTHER";
 // から参照させ、フォーカス時に一度読まれる形にしている。
 const COUNTER_VISIBLE_RATIO = 0.8;
 
+// 「内容・提案」は唯一の完全な自由記述で、放っておくと一続きの長文になりやすい。
+// 長い提案は読まれない＝出版社に届かないので、書く前に**型**を見せて分解を促す。
+// 正誤情報の 誤 → 正 の2欄が既にそれを構造で効かせている例で、ここはその placeholder 版。
+// ※ 文字数上限（REPORT_LIMITS.content）では短くならない。上限内で冗長に書けてしまうため、
+//   効くのは「何をどの順で書くか」を示す側（上限は暴発を止める別の役目）。
+const CONTENT_PLACEHOLDER = `例）
+気になった点: 3章のサンプルコードが手元の環境では動かない
+どう直すとよいか: 実行環境のバージョンを明記してほしい`;
+
 function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
   const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
   return (
@@ -506,7 +515,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               maxLength={REPORT_LIMITS.content}
               aria-describedby="content-count"
               rows={4}
-              placeholder="気になる点や改善提案を入力してください"
+              placeholder={CONTENT_PLACEHOLDER}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <CharCounter id="content-count" value={content} max={REPORT_LIMITS.content} />
