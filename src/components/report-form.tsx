@@ -48,9 +48,18 @@ const COUNTER_VISIBLE_RATIO = 0.8;
 // 正誤情報の 誤 → 正 の2欄が既にそれを構造で効かせている例で、ここはその placeholder 版。
 // ※ 文字数上限（REPORT_LIMITS.content）では短くならない。上限内で冗長に書けてしまうため、
 //   効くのは「何をどの順で書くか」を示す側（上限は暴発を止める別の役目）。
-const CONTENT_PLACEHOLDER = `例）
+// 例は種別で変える。改善提案は「どう直すとよいか」まで書けることが多いが、
+// その他には**直し方まで分からない相談**（入手できない・リンクが切れている・意図が読み取れない等）が来る。
+// 同じ型を出すと「直し方を書けないと投稿できない」と読めてしまい、書ける人しか投稿しない欄になる。
+// （欄そのものを 誤→正 のように2つに割らなかったのも同じ理由）
+const CONTENT_PLACEHOLDER = {
+  suggestion: `例）
 気になった点: 3章のサンプルコードが手元の環境では動かない
-どう直すとよいか: 実行環境のバージョンを明記してほしい`;
+どう直すとよいか: 実行環境のバージョンを明記してほしい`,
+  other: `例）
+どんなことか: 付属データのダウンロードリンクが切れている
+どうしてほしいか（あれば）: 現在の配布先を案内してほしい`,
+};
 
 function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
   const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
@@ -515,7 +524,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               maxLength={REPORT_LIMITS.content}
               aria-describedby="content-count"
               rows={4}
-              placeholder={CONTENT_PLACEHOLDER}
+              placeholder={reportType === "OTHER" ? CONTENT_PLACEHOLDER.other : CONTENT_PLACEHOLDER.suggestion}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <CharCounter id="content-count" value={content} max={REPORT_LIMITS.content} />
