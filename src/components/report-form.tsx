@@ -29,6 +29,21 @@ type BookData = {
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
 
+// 長文欄の文字数カウンター（「30/2000」）。maxLength に達すると入力できなくなるので、
+// 打ち切られる前に残りが見えるようにする。短い欄（タイトル・位置・URL）には付けない。
+//
+// 数え方は maxLength と同じ UTF-16 コードユニット（= String#length）なので、表示と
+// ブラウザの打ち切りがずれない。
+// aria-live は付けない（打鍵のたびに読み上げられて邪魔になる）。textarea の aria-describedby
+// から参照させ、フォーカス時に一度読まれる形にしている。
+function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
+  return (
+    <p id={id} className="mt-1 text-right text-xs text-gray-500 tabular-nums">
+      {value.length}/{max}
+    </p>
+  );
+}
+
 type Props = {
   // 書籍ページの「この本に投稿する」から来たとき、その本を確定済みとして受け取る。
   // 渡された場合は書籍検索を出さず、確定表示（編集不可）にする。
@@ -440,10 +455,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 value={wrong}
                 onChange={(e) => setWrong(e.target.value)}
                 maxLength={REPORT_LIMITS.wrong}
+                aria-describedby="wrong-count"
                 rows={2}
                 placeholder="誤りのある文章をそのまま入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              <CharCounter id="wrong-count" value={wrong} max={REPORT_LIMITS.wrong} />
             </div>
             <div>
               <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
@@ -454,10 +471,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
                 maxLength={REPORT_LIMITS.correct}
+                aria-describedby="correct-count"
                 rows={2}
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
             </div>
           </div>
         ) : (
@@ -470,10 +489,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               value={content}
               onChange={(e) => setContent(e.target.value)}
               maxLength={REPORT_LIMITS.content}
+              aria-describedby="content-count"
               rows={4}
               placeholder="気になる点や改善提案を入力してください"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+            <CharCounter id="content-count" value={content} max={REPORT_LIMITS.content} />
           </div>
         )}
 

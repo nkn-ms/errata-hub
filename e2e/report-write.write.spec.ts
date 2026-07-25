@@ -44,6 +44,28 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
   });
 
+  test("長文欄に文字数カウンターが出て、入力に追従する", async ({ page }) => {
+    await login(page, READER);
+    await page.goto("/submit");
+
+    // 既定は正誤（ERRATA）＝「誤」「正」の欄が出る。カウンターは 0/上限 から始まる
+    const wrong = page.getByLabel("誤（該当箇所）");
+    const wrongCount = page.locator("#wrong-count");
+    await expect(wrongCount).toHaveText("0/1000");
+
+    await wrong.fill("あ".repeat(30));
+    await expect(wrongCount).toHaveText("30/1000");
+
+    // 実際の打ち切りはブラウザの maxlength が行う（fill は DOM に直接代入するので
+    // maxlength を経由しない＝ここでは属性が付いていることだけを確かめる）
+    await expect(wrong).toHaveAttribute("maxlength", "1000");
+    await expect(page.locator("#correct-count")).toHaveText("0/1000");
+
+    // 改善提案に切り替えると「内容・提案」欄のカウンターに変わる
+    await page.getByRole("button", { name: "改善提案" }).click();
+    await expect(page.locator("#content-count")).toHaveText("0/2000");
+  });
+
   test("紙の書籍の正誤投稿が作成でき、一覧と詳細に反映される", async ({ page, browser }) => {
     const uniqueTitle = `E2E投稿テスト ${Date.now()}`;
 
