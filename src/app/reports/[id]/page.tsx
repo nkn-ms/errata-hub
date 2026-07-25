@@ -166,9 +166,11 @@ export default async function ReportDetailPage({ params }: Props) {
             <div>
               <p className="text-xs text-gray-500 mb-2">正誤情報</p>
               <div className="flex items-center gap-3">
+                {/* 色は枠と小さいラベル（誤/正）だけに担わせ、内容は通常の文字色にする。
+                    地・文字・枠を全部塗ると色が重なって読みにくいため（特にダーク）。
+                    ラベルは 700＝淡い地の上でも AA を満たす値 */}
                 {report.wrong && (
-                  <div className="flex-1 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
-                    {/* 500 では淡い地の上で AA を割る（実測 3.48:1）。本文の 800 より一段だけ薄い 700 に */}
+                  <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-sm text-gray-800">
                     <p className="text-xs text-red-700 mb-1">誤</p>
                     {report.wrong}
                   </div>
@@ -177,7 +179,7 @@ export default async function ReportDetailPage({ params }: Props) {
                   <span className="text-gray-400 text-lg">→</span>
                 )}
                 {report.correct && (
-                  <div className="flex-1 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+                  <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm text-gray-800">
                     <p className="text-xs text-green-700 mb-1">正</p>
                     {report.correct}
                   </div>
