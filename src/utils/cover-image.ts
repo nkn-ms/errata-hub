@@ -1,7 +1,9 @@
 // 書影URLの許可ホスト。書影は UI 上 OpenBD / Google Books 由来の URL しか設定されない想定だが、
 // API は直接叩けるため、サーバー側でもこの想定を強制する（未知の第三者ホストの画像を
 // 閲覧者のブラウザに直接読み込ませない＝閲覧者IPの流出・追跡画像の混入を防ぐ）。
-const ALLOWED_COVER_HOSTS = new Set([
+// CSP の img-src も同じ集合を使う（utils/security-headers.ts）。増やすときは
+// 「保存を許すホスト」と「ブラウザが読み込めるホスト」が自動で一致する。
+export const ALLOWED_COVER_HOSTS = new Set([
   "cover.openbd.jp", // OpenBD の書影（summary.cover）
   "books.google.com", // Google Books のサムネイル（imageLinks.thumbnail）
   "books.googleusercontent.com", // Google Books の画像配信ホスト（応答によりこちらが返る）
