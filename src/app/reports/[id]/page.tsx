@@ -168,7 +168,7 @@ export default async function ReportDetailPage({ params }: Props) {
               <div className="flex items-center gap-3">
                 {report.wrong && (
                   <div className="flex-1 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
-                    {/* ラベルは 700（500 は淡い地の上で AA を割る＝#104 と同値） */}
+                    {/* 500 では淡い地の上で AA を割る（実測 3.48:1）。本文の 800 より一段だけ薄い 700 に */}
                     <p className="text-xs text-red-700 mb-1">誤</p>
                     {report.wrong}
                   </div>
