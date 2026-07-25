@@ -13,9 +13,17 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// 等幅は管理画面だけで使う（ISBN・監査ログ・メールドメイン等の `font-mono`）。
+// next/font は宣言した場所を基準に preload を張るので、ルートレイアウトで既定のまま宣言すると
+// **等幅を一度も使わない公開ページでもフォントファイルを先読みしてしまう**（実測 26KB/ページ）。
+// preload だけ切り、CSS 変数はサイト全体に残す（globals.css の --font-mono がこれを参照している。
+// 宣言ごと admin レイアウトへ移すと、公開ページで font-mono を書いた瞬間に無言で別フォントに落ちる）。
+// 管理画面では初回描画時に読み込まれる＝ここだけ切り替わりが一瞬見えるが、運用画面なので許容する。
+// 出典: node_modules/next/dist/docs/01-app/03-api-reference/02-components/font.md §preload / §Preloading
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
