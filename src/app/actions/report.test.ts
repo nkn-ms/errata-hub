@@ -13,8 +13,10 @@ const { prismaMock, getUserMock, PrismaClientKnownRequestError } = vi.hoisted(()
   }
   return {
     prismaMock: {
-      report: { findUnique: vi.fn(), update: vi.fn() },
+      report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
       upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
+      book: { upsert: vi.fn() },
+      publisher: { upsert: vi.fn() },
     },
     getUserMock: vi.fn(),
     PrismaClientKnownRequestError,
@@ -36,7 +38,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { toggleUpvote, updateReport } from "./report";
+import { createReport, toggleUpvote, updateReport } from "./report";
+import { REPORT_LIMITS } from "@/constants/report-limits";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -143,5 +146,55 @@ describe("updateReport（ステータス更新のバリデーション）", () =
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.report.update).toHaveBeenCalled();
+  });
+});
+
+describe("文字数上限（フォームの maxLength をサーバーでも強制する）", () => {
+  // フォームでは maxLength で打ち切られるが、アクション直叩きでは効かないのでサーバー側を検証する
+  const validInput = {
+    book: { title: "テスト駆動開発", isbn: "9784274217883" },
+    title: "第3章の説明が分かりにくい",
+    type: "SUGGESTION",
+    medium: "EBOOK",
+    ebookLocation: "位置No.1234",
+    content: "もう少し具体例があると読みやすいと思います",
+  } as const;
+
+  it("上限ちょうどの本文は通る（境界値）", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-1" });
+
+    const result = await createReport({
+      ...validInput,
+      content: "あ".repeat(REPORT_LIMITS.content),
+    });
+
+    expect(result).toEqual({ id: "report-1" });
+  });
+
+  it("上限を1文字超えた本文は保存させない", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+
+    const result = await createReport({
+      ...validInput,
+      content: "あ".repeat(REPORT_LIMITS.content + 1),
+    });
+
+    expect(result).toEqual({ error: `内容・提案は${REPORT_LIMITS.content}文字以内で入力してください` });
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+  });
+
+  it("管理者の出版社コメントにも上限がある", async () => {
+    const result = await updateReport("r1", {
+      status: "LISTED",
+      publisherComment: "あ".repeat(REPORT_LIMITS.publisherComment + 1),
+    });
+
+    expect(result.error).toBe(
+      `出版社コメントは${REPORT_LIMITS.publisherComment}文字以内で入力してください`
+    );
+    expect(prismaMock.report.update).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { deleteReport, updateReport } from "@/app/actions/report";
 import { STATUS_LABELS } from "@/constants/report-status";
+import { REPORT_LIMITS } from "@/constants/report-limits";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";
@@ -125,6 +126,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
           id="publisher-comment"
           value={comment}
           onChange={(e) => { setComment(e.target.value); setSaved(false); }}
+          maxLength={REPORT_LIMITS.publisherComment}
           rows={4}
           placeholder="出版社からの回答や対応内容を記載してください"
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"

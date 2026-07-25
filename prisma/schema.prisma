@@ -96,6 +96,9 @@ model PublisherAccess {
   createdAt   DateTime  @default(now())
 
   @@unique([profileId, publisherId])
+  // profileId 側は上の複合ユニーク（先頭列）で兼ねられるが、publisherId 側は先頭ではないので効かない。
+  // Publisher 削除時の Cascade がここを参照する
+  @@index([publisherId])
 }
 
 model Book {
@@ -115,6 +118,9 @@ model Book {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   reports     Report[]
+
+  // onDelete: Restrict の削除ガードが Publisher 削除のたびに参照側（Book）を走査するため
+  @@index([publisherId])
 }
 
 model Report {
@@ -158,6 +164,11 @@ model Report {
   updatedAt        DateTime       @updatedAt
   images           ReportImage[]
   upvotes          Upvote[]
+
+  // Postgres は FK 列にインデックスを自動作成しない（MySQL とはここが違う）。
+  // bookId = 書籍ページ（books/[isbn]）の投稿一覧、userId = ユーザーページ（findReportsByUser）が毎回参照する
+  @@index([bookId])
+  @@index([userId])
 }
 
 // 賛同 — 「自分も同じ誤りを見つけた」の意思表示。1ユーザー1投稿につき1回（@@unique で担保）
@@ -170,6 +181,8 @@ model Upvote {
   createdAt DateTime @default(now())
 
   @@unique([reportId, profileId])
+  // reportId 側は上の複合ユニーク（先頭列）で兼ねられる。profileId 側は退会時の Cascade が参照する
+  @@index([profileId])
 }
 
 // 操作ログ — 誰が・いつ・何を・どう変えたかを記録。
@@ -185,6 +198,9 @@ model AuditLog {
   before     Json?    // 変更前の値
   after      Json?    // 変更後の値
   createdAt  DateTime @default(now())
+
+  // 90日削除の pg_cron（createdAt < now() - 90 days）と管理画面の新着順表示が参照する
+  @@index([createdAt])
 }
 
 // 投稿に添付する画像（枚数・サイズ・MIME の制約は src/constants/report-images.ts に集約。
@@ -198,4 +214,7 @@ model ReportImage {
   report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
   imageUrl   String   // Supabase Storage 公開バケット report-images の公開URL
   createdAt  DateTime @default(now())
+
+  // 投稿詳細の画像表示・投稿削除時の Cascade・アップロード時の枚数カウントが参照する
+  @@index([reportId])
 }

@@ -10,6 +10,7 @@ import { createReport } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
+import { REPORT_LIMITS } from "@/constants/report-limits";
 import {
   REPORT_IMAGE_ALLOWED_TYPES,
   REPORT_IMAGE_MAX_BYTES,
@@ -27,6 +28,34 @@ type BookData = {
 
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
+
+// 文字数カウンター（「820/1000」）。maxLength に達すると入力できなくなるので、
+// 打ち切られる前に残りが見えるようにする。自由記述の欄（タイトル・誤・正・内容/提案・備考）に付け、
+// 位置・URL のような「上限まで書くことがそもそも無い」欄には付けない。
+//
+// 常時は出さず、上限の 80% に達してから出す。常時表示だと上限の数字自体がアンカーになり
+// 「そこまで書いてよい」と読めてしまうため（同じ理由で GOV.UK Design System の Character count は
+// threshold オプションを持つ: https://design-system.service.gov.uk/components/character-count/ ）。
+//
+// 数え方は maxLength と同じ UTF-16 コードユニット（= String#length）なので、表示と
+// ブラウザの打ち切りがずれない。
+// aria-live は付けない（打鍵のたびに読み上げられて邪魔になる）。入力欄の aria-describedby
+// から参照させ、フォーカス時に一度読まれる形にしている。
+const COUNTER_VISIBLE_RATIO = 0.8;
+
+function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
+  const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
+  return (
+    <p
+      id={id}
+      // 出現時に下の入力欄がずれないよう、隠している間も高さは確保する（display:none にしない）。
+      // visibility:hidden は読み上げからも外れるので、見えない間は説明としても読まれない。
+      className={`mt-1 text-right text-xs text-gray-500 tabular-nums ${nearLimit ? "" : "invisible"}`}
+    >
+      {value.length}/{max}
+    </p>
+  );
+}
 
 type Props = {
   // 書籍ページの「この本に投稿する」から来たとき、その本を確定済みとして受け取る。
@@ -307,9 +336,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            maxLength={REPORT_LIMITS.title}
+            aria-describedby="title-count"
             placeholder="例: p.42「わたし」→「私」の誤植"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <CharCounter id="title-count" value={title} max={REPORT_LIMITS.title} />
         </div>
 
         <div role="group" aria-labelledby="type-label">
@@ -384,6 +416,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 type="text"
                 value={locationNote}
                 onChange={(e) => setLocationNote(e.target.value)}
+                maxLength={REPORT_LIMITS.locationNote}
                 placeholder={hasMultiplePages ? "例: 42〜44、または 42, 43, 44" : "例: ページ中央の図、p.102にも同様の誤りあり"}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -401,6 +434,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               type="text"
               value={ebookLocation}
               onChange={(e) => setEbookLocation(e.target.value)}
+              maxLength={REPORT_LIMITS.ebookLocation}
               placeholder="例: 位置No.1234、43%、p.42"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -417,6 +451,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               type="text"
               value={locationNote}
               onChange={(e) => setLocationNote(e.target.value)}
+              maxLength={REPORT_LIMITS.locationNote}
               placeholder="例: 第3章「◯◯」の節、サンプルコードzip内のreadme"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -434,10 +469,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 id="wrong"
                 value={wrong}
                 onChange={(e) => setWrong(e.target.value)}
+                maxLength={REPORT_LIMITS.wrong}
+                aria-describedby="wrong-count"
                 rows={2}
                 placeholder="誤りのある文章をそのまま入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              <CharCounter id="wrong-count" value={wrong} max={REPORT_LIMITS.wrong} />
             </div>
             <div>
               <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
@@ -447,10 +485,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 id="correct"
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
+                maxLength={REPORT_LIMITS.correct}
+                aria-describedby="correct-count"
                 rows={2}
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
             </div>
           </div>
         ) : (
@@ -462,10 +503,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              maxLength={REPORT_LIMITS.content}
+              aria-describedby="content-count"
               rows={4}
               placeholder="気になる点や改善提案を入力してください"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+            <CharCounter id="content-count" value={content} max={REPORT_LIMITS.content} />
           </div>
         )}
 
@@ -475,10 +519,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             id="note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            maxLength={REPORT_LIMITS.note}
+            aria-describedby="note-count"
             rows={2}
             placeholder="その他補足があれば記載してください"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
+          <CharCounter id="note-count" value={note} max={REPORT_LIMITS.note} />
         </div>
 
         <div>
@@ -494,6 +541,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             type="url"
             value={reportedErratumUrl}
             onChange={(e) => setReportedErratumUrl(e.target.value)}
+            maxLength={REPORT_LIMITS.reportedErratumUrl}
             placeholder="https://..."
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
