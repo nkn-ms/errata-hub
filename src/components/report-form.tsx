@@ -10,6 +10,7 @@ import { createReport } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
+import { REPORT_LIMITS } from "@/constants/report-limits";
 import {
   REPORT_IMAGE_ALLOWED_TYPES,
   REPORT_IMAGE_MAX_BYTES,
@@ -307,6 +308,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            maxLength={REPORT_LIMITS.title}
             placeholder="例: p.42「わたし」→「私」の誤植"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -384,6 +386,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 type="text"
                 value={locationNote}
                 onChange={(e) => setLocationNote(e.target.value)}
+                maxLength={REPORT_LIMITS.locationNote}
                 placeholder={hasMultiplePages ? "例: 42〜44、または 42, 43, 44" : "例: ページ中央の図、p.102にも同様の誤りあり"}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -401,6 +404,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               type="text"
               value={ebookLocation}
               onChange={(e) => setEbookLocation(e.target.value)}
+              maxLength={REPORT_LIMITS.ebookLocation}
               placeholder="例: 位置No.1234、43%、p.42"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -417,6 +421,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               type="text"
               value={locationNote}
               onChange={(e) => setLocationNote(e.target.value)}
+              maxLength={REPORT_LIMITS.locationNote}
               placeholder="例: 第3章「◯◯」の節、サンプルコードzip内のreadme"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -434,6 +439,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 id="wrong"
                 value={wrong}
                 onChange={(e) => setWrong(e.target.value)}
+                maxLength={REPORT_LIMITS.wrong}
                 rows={2}
                 placeholder="誤りのある文章をそのまま入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -447,6 +453,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 id="correct"
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
+                maxLength={REPORT_LIMITS.correct}
                 rows={2}
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -462,6 +469,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              maxLength={REPORT_LIMITS.content}
               rows={4}
               placeholder="気になる点や改善提案を入力してください"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -475,6 +483,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             id="note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            maxLength={REPORT_LIMITS.note}
             rows={2}
             placeholder="その他補足があれば記載してください"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -494,6 +503,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             type="url"
             value={reportedErratumUrl}
             onChange={(e) => setReportedErratumUrl(e.target.value)}
+            maxLength={REPORT_LIMITS.reportedErratumUrl}
             placeholder="https://..."
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

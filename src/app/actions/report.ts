@@ -13,6 +13,7 @@ import { toCanonicalIsbn } from "@/utils/isbn";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
+import { REPORT_LIMITS } from "@/constants/report-limits";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
 import { routes } from "@/constants/routes";
 import { ReportType, Medium, Prisma } from "@/generated/prisma/client";
@@ -28,24 +29,29 @@ const BookSchema = z.object({
   coverImageUrl: z.string().optional(),
 });
 
+// 文字数上限は REPORT_LIMITS（フォームの maxLength と同じ値）で一元管理する。
+// フォームで打ち切られる想定だが、アクション直叩き・貼り付け経路もあるのでサーバーでも弾く。
+const limited = (max: number, label: string) =>
+  z.string().max(max, `${label}は${max}文字以内で入力してください`);
+
 const ReportSchema = z.object({
   book: BookSchema,
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
-  title: z.string().min(1, "タイトルは必須です"),
+  title: limited(REPORT_LIMITS.title, "タイトル").min(1, "タイトルは必須です"),
   type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
   medium: z.enum(["PAPER", "EBOOK", "OTHER"]),
   page: z.number().int().positive().nullable().optional(),
   line: z.number().int().positive().nullable().optional(),
   hasMultiplePages: z.boolean().optional(),
-  locationNote: z.string().nullable().optional(),
-  ebookLocation: z.string().nullable().optional(),
-  wrong: z.string().nullable().optional(),
-  correct: z.string().nullable().optional(),
-  content: z.string().nullable().optional(),
-  note: z.string().nullable().optional(),
+  locationNote: limited(REPORT_LIMITS.locationNote, "位置備考").nullable().optional(),
+  ebookLocation: limited(REPORT_LIMITS.ebookLocation, "位置").nullable().optional(),
+  wrong: limited(REPORT_LIMITS.wrong, "誤（該当箇所）").nullable().optional(),
+  correct: limited(REPORT_LIMITS.correct, "正（正しい内容）").nullable().optional(),
+  content: limited(REPORT_LIMITS.content, "内容・提案").nullable().optional(),
+  note: limited(REPORT_LIMITS.note, "備考").nullable().optional(),
   // 投稿者が見つけた出版社の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する
-  reportedErratumUrl: z.string().nullable().optional(),
+  reportedErratumUrl: limited(REPORT_LIMITS.reportedErratumUrl, "正誤表のURL").nullable().optional(),
 }).superRefine((data, ctx) => {
   // 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（アクション直叩き対策）。
   if (data.type === "ERRATA") {
@@ -164,7 +170,7 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
 
 const ReportUpdateSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),
-  publisherComment: z.string().nullable().optional(),
+  publisherComment: limited(REPORT_LIMITS.publisherComment, "出版社コメント").nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),
   fixedPrinting: z.number().int().positive().nullable().optional(),
 }).superRefine((data, ctx) => {

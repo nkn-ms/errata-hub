@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { TERMS_VERSION } from "@/constants/legal";
+import { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -46,18 +47,38 @@ export async function GET(request: NextRequest) {
   //
   // 規約への同意は Profile 作成時（＝このサービスを初めて使う瞬間）にだけ刻む。update:{} なのは
   // 「同意したのはこの版・この時点」という事実を後のログインで上書きしないため。
-  const profile = await prisma.profile.upsert({
-    where: { id: data.user.id },
-    update: {},
-    create: {
-      id: data.user.id,
-      email,
-      displayName,
-      role: "USER",
-      termsAgreedAt: new Date(),
-      termsVersion: TERMS_VERSION,
-    },
-  });
+  let profile;
+  try {
+    profile = await prisma.profile.upsert({
+      where: { id: data.user.id },
+      update: {},
+      create: {
+        id: data.user.id,
+        email,
+        displayName,
+        role: "USER",
+        termsAgreedAt: new Date(),
+        termsVersion: TERMS_VERSION,
+      },
+    });
+  } catch (e) {
+    // upsert は id（＝auth の UUID）で判定するので、退会を経ずに auth ユーザーだけを消して
+    // 同じメールで登録し直すと、旧 Profile が email（@unique）を握ったまま create に進んで
+    // P2002 になる（正規の退会なら email は deleted-<uuid>@deleted.local にスクラブ済みで衝突しない）。
+    // 詳細は docs/learnings.md「落とし穴：同じメールで再登録すると壊れる」。
+    //
+    // ここで throw すると 500 になり、しかも直前の exchangeCodeForSession でセッションだけは
+    // 張られているので「ログインできるが Profile が無い」壊れた状態が残る。Profile を作る経路は
+    // この callback だけ（パスワードログインは通らない）＝以後のログインでも自然回復しないため、
+    // セッションを畳んでエラーページに落とし、運営の手作業（旧 Profile の整理）に委ねる。
+    console.error(e);
+    const isEmailConflict =
+      e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      new URL(`/auth/error?reason=${isEmailConflict ? "email-conflict" : "profile"}`, origin)
+    );
+  }
 
   if (matchedPublishers.length > 0) {
     await prisma.publisherAccess.createMany({

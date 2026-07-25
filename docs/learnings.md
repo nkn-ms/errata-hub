@@ -402,6 +402,16 @@ upsert は **id で判定**するので create に進む → ところが `Profi
 結果「**ログインはできるが Profile が無い**」壊れた状態になり、`findUnique` が null を返して管理画面等が崩れる。
 さらに新アカウントは別人扱いで role は USER に逆戻り（ADMIN 喪失）。
 
+なお**正規の退会（`/account/withdraw`）ではこれは起きない**。退会は Profile を消さず PII をスクラブする方式で、
+email は `deleted-<uuid>@deleted.local` に書き換わるため衝突しない。踏むのは
+**auth ユーザーだけを消したケース**（管理者の手動オペ）に限られる。
+
+**現在の実装（対処済み）**: `auth/callback` は `profile.upsert` を try/catch し、P2002 を掴んだら
+**セッションを畳んで**（`signOut`）`/auth/error?reason=email-conflict` に落とす。放置すると 500 になるうえ、
+直前の `exchangeCodeForSession` でセッションだけは張られているので前述の壊れた状態が残るため。
+Profile を作る経路はこの callback だけ（パスワードログインは通らない）＝**再ログインでは自然回復しない**ので、
+復旧は運営の手作業（孤児 Profile の整理）になる。エラーページは問い合わせ窓口を出す。
+
 ### 教訓
 
 - **削除より状態変更を優先する**。パスワード忘れは「再設定」で済み、削除＝孤児掃除＋メール衝突回避＋権限再付与の手作業が必ず出る。
