@@ -44,9 +44,12 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
   });
 
-  test("長文欄に文字数カウンターが出て、入力に追従する", async ({ page }) => {
+  test("自由記述の欄に文字数カウンターが出て、入力に追従する", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
+
+    await expect(page.locator("#title-count")).toHaveText("0/100");
+    await expect(page.locator("#note-count")).toHaveText("0/1000");
 
     // 既定は正誤（ERRATA）＝「誤」「正」の欄が出る。カウンターは 0/上限 から始まる
     const wrong = page.getByLabel("誤（該当箇所）");

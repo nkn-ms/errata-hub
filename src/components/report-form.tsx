@@ -29,8 +29,9 @@ type BookData = {
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
 
-// 長文欄の文字数カウンター（「30/2000」）。maxLength に達すると入力できなくなるので、
-// 打ち切られる前に残りが見えるようにする。短い欄（タイトル・位置・URL）には付けない。
+// 文字数カウンター（「30/2000」）。maxLength に達すると入力できなくなるので、
+// 打ち切られる前に残りが見えるようにする。自由記述の欄（タイトル・誤・正・内容/提案・備考）に付け、
+// 位置・URL のような「上限まで書くことがそもそも無い」欄には付けない。
 //
 // 数え方は maxLength と同じ UTF-16 コードユニット（= String#length）なので、表示と
 // ブラウザの打ち切りがずれない。
@@ -324,9 +325,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={REPORT_LIMITS.title}
+            aria-describedby="title-count"
             placeholder="例: p.42「わたし」→「私」の誤植"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <CharCounter id="title-count" value={title} max={REPORT_LIMITS.title} />
         </div>
 
         <div role="group" aria-labelledby="type-label">
@@ -505,10 +508,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={REPORT_LIMITS.note}
+            aria-describedby="note-count"
             rows={2}
             placeholder="その他補足があれば記載してください"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
+          <CharCounter id="note-count" value={note} max={REPORT_LIMITS.note} />
         </div>
 
         <div>
