@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/services/auth";
 import { routes } from "@/constants/routes";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // 多層防御: proxy.ts のエッジ判定に加え、配下の全 admin ページをここで再ガードする。
@@ -39,6 +40,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href={routes.home} className="text-gray-300 hover:text-white dark:text-gray-500 dark:hover:text-gray-900 text-xs transition-colors">
               ← サイトへ戻る
             </Link>
+            {/* 管理画面には公開側ヘッダーが出ないので、ここに置かないと管理者は
+                テーマを変えるためだけに公開側へ戻ることになる。帯の中身（表・フォーム）は
+                テーマで変わるので、切り替え口はこの画面にも要る。
+                色は帯に合わせて上書きする（既定は明るい面向け。この帯は light/dark とも暗い面）。 */}
+            <ThemeToggle className="text-gray-300 hover:bg-gray-800 hover:text-white dark:text-gray-600 dark:hover:bg-gray-200 dark:hover:text-gray-900" />
           </nav>
         </div>
       </header>

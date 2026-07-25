@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   OS_DARK_QUERY,
   THEME_CHOICE_LABELS,
@@ -47,7 +48,11 @@ const getServerChoice = (): ThemeChoice => "system";
 //
 // リロード時のちらつき防止は layout.tsx の初期化スクリプトが担う（描画前に data-theme を確定）。
 // このボタンの役割は「押されたら保存値を書き替え、その場で data-theme を塗り替える」ことだけ。
-export function ThemeToggle() {
+//
+// className は**配色だけ**を差し替えるための口。既定は公開側ヘッダー（明るい面）の色で、
+// 管理画面の帯は light/dark どちらでも暗い面なので、そちらでは呼び出し側が上書きする
+// （twMerge が同じ種類のクラスを後勝ちで潰すので、既定と喧嘩しない）。
+export function ThemeToggle({ className }: { className?: string } = {}) {
   const choice = useSyncExternalStore(subscribe, getStoredChoice, getServerChoice);
 
   useEffect(() => {
@@ -86,7 +91,10 @@ export function ThemeToggle() {
       // 押すたびにラベルが変わるので、スクリーンリーダーでも結果が分かる
       aria-label={`${label}（切り替える）`}
       title={label}
-      className="inline-flex items-center justify-center rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+      className={cn(
+        "inline-flex items-center justify-center rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors",
+        className
+      )}
     >
       <Icon className="w-5 h-5" aria-hidden />
     </button>
