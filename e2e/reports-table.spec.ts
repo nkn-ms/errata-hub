@@ -37,9 +37,9 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     await page.goto("/reports");
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
 
-    // 1行の "誤 → 正" は長いと途中で切れるので、誤・正を別行の色付きラベルに分けている
-    await expect(page.locator("td span.text-red-700", { hasText: "誤:" }).first()).toBeVisible();
-    await expect(page.locator("td span.text-green-700", { hasText: "正:" }).first()).toBeVisible();
+    // 1行の "誤 → 正" は長いと途中で切れるので、誤・正を別行の太字ラベルに分けている
+    await expect(page.locator("td span.font-semibold", { hasText: "誤:" }).first()).toBeVisible();
+    await expect(page.locator("td span.font-semibold", { hasText: "正:" }).first()).toBeVisible();
     // 旧表示（1行の矢印つなぎ）が残っていないこと
     await expect(page.locator("tbody").getByText("→", { exact: false })).toHaveCount(0);
   });

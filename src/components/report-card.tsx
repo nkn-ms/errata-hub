@@ -38,10 +38,10 @@ export function ErrataSummary({ report }: { report: Report }) {
     return (
       <div className="text-sm space-y-0.5">
         <div className="line-clamp-1 text-gray-800">
-          <span className="font-medium text-red-700">誤:</span> {report.wrong}
+          <span className="font-semibold text-gray-900">誤:</span> {report.wrong}
         </div>
         <div className="line-clamp-1 text-gray-800">
-          <span className="font-medium text-green-700">正:</span> {report.correct}
+          <span className="font-semibold text-gray-900">正:</span> {report.correct}
         </div>
       </div>
     );
