@@ -133,8 +133,8 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         />
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {saved && <p className="text-sm text-green-600">保存しました</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
+      {saved && <p className="text-sm text-green-700">保存しました</p>}
 
       <div className="flex gap-3 justify-between">
         <div className="flex gap-3">
@@ -158,7 +158,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
           type="button"
           onClick={handleDelete}
           disabled={saving}
-          className="px-4 py-2 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+          className="px-4 py-2 text-sm text-red-700 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
         >
           削除
         </button>
