@@ -14,6 +14,13 @@
   }
 }
 
+/* 画面側の `dark:` ユーティリティ（管理画面の帯だけで使用）を、OS の設定ではなく
+   選択されたテーマ＝<html data-theme> に追従させる。
+   これを入れないと Tailwind 既定の `dark:` は prefers-color-scheme を見続けるので、
+   「OS がダーク・ユーザーはライトを選択」のときに管理画面の帯だけ裏返る。
+   出典: https://tailwindcss.com/docs/dark-mode#using-a-data-attribute */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -21,13 +28,17 @@
 }
 
 /* ============================================================
-   ダークモード（OS の設定に追従）
+   ダークモード
 
    方針: 画面側のクラスは一切変えない。Tailwind v4 のユーティリティは
    `.bg-gray-50 { background-color: var(--color-gray-50) }` のように必ず
    テーマ変数を経由するので、変数を差し替えるだけで全画面が反転する
    （出典: https://tailwindcss.com/docs/theme#referencing-other-variables ）。
    1000 箇所以上ある色クラスに dark: を足して回るより、壊れる面が小さい。
+
+   適用条件は data-theme 属性だけを見る。「OS の設定に合わせる」は layout.tsx の
+   初期化スクリプトが matchMedia を読んで data-theme="dark" を書くことで実現している
+   （＝ここに @media 版を併記して同じ配色を二重管理しない）。詳細は utils/theme.ts。
 
    値の決め方:
    - グレーは「明度の梯子を逆さにする」— gray-50（最も薄い＝ページ背景）が最も暗く、
@@ -39,106 +50,104 @@
    - 例外は 500/600 で、どちらも light[400] に寄せた。エラー文言（text-red-500）と
      リンク（text-blue-600）が暗い面の上で 4.5:1 を割らないようにするため。
    ============================================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: #0d0f13;
-    --foreground: #f2f5f8;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0d0f13;
+  --foreground: #f2f5f8;
 
-    /* 面と枠と文字（手で調整した暗色の梯子） */
-    --color-white: #171a20; /* カードの面 */
-    --color-black: #f7f9fb;
-    --color-gray-50: #0d0f13; /* ページ背景 */
-    --color-gray-100: #14171d;
-    --color-gray-200: #262b34; /* 枠線 */
-    --color-gray-300: #333a45;
-    --color-gray-400: #7c8593; /* 補助文字 */
-    --color-gray-500: #98a2b3;
-    --color-gray-600: #b4bdc9;
-    --color-gray-700: #ccd4de; /* 本文 */
-    --color-gray-800: #e0e6ec;
-    --color-gray-900: #f2f5f8; /* 見出し・主ボタンの地 */
+  /* 面と枠と文字（手で調整した暗色の梯子） */
+  --color-white: #171a20; /* カードの面 */
+  --color-black: #f7f9fb;
+  --color-gray-50: #0d0f13; /* ページ背景 */
+  --color-gray-100: #14171d;
+  --color-gray-200: #262b34; /* 枠線 */
+  --color-gray-300: #333a45;
+  --color-gray-400: #7c8593; /* 補助文字 */
+  --color-gray-500: #98a2b3;
+  --color-gray-600: #b4bdc9;
+  --color-gray-700: #ccd4de; /* 本文 */
+  --color-gray-800: #e0e6ec;
+  --color-gray-900: #f2f5f8; /* 見出し・主ボタンの地 */
 
-    /* 50 は「地にほんの少し色を混ぜた面」。light の 50 が極薄いのと同じ役回りなので、
-       階調の反転（= light[950]）をそのまま当てず、暗い面に寄せて彩度を落としている。
-       ここが濃いと、注意書きや誤/正のブロックだけが浮いて全体が騒がしくなる。 */
-    --color-blue-50: #131b2b;
-    --color-blue-100: #1e3a8a;
-    --color-blue-200: #1e40af;
-    --color-blue-300: #1d4ed8;
-    --color-blue-400: #2563eb;
-    --color-blue-500: #60a5fa;
-    --color-blue-600: #60a5fa;
-    --color-blue-700: #93c5fd;
-    --color-blue-800: #bfdbfe;
-    --color-blue-900: #dbeafe;
+  /* 50 は「地にほんの少し色を混ぜた面」。light の 50 が極薄いのと同じ役回りなので、
+     階調の反転（= light[950]）をそのまま当てず、暗い面に寄せて彩度を落としている。
+     ここが濃いと、注意書きや誤/正のブロックだけが浮いて全体が騒がしくなる。 */
+  --color-blue-50: #131b2b;
+  --color-blue-100: #1e3a8a;
+  --color-blue-200: #1e40af;
+  --color-blue-300: #1d4ed8;
+  --color-blue-400: #2563eb;
+  --color-blue-500: #60a5fa;
+  --color-blue-600: #60a5fa;
+  --color-blue-700: #93c5fd;
+  --color-blue-800: #bfdbfe;
+  --color-blue-900: #dbeafe;
 
-    --color-red-50: #2a1416;
-    --color-red-100: #7f1d1d;
-    --color-red-200: #991b1b;
-    --color-red-300: #b91c1c;
-    --color-red-400: #dc2626;
-    --color-red-500: #f87171;
-    --color-red-600: #f87171;
-    --color-red-700: #fca5a5;
-    --color-red-800: #fecaca;
-    --color-red-900: #fee2e2;
+  --color-red-50: #2a1416;
+  --color-red-100: #7f1d1d;
+  --color-red-200: #991b1b;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-red-500: #f87171;
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-red-800: #fecaca;
+  --color-red-900: #fee2e2;
 
-    --color-green-50: #10231a;
-    --color-green-100: #14532d;
-    --color-green-200: #166534;
-    --color-green-300: #15803d;
-    --color-green-400: #16a34a;
-    --color-green-500: #4ade80;
-    --color-green-600: #4ade80;
-    --color-green-700: #86efac;
-    --color-green-800: #bbf7d0;
-    --color-green-900: #dcfce7;
+  --color-green-50: #10231a;
+  --color-green-100: #14532d;
+  --color-green-200: #166534;
+  --color-green-300: #15803d;
+  --color-green-400: #16a34a;
+  --color-green-500: #4ade80;
+  --color-green-600: #4ade80;
+  --color-green-700: #86efac;
+  --color-green-800: #bbf7d0;
+  --color-green-900: #dcfce7;
 
-    --color-yellow-50: #241f0e;
-    --color-yellow-100: #713f12;
-    --color-yellow-200: #854d0e;
-    --color-yellow-300: #a16207;
-    --color-yellow-400: #ca8a04;
-    --color-yellow-500: #facc15;
-    --color-yellow-600: #facc15;
-    --color-yellow-700: #fde047;
-    --color-yellow-800: #fef08a;
-    --color-yellow-900: #fef9c3;
+  --color-yellow-50: #241f0e;
+  --color-yellow-100: #713f12;
+  --color-yellow-200: #854d0e;
+  --color-yellow-300: #a16207;
+  --color-yellow-400: #ca8a04;
+  --color-yellow-500: #facc15;
+  --color-yellow-600: #facc15;
+  --color-yellow-700: #fde047;
+  --color-yellow-800: #fef08a;
+  --color-yellow-900: #fef9c3;
 
-    --color-amber-50: #26190c;
-    --color-amber-100: #78350f;
-    --color-amber-200: #92400e;
-    --color-amber-300: #b45309;
-    --color-amber-400: #d97706;
-    --color-amber-500: #fbbf24;
-    --color-amber-600: #fbbf24;
-    --color-amber-700: #fcd34d;
-    --color-amber-800: #fde68a;
-    --color-amber-900: #fef3c7;
+  --color-amber-50: #26190c;
+  --color-amber-100: #78350f;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+  --color-amber-500: #fbbf24;
+  --color-amber-600: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-amber-900: #fef3c7;
 
-    --color-purple-50: #1e1630;
-    --color-purple-100: #581c87;
-    --color-purple-200: #6b21a8;
-    --color-purple-300: #7e22ce;
-    --color-purple-400: #9333ea;
-    --color-purple-500: #c084fc;
-    --color-purple-600: #c084fc;
-    --color-purple-700: #d8b4fe;
-    --color-purple-800: #e9d5ff;
-    --color-purple-900: #f3e8ff;
+  --color-purple-50: #1e1630;
+  --color-purple-100: #581c87;
+  --color-purple-200: #6b21a8;
+  --color-purple-300: #7e22ce;
+  --color-purple-400: #9333ea;
+  --color-purple-500: #c084fc;
+  --color-purple-600: #c084fc;
+  --color-purple-700: #d8b4fe;
+  --color-purple-800: #e9d5ff;
+  --color-purple-900: #f3e8ff;
 
-    --color-cyan-50: #0d2028;
-    --color-cyan-100: #164e63;
-    --color-cyan-200: #155e75;
-    --color-cyan-300: #0e7490;
-    --color-cyan-400: #0891b2;
-    --color-cyan-500: #22d3ee;
-    --color-cyan-600: #22d3ee;
-    --color-cyan-700: #67e8f9;
-    --color-cyan-800: #a5f3fc;
-    --color-cyan-900: #cffafe;
-  }
+  --color-cyan-50: #0d2028;
+  --color-cyan-100: #164e63;
+  --color-cyan-200: #155e75;
+  --color-cyan-300: #0e7490;
+  --color-cyan-400: #0891b2;
+  --color-cyan-500: #22d3ee;
+  --color-cyan-600: #22d3ee;
+  --color-cyan-700: #67e8f9;
+  --color-cyan-800: #a5f3fc;
+  --color-cyan-900: #cffafe;
 }
 
 @theme inline {

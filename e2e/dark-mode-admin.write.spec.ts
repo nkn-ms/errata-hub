@@ -49,4 +49,28 @@ test.describe("ダークモード（管理画面）", () => {
     // ナビの文字は帯の上で AA を満たす
     expect(contrastRatio(colors.navText, colors.bar)).toBeGreaterThanOrEqual(4.5);
   });
+
+  // 管理画面の帯は唯一 `dark:` ユーティリティを使う場所。globals.css の @custom-variant で
+  // `dark:` を data-theme に付け替えているので、「OS はダークだがユーザーはライトを選んだ」
+  // ときに帯だけ dark の見た目で取り残されないことを確かめる（付け替え忘れの検知）。
+  test("ユーザーがライトを選ぶと、帯も light の見た目に戻る", async ({ page }) => {
+    await login(page, ADMIN);
+    await page.goto("/admin/reports");
+
+    // 公開側ヘッダーにしかトグルは無いので、保存値を直接書いて（＝ボタンと同じ状態を作って）読み込む
+    await page.evaluate(() => localStorage.setItem("theme", "light"));
+    await page.reload();
+
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("light");
+    const barBg = await page.locator("header").first().evaluate((el) => {
+      const ctx = document.createElement("canvas").getContext("2d")!;
+      ctx.fillStyle = getComputedStyle(el).backgroundColor;
+      ctx.fillRect(0, 0, 1, 1);
+      return Array.from(ctx.getImageData(0, 0, 1, 1).data);
+    });
+
+    // light の帯は bg-gray-900（暗い面）。dark: が prefers-color-scheme を見たままだと
+    // ここで dark:bg-gray-100 が当たって明るい板になる
+    expect(luminance(barBg)).toBeLessThan(0.05);
+  });
 });

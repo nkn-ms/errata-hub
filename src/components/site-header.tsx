@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // コンテンツ幅はページ種別ごとに異なる（一覧・静的ページ=2xl / 詳細=lg / アカウント設定=md）。
 // 各ページの <main> 側の幅クラスと揃えること（ヘッダーだけ幅が違うと縦のラインがずれる）。
@@ -66,7 +67,12 @@ export function SiteHeader({
           </Fragment>
         ))}
 
-        {children ? <div className="ml-auto flex items-center">{children}</div> : null}
+        {/* 右端は「テーマ切り替え＋ページ固有のアクション」。テーマは全ページ共通なので
+            ここで一度だけ置く（管理画面の帯は配色が別物なので対象外＝globals.css の注記参照）。 */}
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+          {children}
+        </div>
       </div>
     </header>
   );
