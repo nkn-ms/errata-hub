@@ -192,3 +192,17 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **なぜ public 化前にやったか**: 列を足すこと自体は後からでもできるが、**リリース後に増えたユーザーの分は永久に空欄になる**。記録は遡って作れないので、実ユーザーがほぼいない今が唯一の機会だった。
 - 規約を改訂したら `TERMS_VERSION` を上げる。既存ユーザーへの再同意は自動では求めない（第15条により変更後の規約は掲示時点から効力を生じる建て付け）が、差分同意を求めたくなったときに「古い版のままの人」をこの列で抽出できる。
 - 退会時もこの2列は**スクラブしない**。個人を特定する情報ではなく、退会後も残る投稿（第5条3項）を表示し続ける根拠が「同意の時点で許諾を得た」ことにあるため。
+
+### セキュリティヘッダ（2026-07-26 追加）
+
+付け方は2系統。**値が固定のものは `next.config.ts` の `headers()`／リクエストごとの nonce を含む CSP は `src/proxy.ts`**。値と理由は `src/utils/security-headers.ts` に集約している（画面側に散らさない）。
+
+- **CSP は nonce ＋ `strict-dynamic`**（Next.js 公式の推奨形）。`script-src` に `'unsafe-inline'` を置かないため、注入されたインラインスクリプトは実行されない。`strict-dynamic` により「信頼されたスクリプトが動的に読み込んだスクリプト」は通るので、Vercel Analytics / Speed Insights のようにホストを列挙できない読み込みも壊れない。
+- **代償: 全ページが動的レンダリングになる**。静的に生成された HTML には nonce を差し込めず、`strict-dynamic` 下ではスクリプトが全部ブロックされるため。`app/layout.tsx` が `headers()` を読むことで全ルートが動的になる。**この変更で静的だったのは13ルート**（`/terms`・`/privacy`・`/how-to-use`・`/tech`・`/login`・`/register`・`/auth/*`・`/account/withdraw(n)`）で、いずれも文章だけの低トラフィックページ。主要ページ（`/`・`/reports`・`/reports/[id]`・`/books/[isbn]`）は DB を読むため元から動的だった。CDN キャッシュが効かなくなる代わりに XSS 耐性を取った判断で、`'unsafe-inline'` 方式に緩めれば静的に戻せる（＝後戻り可能）。
+- **`style-src` だけは `'unsafe-inline'` を許す**。nonce は `<style>` 要素にしか効かず、React の `style` 属性（例: `components/book-cover.tsx` の `aspectRatio`）には効かないため、厳格にするとレイアウトが崩れる。CSS 経由の攻撃は script より影響が小さいので、`script-src` を厳格に保つ方を優先した。
+- **`img-src` の外部ホストは書影の保存時検証と同じ集合**（`utils/cover-image.ts` の `ALLOWED_COVER_HOSTS` を import）。「保存を許すホスト」と「ブラウザが読み込めるホスト」が自動で一致し、片方だけ増やして表示が壊れる／検証が緩むのを防ぐ。
+- **HSTS は書かない**。Vercel が既に `max-age=63072000; includeSubDomains; preload` を付けており（2026-07-26 に本番の応答ヘッダで実測）、ここで短い `max-age` を書くと**弱くなる**だけ。
+- **dev だけの緩和**は `'unsafe-eval'`（React がサーバー側スタックの再構成に eval を使う）と `ws:`（HMR）、および `upgrade-insecure-requests` を付けないこと（ローカル Supabase が `http://127.0.0.1:54321` なので付けると壊れる）。
+- **Preview だけ Vercel Toolbar（コメント機能）のホストを通す**（`VERCEL_ENV === "preview"` で分岐）。Vercel が Preview の HTML に `vercel.live` のスクリプトと iframe を差し込むため、`frame-src 'none'` のままだと Preview 実機確認のたびにコンソールに違反が出てコメントも使えない。**本番には差し込まれないので本番のポリシーは緩めない**。許可ホストは公式ドキュメントの一覧（`src/utils/security-headers.ts` に出典 URL）。
+- **検査は e2e で二重に**。`e2e/security-headers.spec.ts` が「ヘッダが付いているか」と「厳しすぎて画面を壊していないか（実ブラウザで `securitypolicyviolation` が0件）」を見る。後者は仕込みが壊れると黙って緑になるので、**許可外ホストの画像が実際にブロックされることを確かめる逆テストを1件置いている**。
+- **残る穴（別タスク）**: レート制限は未実装。`Content-Security-Policy-Report-Only` での違反収集も未導入（収集先が無いため）。
