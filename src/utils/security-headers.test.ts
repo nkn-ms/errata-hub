@@ -14,6 +14,7 @@ const PROD = {
   nonce: "dGVzdC1ub25jZQ==",
   isDev: false,
   supabaseUrl: "https://example.supabase.co",
+  allowVercelToolbar: false,
 };
 
 describe("buildContentSecurityPolicy", () => {
@@ -59,6 +60,19 @@ describe("buildContentSecurityPolicy", () => {
       expect(directive(csp, "connect-src")).toBe("'self'");
       expect(directive(csp, "img-src")).not.toContain("undefined");
     }
+  });
+
+  it("Vercel Toolbar は Preview だけ通す（本番の frame-src は none のまま）", () => {
+    const prod = buildContentSecurityPolicy(PROD);
+    expect(directive(prod, "frame-src")).toBe("'none'");
+    expect(prod).not.toContain("vercel.live");
+
+    // Preview: iframe とコメントの WebSocket が通り、それ以外の指定は変わらない
+    const preview = buildContentSecurityPolicy({ ...PROD, allowVercelToolbar: true });
+    expect(directive(preview, "frame-src")).toBe("https://vercel.live");
+    expect(directive(preview, "connect-src")).toContain("wss://ws-us3.pusher.com");
+    expect(directive(preview, "script-src")).toBe(directive(prod, "script-src"));
+    expect(directive(preview, "form-action")).toBe("'self'");
   });
 
   it("埋め込み・注入の足場になるディレクティブを閉じている", () => {

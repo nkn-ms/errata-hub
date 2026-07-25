@@ -11,6 +11,9 @@ export async function proxy(request: NextRequest) {
     nonce,
     isDev: process.env.NODE_ENV === "development",
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    // VERCEL_ENV は Vercel が自動で入れる（"production" | "preview" | "development"）。
+    // Preview だけツールバーを通す＝本番のポリシーは緩めない
+    allowVercelToolbar: process.env.VERCEL_ENV === "preview",
   });
 
   // Next.js は「リクエストの CSP ヘッダ」から nonce を読み取り、自分が出力する

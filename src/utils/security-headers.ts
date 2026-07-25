@@ -38,7 +38,26 @@ type CspOptions = {
   isDev: boolean;
   /** NEXT_PUBLIC_SUPABASE_URL。ブラウザが直接叩く先（認証）と画像の配信元になる */
   supabaseUrl: string | undefined;
+  /**
+   * Vercel Toolbar（Preview のコメント機能）を許すか。Preview だけ true にする。
+   * Vercel が Preview の HTML に vercel.live のスクリプトと iframe を差し込むため、
+   * 許さないと Preview 実機確認のたびにコンソールに CSP 違反が出てコメント機能も使えない
+   * （本番には差し込まれないので、本番のポリシーは緩めない）。
+   */
+  allowVercelToolbar: boolean;
 };
+
+// Vercel Toolbar が要求するホスト。出典（2026-07-26 時点の公式ドキュメント）:
+//   https://vercel.com/docs/vercel-toolbar/managing-toolbar#using-a-content-security-policy
+// script-src への https://vercel.live は載せていない: strict-dynamic があるとホスト許可リストは
+// 無視される（そしてツールバーのスクリプトは Vercel 側が nonce 付きで差し込むため実測で通る）。
+const VERCEL_TOOLBAR = {
+  connect: ["https://vercel.live", "wss://ws-us3.pusher.com"],
+  img: ["https://vercel.live", "https://vercel.com"],
+  style: ["https://vercel.live"],
+  font: ["https://vercel.live", "https://assets.vercel.com"],
+  frame: ["https://vercel.live"],
+} as const;
 
 /** URL 文字列からオリジン（scheme://host:port）だけを取り出す。不正なら null */
 function toOrigin(url: string | undefined): string | null {
@@ -60,8 +79,15 @@ function toOrigin(url: string | undefined): string | null {
  *    nonce を差し込めず、strict-dynamic 下ではスクリプトが全部ブロックされる）。
  *    そのため app/layout.tsx が headers() を読んで全ルートを動的にしている。
  */
-export function buildContentSecurityPolicy({ nonce, isDev, supabaseUrl }: CspOptions): string {
+export function buildContentSecurityPolicy({
+  nonce,
+  isDev,
+  supabaseUrl,
+  allowVercelToolbar,
+}: CspOptions): string {
   const supabaseOrigin = toOrigin(supabaseUrl);
+  /** Vercel Toolbar 用のホストを足すヘルパ（Preview 以外では何も足さない） */
+  const toolbar = (hosts: readonly string[]) => (allowVercelToolbar ? hosts : []);
 
   const directives: string[] = [
     "default-src 'self'",
@@ -77,7 +103,7 @@ export function buildContentSecurityPolicy({ nonce, isDev, supabaseUrl }: CspOpt
     //    React の style 属性（例: components/book-cover.tsx の aspectRatio）には効かないため、
     //    厳格にすると素の HTML でレイアウトが崩れる。CSS 経由の攻撃は script より影響が小さく、
     //    script-src を厳格に保つ方を優先した判断。
-    "style-src 'self' 'unsafe-inline'",
+    ["style-src 'self' 'unsafe-inline'", ...toolbar(VERCEL_TOOLBAR.style)].join(" "),
 
     // 画像だけは外部ホストを明示的に許す。許可ホストは書影の保存時検証と同じ集合を使い回す
     // （utils/cover-image.ts。片方だけ増やして表示が壊れる／検証が緩むのを防ぐ）。
@@ -87,10 +113,11 @@ export function buildContentSecurityPolicy({ nonce, isDev, supabaseUrl }: CspOpt
       "img-src 'self' data: blob:",
       ...[...ALLOWED_COVER_HOSTS].map((host) => `https://${host}`),
       ...(supabaseOrigin ? [supabaseOrigin] : []),
+      ...toolbar(VERCEL_TOOLBAR.img),
     ].join(" "),
 
     // next/font/google はビルド時に自前ホストへ取り込まれるので外部フォントは不要
-    "font-src 'self'",
+    ["font-src 'self'", ...toolbar(VERCEL_TOOLBAR.font)].join(" "),
 
     // ブラウザから直接叩く外部は Supabase（認証トークンの検証・更新）だけ。
     // Google Books / OpenBD はサーバー側の Route Handler 経由なのでここには要らない。
@@ -100,10 +127,12 @@ export function buildContentSecurityPolicy({ nonce, isDev, supabaseUrl }: CspOpt
       "connect-src 'self'",
       ...(supabaseOrigin ? [supabaseOrigin] : []),
       ...(isDev ? ["ws:"] : []),
+      ...toolbar(VERCEL_TOOLBAR.connect),
     ].join(" "),
 
-    // iframe・<object> は一切使わないので閉じる（埋め込み型の攻撃面を無くす）
-    "frame-src 'none'",
+    // iframe・<object> は自分では一切使わないので閉じる（埋め込み型の攻撃面を無くす）。
+    // Preview だけ Vercel Toolbar の iframe を通す
+    allowVercelToolbar ? `frame-src ${VERCEL_TOOLBAR.frame.join(" ")}` : "frame-src 'none'",
     "object-src 'none'",
     // <base> の書き換えで相対 URL の解決先を乗っ取られないようにする
     "base-uri 'self'",
