@@ -5,7 +5,7 @@ import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
 import { cn } from "@/lib/utils";
-import { Badge, getEditionLocationLabel, getErrataLabel } from "@/components/report-card";
+import { Badge, getEditionLocationLabel, ErrataSummary } from "@/components/report-card";
 import { StatusBadge } from "@/components/status-badge";
 
 // トップ用に列を削ぎ落としたテーブル（11列→6列）。フィード版の対案。
@@ -49,7 +49,9 @@ export function CompactReportTable({ data }: { data: Report[] }) {
                 </Link>
               </td>
               <td className="px-4 py-3 align-top">
-                <div className="text-sm text-gray-700 line-clamp-1 max-w-md">{getErrataLabel(r)}</div>
+                <div className="max-w-md">
+                  <ErrataSummary report={r} />
+                </div>
               </td>
               {/* 折り返しを許す（電子書籍の位置は長く、nowrap だと表が横スクロールに追い込まれる） */}
               <td className="px-4 py-3 align-top text-xs text-gray-500">

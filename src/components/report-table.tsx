@@ -24,7 +24,7 @@ import {
   Badge,
   ReportCard,
   getEditionLocationLabel,
-  getErrataLabel,
+  ErrataSummary,
 } from "@/components/report-card";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -87,8 +87,8 @@ const columns: ColumnDef<Report>[] = [
     enableSorting: false,
     cell: ({ row }) => (
       <div className="max-w-md">
-        <div className="text-sm text-gray-800 line-clamp-2">{getErrataLabel(row.original)}</div>
-        {/* 投稿タイトルは主役ではないので2行目に小さく置く（検索語が当たった理由が見える） */}
+        <ErrataSummary report={row.original} />
+        {/* 投稿タイトルは主役ではないので下に小さく置く（検索語が当たった理由が見える） */}
         <div className="text-xs text-gray-500 line-clamp-1">{row.original.title}</div>
       </div>
     ),

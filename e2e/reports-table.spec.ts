@@ -33,6 +33,17 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     expect(authorShown).toBe(true);
   });
 
+  test("正誤情報の内容は 誤:/正: の2行で表示される", async ({ page }) => {
+    await page.goto("/reports");
+    await expect(page.getByText(/\d+ 件/)).toBeVisible();
+
+    // 1行の "誤 → 正" は長いと途中で切れるので、誤・正を別行の色付きラベルに分けている
+    await expect(page.locator("td span.text-red-700", { hasText: "誤:" }).first()).toBeVisible();
+    await expect(page.locator("td span.text-green-700", { hasText: "正:" }).first()).toBeVisible();
+    // 旧表示（1行の矢印つなぎ）が残っていないこと
+    await expect(page.locator("tbody").getByText("→", { exact: false })).toHaveCount(0);
+  });
+
   test("表示を落とした項目でも検索できる（出版社コメント・投稿者名）", async ({ page }) => {
     await page.goto("/reports");
     const search = page.getByPlaceholder("書籍名・タイトルで検索...");
