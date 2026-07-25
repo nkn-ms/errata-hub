@@ -73,12 +73,12 @@ test.describe("投稿フォーム（書き込み）", () => {
     // 隣の「正」欄は空のままなので出ない（欄ごとに独立している）
     await expect(page.locator("#correct-count")).toBeHidden();
 
-    // 改善提案に切り替えると「内容・提案」欄（上限2000）のカウンターに変わる
+    // 改善提案に切り替えると「内容・提案」欄（上限1000）のカウンターに変わる
     await page.getByRole("button", { name: "改善提案" }).click();
     const contentCount = page.locator("#content-count");
     await expect(contentCount).toBeHidden();
-    await page.getByLabel("内容・提案").fill("あ".repeat(1600));
-    await expect(contentCount).toHaveText("1600/2000");
+    await page.getByLabel("内容・提案").fill("あ".repeat(800));
+    await expect(contentCount).toHaveText("800/1000");
   });
 
   test("紙の書籍の正誤投稿が作成でき、一覧と詳細に反映される", async ({ page, browser }) => {
