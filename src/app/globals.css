@@ -179,13 +179,20 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 末尾の総称ファミリ（sans-serif / monospace）は日本語のために必要。
+     Geist は英数字しか字形を持たないので、日本語は必ずここから先＝OS のフォントに落ちる。
+     総称を書かないとブラウザ既定に落ち、環境によっては明朝になる（実測: 現状は
+     Hiragino Kaku Gothic ProN で描画されている。この見え方を変えないための保険）。 */
+  --font-sans: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* create-next-app の雛形は Arial 直書きで、宣言だけした Geist が一度も使われていなかった
+     （実測: 全要素の描画が Arial／Geist の @font-face は unloaded のまま）。
+     Vercel の書体をそのまま使う方針にしたので、ここをトークン参照に変えて実際に適用する。 */
+  font-family: var(--font-sans);
 }
