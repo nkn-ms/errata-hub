@@ -133,8 +133,8 @@ export default function AdminUserEditor({
         >
           {saving ? "保存中..." : "ロールを保存"}
         </button>
-        {roleError && <p className="text-sm text-red-500">{roleError}</p>}
-        {roleSaved && <p className="text-sm text-green-600">保存しました</p>}
+        {roleError && <p className="text-sm text-red-700">{roleError}</p>}
+        {roleSaved && <p className="text-sm text-green-700">保存しました</p>}
       </div>
 
       {/* 出版社アクセス */}
@@ -150,7 +150,7 @@ export default function AdminUserEditor({
                 <span className="text-gray-800">{a.publisher.name}</span>
                 <button
                   onClick={() => handleRemovePublisher(a.publisherId)}
-                  className="text-red-500 hover:text-red-700 text-xs"
+                  className="text-red-700 hover:text-red-900 text-xs"
                 >
                   削除
                 </button>
@@ -159,8 +159,8 @@ export default function AdminUserEditor({
           </ul>
         )}
 
-        {accessError && <p className="text-sm text-red-500">{accessError}</p>}
-        {accessMessage && <p className="text-sm text-green-600">{accessMessage}</p>}
+        {accessError && <p className="text-sm text-red-700">{accessError}</p>}
+        {accessMessage && <p className="text-sm text-green-700">{accessMessage}</p>}
         {ungrantedPublishers.length > 0 && (
           <div className="flex gap-2 pt-2">
             <select
@@ -218,13 +218,13 @@ export default function AdminUserEditor({
             <button
               onClick={handleWithdraw}
               disabled={!canWithdraw || withdrawing}
-              className="w-full py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors"
+              className="w-full py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors"
             >
               {withdrawing ? "処理中..." : "退会させる"}
             </button>
           </>
         )}
-        {withdrawError && <p className="text-sm text-red-500">{withdrawError}</p>}
+        {withdrawError && <p className="text-sm text-red-700">{withdrawError}</p>}
       </div>
 
       <button

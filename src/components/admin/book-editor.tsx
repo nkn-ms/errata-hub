@@ -190,8 +190,8 @@ export function AdminBookEditor({ book }: { book: Book }) {
           </p>
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {saved && <p className="text-sm text-green-600">保存しました</p>}
+        {error && <p className="text-sm text-red-700">{error}</p>}
+        {saved && <p className="text-sm text-green-700">保存しました</p>}
 
         <div className="flex gap-3 justify-between pt-2">
           <div className="flex gap-3">
@@ -216,7 +216,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
             onClick={handleDelete}
             disabled={saving || book.reportCount > 0}
             title={book.reportCount > 0 ? "投稿が紐づく書籍は削除できません" : undefined}
-            className="px-4 py-2 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm text-red-700 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             削除
           </button>
@@ -246,7 +246,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
           </button>
         </div>
 
-        {fetchError && <p className="text-sm text-red-500">{fetchError}</p>}
+        {fetchError && <p className="text-sm text-red-700">{fetchError}</p>}
 
         {fetched && (
           <div className="space-y-3">

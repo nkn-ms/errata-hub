@@ -250,7 +250,7 @@ export default async function ReportDetailPage({ params }: Props) {
           {/* 出版社コメント */}
           {report.publisherComment && (
             <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3">
-              <p className="text-xs text-blue-500 mb-1 font-medium">出版社コメント</p>
+              <p className="text-xs text-blue-600 mb-1 font-medium">出版社コメント</p>
               <p className="text-sm text-blue-900 whitespace-pre-wrap">{report.publisherComment}</p>
             </div>
           )}

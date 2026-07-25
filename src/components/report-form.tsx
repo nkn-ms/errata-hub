@@ -211,7 +211,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
 
         <div role="group" aria-labelledby="book-label">
           <span id="book-label" className="block text-sm font-medium text-gray-700 mb-1">
-            書籍名 {!bookPreselected && <span className="text-red-500">*</span>}
+            書籍名 {!bookPreselected && <span className="text-red-700">*</span>}
           </span>
           {bookPreselected && book ? (
             // 確定済みなので検索させない。見た目は検索で選んだ直後と同じカードに揃える
@@ -293,7 +293,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         <div className="flex gap-4">
           <div className="flex-1">
             <label htmlFor="edition" className="block text-sm font-medium text-gray-700 mb-1">
-              版 <span className="text-red-500">*</span>
+              版 <span className="text-red-700">*</span>
             </label>
             <input
               id="edition"
@@ -329,7 +329,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
 
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            タイトル <span className="text-red-500">*</span>
+            タイトル <span className="text-red-700">*</span>
           </label>
           <input
             id="title"
@@ -370,7 +370,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             <div className="flex gap-4">
               <div className="flex-1">
                 <label htmlFor="page" className="block text-sm font-medium text-gray-700 mb-1">
-                  ページ番号 <span className="text-red-500">*</span>
+                  ページ番号 <span className="text-red-700">*</span>
                 </label>
                 <input
                   id="page"
@@ -427,7 +427,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         {medium === "EBOOK" && (
           <div className="pl-4 border-l-2 border-gray-200">
             <label htmlFor="ebook-location" className="block text-sm font-medium text-gray-700 mb-1">
-              位置 <span className="text-red-500">*</span>
+              位置 <span className="text-red-700">*</span>
             </label>
             <input
               id="ebook-location"
@@ -444,7 +444,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         {medium === "OTHER" && (
           <div className="pl-4 border-l-2 border-gray-200">
             <label htmlFor="location-memo" className="block text-sm font-medium text-gray-700 mb-1">
-              位置メモ <span className="text-red-500">*</span>
+              位置メモ <span className="text-red-700">*</span>
             </label>
             <input
               id="location-memo"
@@ -463,7 +463,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <div className="space-y-3">
             <div>
               <label htmlFor="wrong" className="block text-sm font-medium text-gray-700 mb-1">
-                誤（該当箇所） <span className="text-red-500">*</span>
+                誤（該当箇所） <span className="text-red-700">*</span>
               </label>
               <textarea
                 id="wrong"
@@ -479,7 +479,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             </div>
             <div>
               <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
-                正（正しい内容） <span className="text-red-500">*</span>
+                正（正しい内容） <span className="text-red-700">*</span>
               </label>
               <textarea
                 id="correct"
@@ -497,7 +497,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         ) : (
           <div>
             <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-              内容・提案 <span className="text-red-500">*</span>
+              内容・提案 <span className="text-red-700">*</span>
             </label>
             <textarea
               id="content"
@@ -592,7 +592,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
       </section>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
           {error}
         </div>
       )}

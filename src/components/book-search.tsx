@@ -263,7 +263,7 @@ export function BookSearch({ onSelect }: Props) {
               {!loading && results.length === 0 && (
                 <div className="px-4 py-3 text-sm text-gray-400">
                   見つかりません。ISBNがわかる場合は
-                  <button type="button" onClick={() => switchMode("isbn")} className="text-blue-500 underline mx-1">ISBNで検索</button>
+                  <button type="button" onClick={() => switchMode("isbn")} className="text-blue-600 underline mx-1">ISBNで検索</button>
                   をお試しください。
                 </div>
               )}
@@ -291,7 +291,7 @@ export function BookSearch({ onSelect }: Props) {
 
           <p className="text-xs text-gray-400">
             目的の本が見つからない場合は
-            <button type="button" onClick={() => switchMode("isbn")} className="text-blue-500 underline mx-1">ISBNで検索</button>
+            <button type="button" onClick={() => switchMode("isbn")} className="text-blue-600 underline mx-1">ISBNで検索</button>
             をお試しください。
           </p>
 
@@ -335,7 +335,7 @@ export function BookSearch({ onSelect }: Props) {
             </button>
           </div>
           {isbnError && (
-            <p className="text-xs text-red-500">
+            <p className="text-xs text-red-700">
               {isbnError}
             </p>
           )}

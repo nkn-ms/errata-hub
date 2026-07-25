@@ -56,8 +56,8 @@ export function ErratumUrlAdopter({
       </a>
       <p className="text-xs text-gray-400">リンク先ホスト: {hostnameOf(reportedUrl)}</p>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {saved && <p className="text-sm text-green-600">この本の正誤表として採用しました</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
+      {saved && <p className="text-sm text-green-700">この本の正誤表として採用しました</p>}
 
       {alreadyAdopted && !saved ? (
         <p className="text-sm text-gray-500">この URL は既にこの本の正誤表として登録済みです。</p>
