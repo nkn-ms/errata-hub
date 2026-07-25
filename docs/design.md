@@ -203,5 +203,6 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **`img-src` の外部ホストは書影の保存時検証と同じ集合**（`utils/cover-image.ts` の `ALLOWED_COVER_HOSTS` を import）。「保存を許すホスト」と「ブラウザが読み込めるホスト」が自動で一致し、片方だけ増やして表示が壊れる／検証が緩むのを防ぐ。
 - **HSTS は書かない**。Vercel が既に `max-age=63072000; includeSubDomains; preload` を付けており（2026-07-26 に本番の応答ヘッダで実測）、ここで短い `max-age` を書くと**弱くなる**だけ。
 - **dev だけの緩和**は `'unsafe-eval'`（React がサーバー側スタックの再構成に eval を使う）と `ws:`（HMR）、および `upgrade-insecure-requests` を付けないこと（ローカル Supabase が `http://127.0.0.1:54321` なので付けると壊れる）。
+- **Preview だけ Vercel Toolbar（コメント機能）のホストを通す**（`VERCEL_ENV === "preview"` で分岐）。Vercel が Preview の HTML に `vercel.live` のスクリプトと iframe を差し込むため、`frame-src 'none'` のままだと Preview 実機確認のたびにコンソールに違反が出てコメントも使えない。**本番には差し込まれないので本番のポリシーは緩めない**。許可ホストは公式ドキュメントの一覧（`src/utils/security-headers.ts` に出典 URL）。
 - **検査は e2e で二重に**。`e2e/security-headers.spec.ts` が「ヘッダが付いているか」と「厳しすぎて画面を壊していないか（実ブラウザで `securitypolicyviolation` が0件）」を見る。後者は仕込みが壊れると黙って緑になるので、**許可外ホストの画像が実際にブロックされることを確かめる逆テストを1件置いている**。
 - **残る穴（別タスク）**: レート制限は未実装。`Content-Security-Policy-Report-Only` での違反収集も未導入（収集先が無いため）。
