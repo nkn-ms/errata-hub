@@ -57,10 +57,13 @@ test.describe("ダークモード（管理画面）", () => {
     await login(page, ADMIN);
     await page.goto("/admin/reports");
 
-    // 公開側ヘッダーにしかトグルは無いので、保存値を直接書いて（＝ボタンと同じ状態を作って）読み込む
-    await page.evaluate(() => localStorage.setItem("theme", "light"));
-    await page.reload();
+    // 帯にあるトグルで切り替える（OS がダーク＝1回押すとライト）。
+    // ここを経路にすることで「管理画面からもテーマを変えられる」ことも同時に押さえる
+    await page.getByRole("button", { name: /表示テーマ/ }).click();
+    expect(await page.evaluate(() => localStorage.getItem("theme"))).toBe("light");
 
+    // 選択がリロードをまたいで効くこと（初期化スクリプトが復元する）も確かめる
+    await page.reload();
     expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("light");
     const barBg = await page.locator("header").first().evaluate((el) => {
       const ctx = document.createElement("canvas").getContext("2d")!;
