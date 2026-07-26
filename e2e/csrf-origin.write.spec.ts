@@ -4,7 +4,7 @@ import { login } from "./login";
 
 // 画像アップロードの Route Handler に対する同一オリジン検査（CSRF 対策）の回帰テスト。
 //
-// なぜ e2e で固定するか: Server Actions には Next.js が自動で CSRF 対策を入れるが、
+// なぜ e2e で担保するか: Server Actions には Next.js が自動で CSRF 対策を入れるが、
 // Route Handler はその保護の外にある（出典: node_modules/next/dist/docs/01-app/02-guides/data-security.md）。
 // 「Next がやってくれている」と勘違いして検査を消されると、静かに穴が開く。
 //

@@ -220,4 +220,4 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **これは invocation 枠を守らない**。拒否する場合も関数は起動する（＝Vercel の Active CPU / Invocations は消費される）。**関数の手前で止められるのは Vercel WAF のレート制限だけ**で、Hobby でもルール1本（IP・JA4 キー／ウィンドウは最大10分）使える。IP 単位なので本命の穴（アカウント1個で無制限）は塞げず**代替ではなく補完**。公開前に1本入れる想定。
 - **期限切れ行は pg_cron で掃除する**（`dev-environment.md §9`。**本番反映時に登録が必要**）。
 
-**同じ変更で塞いだ CSRF の穴**: 画像アップロードだけは Route Handler（ボディ上限の都合）で、**Server Actions の自動 CSRF 対策（POST 限定＋Origin と Host の一致検査）が効かない**。同じ検査を `src/utils/same-origin.ts` で自前に実装し、`e2e/csrf-origin.write.spec.ts` で固定した（別オリジン・Origin 欠落を 403、同一オリジンは素通り）。
+**同じ変更で塞いだ CSRF の穴**: 画像アップロードだけは Route Handler（ボディ上限の都合）で、**Server Actions の自動 CSRF 対策（POST 限定＋Origin と Host の一致検査）が効かない**。同じ検査を `src/utils/same-origin.ts` で自前に実装し、`e2e/csrf-origin.write.spec.ts` で担保した（別オリジン・Origin 欠落を 403、同一オリジンは素通り）。
