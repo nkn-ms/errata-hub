@@ -1,24 +1,31 @@
 import { prisma } from "@/lib/prisma";
 
-/** 窓の中で何回まで許すか。しきい値の実値は src/constants/rate-limits.ts */
+/**
+ * ウィンドウ（window）＝ 回数を数える時間の区切り。「1分に30回」なら1分がウィンドウで、
+ * 次のウィンドウに入ればカウントは0から数え直しになる。レート制限の一般的な用語で、
+ * 数え方の違いが「固定ウィンドウ（fixed window）」「スライディングウィンドウ」の名前になっている。
+ *
+ * しきい値の実値は src/constants/rate-limits.ts
+ */
 export type RateLimitRule = {
+  /** 1つのウィンドウの中で何回まで許すか */
   limit: number;
-  /** 窓の長さ（秒） */
+  /** ウィンドウの長さ（秒） */
   windowSec: number;
 };
 
 export type RateLimitResult = {
   allowed: boolean;
-  /** 拒否したとき、窓が切り替わるまでの秒数（Retry-After ヘッダ・文言に使う）。許可時は 0 */
+  /** 拒否したとき、ウィンドウが切り替わるまでの秒数（Retry-After ヘッダ・文言に使う）。許可時は 0 */
   retryAfterSec: number;
 };
 
 /**
- * 固定窓（fixed window）の開始時刻。現在時刻を窓幅で切り捨てるので、
- * 同じ窓に入るリクエストは全て同じ行（key, windowStart）に集まる。
+ * 固定ウィンドウ（fixed window）の開始時刻。現在時刻をウィンドウ幅で切り捨てるので、
+ * 同じウィンドウに入るリクエストは全て同じ行（key, windowStart）に集まる。
  *
- * 固定窓の既知の弱点として窓の境目でバーストを許す（窓の終わり際に limit 回＋
- * 次の窓の頭に limit 回＝短時間に 2×limit 回）。ここでの目的は外部コストの青天井を防ぐことで、
+ * 固定ウィンドウの既知の弱点は境目でバーストを許すこと（終わり際に limit 回 ＋ 次の頭に limit 回
+ * ＝ 短時間に 2×limit 回まで通る）。ここでの目的は外部コストの青天井を防ぐことであって
  * 瞬間的な流量の平滑化ではないため、実装の単純さ（1クエリ・1行）を優先して許容している。
  */
 export function windowStartFor(now: Date, windowSec: number): Date {
@@ -26,7 +33,7 @@ export function windowStartFor(now: Date, windowSec: number): Date {
   return new Date(Math.floor(now.getTime() / windowMs) * windowMs);
 }
 
-/** 窓が切り替わるまでの残り秒数。0 を返すと即再試行になってしまうので最低 1 秒にする */
+/** ウィンドウが切り替わるまでの残り秒数。0 を返すと即再試行になってしまうので最低 1 秒にする */
 function retryAfterFor(now: Date, windowStart: Date, windowSec: number): number {
   const resetAtMs = windowStart.getTime() + windowSec * 1000;
   return Math.max(1, Math.ceil((resetAtMs - now.getTime()) / 1000));
@@ -45,8 +52,8 @@ export function rateLimitKey(action: string, subject: string): string {
  * 直列化されるので落ちない（行ロックは競合したリクエストの間だけ）。
  *
  * 拒否したリクエストも加算する（＝叩き続けると count は上限を超えて伸びる）。
- * これは「窓の中で受け付けた回数」ではなく「窓の中で叩かれた回数」を数える設計で、
- * 上限に達した後に叩き続けても窓が延長されないという意味では利用者に不利にならない。
+ * これは「ウィンドウの中で受け付けた回数」ではなく「ウィンドウの中で叩かれた回数」を数える設計で、
+ * 上限に達した後に叩き続けてもウィンドウが延長されないという意味では利用者に不利にならない。
  */
 export async function checkRateLimit(
   key: string,
@@ -80,11 +87,11 @@ export async function checkRateLimit(
 }
 
 /**
- * 複数の窓を同時に見る（例: 書籍検索の「1分30回」かつ「1日300回」）。
+ * 複数のウィンドウを同時に見る（例: 書籍検索の「1分30回」かつ「1日300回」）。
  * どれか1つでも超えていたら拒否し、Retry-After は最も長いものを返す。
  *
- * ⚠️ 短絡評価はしない: 全ての窓を必ず消費する。片方で拒否されたときに
- * もう片方を数えないと、拒否され続けている間に長い窓のカウントが進まなくなる。
+ * ⚠️ 短絡評価はしない: 全てのウィンドウを必ず消費する。片方で拒否されたときに
+ * もう片方を数えないと、拒否され続けている間に長いウィンドウのカウントが進まなくなる。
  */
 export async function checkRateLimits(
   keys: { key: string; rule: RateLimitRule }[],

@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
 
-  // 窓を2つ見る: 分の窓はタイプアヘッド（400ms デバウンス）を通す幅、
-  // 日の窓は Google Books の無料枠を1人に使い切らせないための壁（枠はプロジェクト全体で共有）
+  // ウィンドウを2つ見る: 分のウィンドウはタイプアヘッド（400ms デバウンス）を通す幅、
+  // 日のウィンドウは Google Books の無料枠を1人に使い切らせないための壁（枠はプロジェクト全体で共有）
   const limit = await checkRateLimits([
     { key: rateLimitKey("booksSearch:min", user.id), rule: RATE_LIMITS.booksSearchPerMinute },
     { key: rateLimitKey("booksSearch:day", user.id), rule: RATE_LIMITS.booksSearchPerDay },

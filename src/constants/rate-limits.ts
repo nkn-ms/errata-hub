@@ -18,8 +18,8 @@ export const RATE_LIMITS = {
   // 画像アップロード。上の投稿上限が日の天井を決めるので、これはバーストを均すだけの役割
   reportImageUpload: { limit: 30, windowSec: 60 * 60 },
 
-  // 書籍検索（Google Books）。分の窓は 400ms デバウンスのタイプアヘッド用で、
-  // 打ちながら検索しても通常はぶつからない。日の窓が無料枠（1,000/日・全体共有）の防波堤
+  // 書籍検索（Google Books）。分のウィンドウは 400ms デバウンスのタイプアヘッド用で、
+  // 打ちながら検索しても通常はぶつからない。日のウィンドウが無料枠（1,000/日・全体共有）の防波堤
   booksSearchPerMinute: { limit: 30, windowSec: 60 },
   booksSearchPerDay: { limit: 300, windowSec: 24 * 60 * 60 },
 
