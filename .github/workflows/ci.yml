@@ -61,15 +61,30 @@ jobs:
   # 実行タイミングは絞る（テストピラミッドの考え方＝ e2e は薄い層に保つ）:
   #   - main への push（＝マージ後）… 何かが漏れて main に入っていないかの安全網
   #   - PR に "e2e" ラベルが付いているとき … マージ前に任意で回す
+  #   - Dependabot の PR … ラベルが付かないので明示的に含める（下記）
   # 開発中の毎 push では回さないので、内側の開発ループは軽い CI だけで速いまま。
   # ラベルの付け外しは gh pr edit <PR> --add-label e2e / --remove-label e2e。
+  #
+  # Dependabot の PR で必ず回す理由: **コードを1行も変えていないのに挙動が変わり得る**のは
+  # 依存更新のときだから。例えばセッション Cookie の HttpOnly は @supabase/ssr が
+  # cookieOptions を Set-Cookie まで運んでくれることに依存しており（src/lib/supabase/cookie-options.ts）、
+  # ライブラリ側がそれをやめても型エラーにもならず、ログインも成功し続ける＝
+  # e2e で実際の Cookie を見る以外に気づく手立てが無い。ここを回さないと、
+  # 気づくのは main にマージして本番へ出た後（push トリガー）になってしまう。
+  # 判定に github.actor ではなく PR の作成者を使うのは、人間が Dependabot のブランチに
+  # 追加 push すると actor がその人に変わってしまうため。
+  #
+  # ⚠️ この job はリポジトリのシークレットを使わない（使い捨ての Supabase を CI 内に立て、
+  #    接続情報は supabase status から取る）。Dependabot の PR はシークレットを読めないので、
+  #    ここが崩れると Dependabot でだけ失敗するようになる。
   # ─────────────────────────────────────────────────────────────
   e2e:
     name: e2e (Playwright)
     needs: ci # 軽いチェックが落ちているときは重い e2e を走らせない（無駄打ち防止）
     if: >-
       github.event_name == 'push' ||
-      contains(github.event.pull_request.labels.*.name, 'e2e')
+      contains(github.event.pull_request.labels.*.name, 'e2e') ||
+      github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
