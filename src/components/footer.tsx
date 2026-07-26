@@ -33,16 +33,28 @@ export function Footer() {
           </div>
 
           {/* ヘッダー(sticky)が常時ナビを提供するため、フッターは重複させず
-              ヘッダーに無いメタ系リンク（法務・ソース）のみ置く。 */}
+              ヘッダーに無いメタ系リンク（法務・ソース）のみ置く。
+
+              prefetch={false} の理由: このフッターは全ページに出るので、既定のままだと
+              **どのページを見ても規約とプライバシーの2ページがサーバーで描画される**
+              （実測: 本番トップを1回開くと prefetch が13リクエスト飛び、うち4本がここ。
+              全ページ動的なので CDN も効かず x-vercel-cache: MISS になる）。
+              しかも今の構成で prefetch が取れるのは JS チャンクの参照だけで本文は入らない
+              （動的ルートは loading.js の境界までしか prefetch されず、このプロジェクトに
+              loading.tsx は1つも無い）＝ クリック率の低い法務リンクでは利益がほぼゼロ。
+              出典: node_modules/next/dist/docs/01-app/03-api-reference/02-components/link.md §prefetch
+              ⚠️ prefetch は本番でしか動かないため、この効果は dev や e2e では確認できない（Preview で実測する）。 */}
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <Link
               href={routes.terms}
+              prefetch={false}
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               利用規約
             </Link>
             <Link
               href={routes.privacy}
+              prefetch={false}
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               プライバシーポリシー
