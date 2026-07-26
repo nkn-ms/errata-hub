@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。
-const { prismaMock, getUserMock, PrismaClientKnownRequestError } = vi.hoisted(() => {
+const { prismaMock, getUserMock, checkRateLimitMock, PrismaClientKnownRequestError } = vi.hoisted(() => {
   // アクションは Prisma.PrismaClientKnownRequestError の instanceof + code 判定に使う
   class PrismaClientKnownRequestError extends Error {
     code: string;
@@ -19,11 +19,18 @@ const { prismaMock, getUserMock, PrismaClientKnownRequestError } = vi.hoisted(()
       publisher: { upsert: vi.fn() },
     },
     getUserMock: vi.fn(),
+    checkRateLimitMock: vi.fn(),
     PrismaClientKnownRequestError,
   };
 });
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+// レート制限は既定で「通す」に固定する。モックしないと prisma モックに $queryRaw が無いせいで
+// fail open に落ちて素通りし、上限に達したときの分岐がテストされていないことに気づけない
+vi.mock("@/lib/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+  checkRateLimit: checkRateLimitMock,
+}));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getUser: getUserMock } }),
 }));
@@ -40,10 +47,12 @@ vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { createReport, toggleUpvote, updateReport } from "./report";
 import { REPORT_LIMITS } from "@/constants/report-limits";
+import { RATE_LIMITS } from "@/constants/rate-limits";
 
 beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.upvote.count.mockResolvedValue(1);
+  checkRateLimitMock.mockResolvedValue({ allowed: true, retryAfterSec: 0 });
 });
 
 describe("toggleUpvote（賛同を付ける）", () => {
@@ -196,5 +205,71 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
       `出版社コメントは${REPORT_LIMITS.publisherComment}文字以内で入力してください`
     );
     expect(prismaMock.report.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("レート制限", () => {
+  const validInput = {
+    book: { title: "テスト駆動開発", isbn: "9784274217883" },
+    title: "第3章の説明が分かりにくい",
+    type: "SUGGESTION",
+    medium: "EBOOK",
+    ebookLocation: "位置No.1234",
+    content: "もう少し具体例があると読みやすいと思います",
+  } as const;
+
+  it("上限に達したら投稿を保存しない", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 3600 });
+
+    const result = await createReport(validInput);
+
+    expect(result.error).toContain("操作が多すぎます");
+    // 書籍・出版社の upsert すら起こさない（弾くなら書き込みの手前で弾く）
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+    expect(prismaMock.book.upsert).not.toHaveBeenCalled();
+    expect(prismaMock.publisher.upsert).not.toHaveBeenCalled();
+  });
+
+  it("投稿の上限はユーザーごとに数える", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-1" });
+
+    await createReport(validInput);
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith(
+      "createReport:user-1",
+      RATE_LIMITS.createReport
+    );
+  });
+
+  it("未認証はレート制限を消費しない（認証で先に弾く）", async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+
+    await createReport(validInput);
+
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+  });
+
+  it("上限に達したら賛同も書き込まない", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 30 });
+
+    const result = await toggleUpvote("report-1", true);
+
+    expect(result.error).toContain("操作が多すぎます");
+    expect(prismaMock.upvote.create).not.toHaveBeenCalled();
+  });
+
+  it("賛同の取り消しも数える（連打は両方向に起きる）", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 30 });
+
+    const result = await toggleUpvote("report-1", false);
+
+    expect(result.error).toContain("操作が多すぎます");
+    expect(prismaMock.upvote.deleteMany).not.toHaveBeenCalled();
   });
 });

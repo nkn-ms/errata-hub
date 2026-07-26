@@ -218,3 +218,25 @@ model ReportImage {
   // 投稿詳細の画像表示・投稿削除時の Cascade・アップロード時の枚数カウントが参照する
   @@index([reportId])
 }
+
+// レート制限のカウンタ（固定窓）。しきい値は src/constants/rate-limits.ts、実装は src/lib/rate-limit.ts。
+//
+// なぜ DB に置くか: Vercel の関数はリクエストごとに使い捨てで、しかも複数インスタンスが並走するため
+// プロセス内メモリでは数えられない（Fluid Compute のインスタンス再利用は保証にならない）。
+// 共有ストアとして Redis を増やさず既存の Postgres を使う判断 — 関数(hnd1) と DB(日本) で
+// リージョンが揃っていて往復が軽いこと、秘密情報を増やさないことが理由。
+//
+// これはアプリの本来のデータではない運用テーブル。他モデルから参照せず、消えても投稿は壊れない。
+// 期限切れ行は pg_cron ジョブ delete-old-rate-limits が削除する
+// （AuditLog の90日削除と同じ方式＝リポジトリ管理外。登録SQLは docs/dev-environment.md §9）
+model RateLimit {
+  key         String   // "<動作>:<ユーザーID>"（組み立ては src/lib/rate-limit.ts の rateLimitKey）
+  windowStart DateTime // 窓の開始時刻＝現在時刻を窓幅で切り捨てた値。同じ窓のリクエストが1行に集まる
+  count       Int      // その窓で受け付けた回数。上限超過後も加算し続ける（判定は count <= limit）
+
+  // (key, windowStart) の一意性が INSERT … ON CONFLICT の衝突条件そのもの。
+  // これがあるおかげで「読んで+1して書く」を1クエリで原子的に行え、同時アクセスで数え落とさない
+  @@id([key, windowStart])
+  // 期限切れ行の一括削除（pg_cron）が参照する
+  @@index([windowStart])
+}

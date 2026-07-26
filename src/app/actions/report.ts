@@ -14,6 +14,8 @@ import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
 import { REPORT_LIMITS } from "@/constants/report-limits";
+import { RATE_LIMITS } from "@/constants/rate-limits";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
 import { routes } from "@/constants/routes";
 import { ReportType, Medium, Prisma } from "@/generated/prisma/client";
@@ -95,6 +97,16 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { error: "認証が必要です" };
+    }
+
+    // 認証の直後に消費する。ここより後は書籍の upsert 等で DB に書き込みが発生するため、
+    // 弾くならその手前で弾く
+    const limit = await checkRateLimit(
+      rateLimitKey("createReport", user.id),
+      RATE_LIMITS.createReport
+    );
+    if (!limit.allowed) {
+      return { error: rateLimitMessage(limit.retryAfterSec) };
     }
 
     const parsed = ReportSchema.safeParse(input);
@@ -309,6 +321,15 @@ export async function toggleUpvote(reportId: string, upvote: boolean): Promise<U
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { error: "認証が必要です" };
+    }
+
+    // 付与・取り消しのどちらも数える（連打は両方向に等しく発生するため）
+    const limit = await checkRateLimit(
+      rateLimitKey("toggleUpvote", user.id),
+      RATE_LIMITS.toggleUpvote
+    );
+    if (!limit.allowed) {
+      return { error: rateLimitMessage(limit.retryAfterSec) };
     }
 
     if (upvote) {

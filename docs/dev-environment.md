@@ -237,6 +237,25 @@ select cron.schedule(
 - 実行履歴の確認: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;`
 - 登録済みジョブの確認: `SELECT * FROM cron.job;`
 
+### RateLimit の期限切れ行の削除（pg_cron）
+
+レート制限のカウンタ（`src/lib/rate-limit.ts`）は窓ごとに1行を作るため、放置すると単調に増える。
+**⚠️ 未登録 — レート制限を本番反映するときに一緒に登録すること。**
+
+```sql
+select cron.schedule(
+  'delete-old-rate-limits',          -- ジョブ名
+  '0 1 * * *',                       -- 毎日 1:00 UTC（AuditLog の掃除と1時間ずらす）
+  $$ DELETE FROM "RateLimit" WHERE "windowStart" < now() - interval '2 days' $$
+);
+```
+
+- **2日**なのは、一番長い窓が1日（`RATE_LIMITS.createReport`）だから。
+  進行中の窓を消すと制限がその場でリセットされてしまうので、最長窓より余裕を持たせる
+- 消えても壊れない: このテーブルはアプリの本来のデータではなく、行が無ければ「その窓の1回目」として
+  数え直されるだけ（＝掃除の失敗が投稿や検索を止めることはない）
+- 削除対象は `windowStart` の索引で引ける（`@@index([windowStart])`）
+
 ## 10. Node のバージョン（24 = Active LTS）
 
 **`.nvmrc`（= `24`）が単一の正**。ここを直せば全部が追従する:

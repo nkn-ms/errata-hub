@@ -8,6 +8,9 @@ import {
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
 } from "@/constants/report-images";
+import { RATE_LIMITS } from "@/constants/rate-limits";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { isSameOriginRequest } from "@/utils/same-origin";
 
 // 競合で枚数上限に達していたことを表す番兵。トランザクションを確実にロールバックさせるために投げる。
 class ImageLimitReached extends Error {}
@@ -16,11 +19,29 @@ class ImageLimitReached extends Error {}
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Server Actions と違い Route Handler には Next.js の CSRF 対策が効かないので自前で検査する
+    // （詳細は utils/same-origin.ts）。認証より先に弾く＝ DB にも Supabase にも触らせない
+    if (!isSameOriginRequest(request.headers)) {
+      return NextResponse.json({ error: "不正なリクエストです" }, { status: 403 });
+    }
+
     const { id } = await params;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+    }
+
+    // 画像は Storage の容量課金に直結するので、本文を読む（＝転送を受け切る）前に判定する
+    const limit = await checkRateLimit(
+      rateLimitKey("reportImageUpload", user.id),
+      RATE_LIMITS.reportImageUpload
+    );
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: rateLimitMessage(limit.retryAfterSec) },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+      );
     }
 
     const report = await prisma.report.findUnique({

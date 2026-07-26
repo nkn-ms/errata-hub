@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { RATE_LIMITS } from "@/constants/rate-limits";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 
 // OpenBD 書誌照会をサーバー経由にする。
 // ブラウザから直接 api.openbd.jp を叩くとユーザーの IP アドレス等が OpenBD 側に渡るため、
@@ -15,6 +17,17 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+  }
+
+  const limit = await checkRateLimit(
+    rateLimitKey("booksOpenbd", user.id),
+    RATE_LIMITS.booksOpenbd
+  );
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: rateLimitMessage(limit.retryAfterSec) },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
   }
 
   const raw = request.nextUrl.searchParams.get("isbn")?.trim();
