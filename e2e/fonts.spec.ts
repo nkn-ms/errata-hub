@@ -22,14 +22,40 @@ test("本文が Geist で描画され、日本語は OS のゴシックに落ち
   expect(fontFamily).toMatch(/sans-serif$/);
 });
 
-test("公開ページが取得するフォントは本文用の1本だけ", async ({ page }) => {
+test("等幅を使わない画面は本文用の1本しか取得しない", async ({ page }) => {
   const fontRequests: string[] = [];
   page.on("request", (req) => {
     if (/\.woff2?(\?|$)/.test(req.url())) fontRequests.push(req.url());
   });
 
+  // トップページには ISBN の表示が無い＝等幅を使わない
   await page.goto("/");
   await expect(page.getByRole("contentinfo")).toBeVisible();
 
   expect(fontRequests, `取得したフォント:\n${fontRequests.join("\n")}`).toHaveLength(1);
+});
+
+test("ISBN は等幅で描画され、その画面で等幅フォントが読み込まれる", async ({ page }) => {
+  // ID を固定で書かず一覧の1件目から辿る（contrast.spec.ts と同じ方針）
+  await page.goto("/reports");
+  await page.locator("tbody tr").first().click();
+  await page.waitForURL(/\/reports\/[0-9a-f-]{36}$/);
+
+  const isbn = page.locator("span.font-mono").first();
+  await expect(isbn).toBeVisible();
+  await expect(isbn).toHaveText(/^\d{13}$/);
+
+  // 実際に等幅で描画されていること（クラスが付いているだけでは確かめたことにならない）
+  const fontFamily = await isbn.evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(fontFamily).toMatch(/Geist Mono/);
+  // 総称ファミリの保険（監査ログの JSON など日本語が入り得る値のため）
+  expect(fontFamily).toMatch(/monospace$/);
+
+  // preload を切ってあるので、等幅は「使うこの画面で」初めて読み込まれる。
+  // ⚠️ リクエスト本数では見ない（dev はルートの初回コンパイルで woff2 の取得本数が揺れ、実測で1度落ちた）。
+  //    「@font-face が loaded になったか」なら、取得され描画に使われたことを取り違えずに測れる
+  const monoLoaded = await page.evaluate(() =>
+    [...document.fonts].some((f) => f.family === "Geist Mono" && f.status === "loaded")
+  );
+  expect(monoLoaded).toBe(true);
 });

@@ -109,7 +109,11 @@ export default async function ReportDetailPage({ params }: Props) {
               </Link>
               {report.bookAuthor && <p className="text-sm text-gray-600 mt-0.5">{report.bookAuthor}</p>}
               {report.publisher && <p className="text-sm text-gray-500">{report.publisher}</p>}
-              {report.isbn && <p className="text-xs text-gray-400 mt-1">ISBN: {report.isbn}</p>}
+              {report.isbn && (
+                <p className="text-xs text-gray-400 mt-1">
+                  ISBN: <span className="font-mono">{report.isbn}</span>
+                </p>
+              )}
               {raw.book.erratumUrl && (
                 <a
                   href={raw.book.erratumUrl}

@@ -69,7 +69,12 @@ export default async function BookDetailPage({ params }: Props) {
               <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
               {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
               {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher.name}</p>}
-              {book.isbn && <p className="text-xs text-gray-400 mt-2">ISBN: {book.isbn}</p>}
+              {book.isbn && (
+                <p className="text-xs text-gray-400 mt-2">
+                  {/* 数字だけ等幅（識別子は桁が揃うと読みやすい）。ラベルは本文書体のまま */}
+                  ISBN: <span className="font-mono">{book.isbn}</span>
+                </p>
+              )}
               {book.erratumUrl && (
                 <a
                   href={book.erratumUrl}
