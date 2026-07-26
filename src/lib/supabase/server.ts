@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 // Supabase SSR クライアント（サーバー用）。cookie の getAll/setAll の形と、
 // Server Component では cookie を書けないため setAll の失敗を握りつぶす try/catch は
@@ -11,6 +12,7 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return cookieStore.getAll();
