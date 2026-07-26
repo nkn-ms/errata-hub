@@ -7,7 +7,7 @@ import { createThrowawayAccount } from "./throwaway-user";
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
 // `supabase start` ＋ `npm run seed:local` 済みであること。
 //
-// PR#66 で API Route から Server Actions に移した更新系のうち、admin 系フローを固定する。
+// PR#66 で API Route から Server Actions に移した更新系のうち、admin 系フローを担保する。
 // いずれのテストも、最後にシードの初期状態へ戻してから終わる（繰り返し実行できる）。
 
 const SEEDED_REPORT_TITLE = "サンプル投稿"; // シードが作る唯一の投稿（初期ステータス=未対応）

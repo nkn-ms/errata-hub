@@ -11,7 +11,7 @@ import { login } from "./login";
 // ⚠️ `@supabase/ssr` の既定は httpOnly: false で、Supabase 公式は「HttpOnly は不要」という立場
 // （ブラウザ側クライアントがトークンを読む構成を前提にしているため）。このアプリはブラウザから
 // Supabase を触らないので塞げている＝**ベンダーの既定から意図的に外れている**。
-// ライブラリ更新でここが黙って戻る可能性があるため、テストで固定する。
+// ライブラリ更新でここが黙って戻る可能性があるため、テストで担保する。
 
 test("セッション Cookie は HttpOnly で、JS から読めない", async ({ page, context }) => {
   await login(page, READER);
