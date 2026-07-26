@@ -244,7 +244,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                   <div className="text-sm font-semibold text-gray-900">{book.title}</div>
                   <div className="text-xs text-gray-600 mt-0.5">{book.author}</div>
                   <div className="text-xs text-gray-500">{book.publisher}</div>
-                  {book.isbn && <div className="text-xs text-gray-400 mt-0.5">ISBN: {book.isbn}</div>}
+                  {book.isbn && (
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      ISBN: <span className="font-mono">{book.isbn}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す */}

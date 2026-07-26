@@ -306,7 +306,11 @@ export function BookSearch({ onSelect }: Props) {
                 <div className="text-sm font-semibold text-gray-900">{selected.title}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{selected.author}</div>
                 <div className="text-xs text-gray-500">{selected.publisher}</div>
-                {selected.isbn && <div className="text-xs text-gray-400 mt-0.5">ISBN: {selected.isbn}</div>}
+                {selected.isbn && (
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    ISBN: <span className="font-mono">{selected.isbn}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -350,7 +354,11 @@ export function BookSearch({ onSelect }: Props) {
                 <div className="text-sm font-semibold text-gray-900">{selected.title}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{selected.author}</div>
                 <div className="text-xs text-gray-500">{selected.publisher}</div>
-                {selected.isbn && <div className="text-xs text-gray-400 mt-0.5">ISBN: {selected.isbn}</div>}
+                {selected.isbn && (
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    ISBN: <span className="font-mono">{selected.isbn}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
