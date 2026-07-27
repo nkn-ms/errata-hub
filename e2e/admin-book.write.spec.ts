@@ -5,7 +5,7 @@ import { login } from "./login";
 // 書籍マスタ編集（/admin/books/[id]）の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
 //
-// 固定したいのは編集そのものより **書籍マスタの不変条件**:
+// 担保したいのは編集そのものより **書籍マスタの不変条件**:
 //   - ISBN は編集不可（本の同一性の基準 = decision-isbn-required / schema.prisma）
 //   - 投稿が紐づく書籍は削除できない（UI の件数チェックと DB の Restrict で二重ガード）
 //   - OpenBD の差分取り込みは「反映」しても保存はされない（管理者が確認して保存する2段構え）

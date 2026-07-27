@@ -19,7 +19,8 @@ const BOOK_B = {
   publisher: "オーム社",
 };
 
-// 1x1 の PNG（テスト用の最小画像）。base64 は PNG シグネチャから作った固定値。
+// 1x1 の PNG（テスト用の最小画像・70バイト）。画像生成ライブラリを足さずに済ませるための固定値で、
+// PNG の最小構成 = シグネチャ8バイト（89 50 4e 47 0d 0a 1a 0a）＋ IHDR / IDAT / IEND チャンク。
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64"
