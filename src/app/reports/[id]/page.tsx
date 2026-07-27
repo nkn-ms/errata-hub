@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
-import { hostnameOf } from "@/utils/external-url";
+import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
@@ -115,14 +115,19 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               )}
               {raw.book.erratumUrl && (
-                <a
-                  href={raw.book.erratumUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="inline-block mt-2 text-sm text-blue-700 hover:underline"
-                >
-                  出版社の正誤表を見る（{hostnameOf(raw.book.erratumUrl)}）→
-                </a>
+                <div className="mt-2">
+                  <a
+                    href={raw.book.erratumUrl}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-sm text-blue-700 hover:underline"
+                  >
+                    出版社の正誤表を見る（{hostnameOf(raw.book.erratumUrl)}）→
+                  </a>
+                  {isInsecureUrl(raw.book.erratumUrl) && (
+                    <span className="ml-2 text-xs text-gray-500">保護されていない接続</span>
+                  )}
+                </div>
               )}
             </div>
           </div>
