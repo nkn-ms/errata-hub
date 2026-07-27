@@ -574,11 +574,6 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
           </label>
           <p className="text-xs text-gray-500 mb-2">
-            {/* 「切り抜きのみ・ページ全体は不可」と書いていたが、規約 第6条7項の基準は
-                「該当箇所を示すために必要かつ相当な範囲」であってページ数ではない。
-                実際に投稿すると紙面の撮影は普通ページ全体になり、指摘が複数ページに
-                またがることもある（コード例・表など）ため、画面の文言を規約の基準に合わせた。
-                分量の歯止めは枚数上限（REPORT_IMAGE_MAX_COUNT）が担う。 */}
             該当箇所が分かる画像を、指摘に必要な範囲で添付してください
             （JPEG / PNG / WebP・1枚4MBまで）。
           </p>
