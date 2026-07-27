@@ -125,7 +125,7 @@ export default async function ReportDetailPage({ params }: Props) {
                     出版社の正誤表を見る（{hostnameOf(raw.book.erratumUrl)}）→
                   </a>
                   {isInsecureUrl(raw.book.erratumUrl) && (
-                    <span className="ml-2 text-xs text-gray-500">保護されていない接続</span>
+                    <span className="ml-2 text-xs text-gray-500">保護されていない接続（http://）</span>
                   )}
                 </div>
               )}
