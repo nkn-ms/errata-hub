@@ -12,6 +12,7 @@
 | **Upvote** | 賛同（「自分も見つけた」）。`reportId × profileId` で一意＝1ユーザー1投稿1回 |
 | **ReportImage** | 投稿の証拠画像。実体は Supabase Storage バケット `report-images`（公開読み取り・書き込みはサーバー経由のみ）、`imageUrl` に公開 URL を保存。投稿削除時に Storage のファイルも削除 |
 | **AuditLog** | 操作ログ。誰が・いつ・何を・どう変えたか（before/after の JSON）。90日で pg_cron が削除（本番に手動登録済み・リポジトリ管理外。登録SQLは [dev-environment.md §9](./dev-environment.md) 参照） |
+| **RateLimit** | レート制限のカウンタ（固定ウィンドウ）。`key`（`"<動作>:<ユーザーID>"`）× `windowStart` で1行。他モデルから参照しない運用テーブルで、消えても投稿は壊れない。期限切れ行は pg_cron が削除（[dev-environment.md §9](./dev-environment.md)） |
 
 ## なぜ「User」テーブルが無いのか
 
