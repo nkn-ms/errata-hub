@@ -29,13 +29,14 @@ const BookUpdateSchema = z.object({
     }),
   // 出版社の公式な正誤表ページ。公開ページにリンクとして出るので、管理者だけが設定できる
   // （読者の申告は Report.reportedErratumUrl に入り、管理画面から採用する）。
-  // ホストは出版社ごとに異なり許可リストを作れないため、https であることだけを強制する。
+  // ホストは出版社ごとに異なり許可リストを作れないため、リンクとして安全な形だけを強制する
+  // （http も通す。理由は utils/external-url.ts。http のときは表示側で注記を出す）。
   erratumUrl: z
     .string()
     .trim()
     .optional()
     .refine((v) => !v || sanitizeExternalUrl(v) !== null, {
-      message: "正誤表URLは https:// から始まる正しいURLを入力してください",
+      message: "正誤表URLは http:// または https:// から始まる正しいURLを入力してください",
     }),
 });
 

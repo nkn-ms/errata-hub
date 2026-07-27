@@ -6,7 +6,7 @@ import { mapReport } from "@/utils/mappers";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { hostnameOf } from "@/utils/external-url";
+import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -76,14 +76,19 @@ export default async function BookDetailPage({ params }: Props) {
                 </p>
               )}
               {book.erratumUrl && (
-                <a
-                  href={book.erratumUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="inline-block mt-3 text-sm text-blue-700 hover:underline"
-                >
-                  出版社の正誤表を見る（{hostnameOf(book.erratumUrl)}）→
-                </a>
+                <div className="mt-3">
+                  <a
+                    href={book.erratumUrl}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-sm text-blue-700 hover:underline"
+                  >
+                    出版社の正誤表を見る（{hostnameOf(book.erratumUrl)}）→
+                  </a>
+                  {isInsecureUrl(book.erratumUrl) && (
+                    <span className="ml-2 text-xs text-gray-500">保護されていない接続（http://）</span>
+                  )}
+                </div>
               )}
             </div>
           </div>

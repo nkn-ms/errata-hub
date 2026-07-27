@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeExternalUrl, hostnameOf } from "./external-url";
+import { sanitizeExternalUrl, hostnameOf, isInsecureUrl } from "./external-url";
 
 describe("sanitizeExternalUrl", () => {
   it("https の URL はそのまま通す", () => {
@@ -14,8 +14,10 @@ describe("sanitizeExternalUrl", () => {
     expect(sanitizeExternalUrl("   ")).toBeNull();
   });
 
-  it("http は通さない（中間者による書き換えを防ぐ）", () => {
-    expect(sanitizeExternalUrl("http://example.com/errata")).toBeNull();
+  // 出版社の正誤表が http のまま置かれていることが実際にあり、弾くと正誤表への導線を失う。
+  // 中間者に書き換えられうる点は isInsecureUrl() で表示側に注記を出して開示する。
+  it("http の URL も通す（表示側で注記を出す前提）", () => {
+    expect(sanitizeExternalUrl("http://example.com/errata")).toBe("http://example.com/errata");
   });
 
   it("javascript: / data: スキームは通さない", () => {
@@ -31,6 +33,17 @@ describe("sanitizeExternalUrl", () => {
   it("URL として壊れているものは null", () => {
     expect(sanitizeExternalUrl("これはURLではない")).toBeNull();
     expect(sanitizeExternalUrl("www.example.com/errata")).toBeNull(); // スキームなし
+  });
+});
+
+describe("isInsecureUrl", () => {
+  it("http は true・https は false", () => {
+    expect(isInsecureUrl("http://example.com/errata")).toBe(true);
+    expect(isInsecureUrl("https://example.com/errata")).toBe(false);
+  });
+
+  it("URL として壊れているものは false（注記を出さない側に倒す）", () => {
+    expect(isInsecureUrl("これはURLではない")).toBe(false);
   });
 });
 

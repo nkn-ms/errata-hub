@@ -83,7 +83,7 @@ const ReportSchema = z.object({
     ctx.addIssue({
       code: "custom",
       path: ["reportedErratumUrl"],
-      message: "正誤表のURLは https:// から始まる正しいURLを入力してください",
+      message: "正誤表のURLは http:// または https:// から始まる正しいURLを入力してください",
     });
   }
 });
