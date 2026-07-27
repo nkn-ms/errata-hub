@@ -140,7 +140,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         }
         const compressed = await compressImage(file);
         if (compressed.size > REPORT_IMAGE_MAX_BYTES) {
-          setError("画像は1枚4MB以下にしてください");
+          setError("縮小しても4MBを超えるため添付できません");
           continue;
         }
         next.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
@@ -592,7 +592,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           </label>
           <p className="text-xs text-gray-500 mb-2">
             該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
-            （JPEG / PNG / WebP・1枚4MBまで）。
+            （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
+            添付できません。
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
             <input
