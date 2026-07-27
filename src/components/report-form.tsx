@@ -15,7 +15,9 @@ import {
   REPORT_IMAGE_ALLOWED_TYPES,
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
+  REPORT_IMAGE_MAX_SOURCE_BYTES,
 } from "@/constants/report-images";
+import { compressImage } from "@/utils/image-compress";
 
 type BookData = {
   googleBooksId: string;
@@ -107,31 +109,46 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
+  const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState("");
 
-  function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
+  async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // 同じファイルの再選択でも change を発火させる
     setError("");
+    setCompressing(true);
     const next = [...images];
-    for (const file of files) {
-      // push する前の空き確認（上限ちょうど＝満杯、なのでこれ以上は追加しない）
-      const isFull = next.length >= REPORT_IMAGE_MAX_COUNT;
-      if (isFull) {
-        setError(`画像は${REPORT_IMAGE_MAX_COUNT}枚までです`);
-        break;
+    try {
+      for (const file of files) {
+        // push する前の空き確認（上限ちょうど＝満杯、なのでこれ以上は追加しない）
+        const isFull = next.length >= REPORT_IMAGE_MAX_COUNT;
+        if (isFull) {
+          setError(`画像は${REPORT_IMAGE_MAX_COUNT}枚までです`);
+          break;
+        }
+        if (!REPORT_IMAGE_ALLOWED_TYPES[file.type]) {
+          setError("画像は JPEG / PNG / WebP のみ添付できます");
+          continue;
+        }
+        // 上限の検査は「圧縮前」と「圧縮後」の2段。前者はデコードでブラウザが固まるのを防ぐ枠で、
+        // 後者が本来の上限。スマホの写真は素で 3〜4MB 出るので、圧縮前に 4MB で弾くと
+        // 「縮めれば通るはずの写真」を投稿できなくなる（圧縮を入れる前はそうなっていた）。
+        if (file.size > REPORT_IMAGE_MAX_SOURCE_BYTES) {
+          setError("画像は1枚20MB以下にしてください");
+          continue;
+        }
+        const compressed = await compressImage(file);
+        if (compressed.size > REPORT_IMAGE_MAX_BYTES) {
+          setError("縮小しても4MBを超えるため添付できません");
+          continue;
+        }
+        next.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
       }
-      if (!REPORT_IMAGE_ALLOWED_TYPES[file.type]) {
-        setError("画像は JPEG / PNG / WebP のみ添付できます");
-        continue;
-      }
-      if (file.size > REPORT_IMAGE_MAX_BYTES) {
-        setError("画像は1枚4MB以下にしてください");
-        continue;
-      }
-      next.push({ file, previewUrl: URL.createObjectURL(file) });
+      setImages(next);
+    } finally {
+      setCompressing(false);
     }
-    setImages(next);
   }
 
   function removeImage(index: number) {
@@ -575,7 +592,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           </label>
           <p className="text-xs text-gray-500 mb-2">
             該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
-            （JPEG / PNG / WebP・1枚4MBまで）。
+            （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
+            添付できません。
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
             <input
@@ -584,9 +602,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               accept="image/jpeg,image/png,image/webp"
               multiple
               onChange={handleImageSelect}
-              className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-gray-700 hover:file:bg-gray-50 file:cursor-pointer"
+              disabled={compressing}
+              className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-gray-700 hover:file:bg-gray-50 file:cursor-pointer disabled:opacity-50"
             />
           )}
+          {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
           {images.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-3">
               {images.map(({ file, previewUrl }, index) => (
@@ -629,7 +649,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         </button>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || compressing}
           className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
         >
           {submitting ? "投稿中..." : "投稿する"}
