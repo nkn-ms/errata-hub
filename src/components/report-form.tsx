@@ -574,7 +574,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
           </label>
           <p className="text-xs text-gray-500 mb-2">
-            該当箇所が分かる画像を、指摘に必要な範囲で添付してください
+            該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
             （JPEG / PNG / WebP・1枚4MBまで）。
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
