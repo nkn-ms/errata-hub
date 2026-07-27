@@ -240,7 +240,7 @@ select cron.schedule(
 ### RateLimit の期限切れ行の削除（pg_cron）
 
 レート制限のカウンタ（`src/lib/rate-limit.ts`）はウィンドウごとに1行を作るため、放置すると単調に増える。
-**⚠️ 未登録 — レート制限を本番反映するときに一緒に登録すること。**
+**2026-07-27 に本番へ登録済み**（PR#120 の `migrate deploy` と同時。AuditLog に次いで2本目の pg_cron ジョブ）。
 
 ```sql
 select cron.schedule(
