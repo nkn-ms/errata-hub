@@ -130,6 +130,25 @@ export default async function Home({ searchParams }: Props) {
             </nav>
           </>
         )}
+
+        {/* 謝辞。飾りではなくサイトの立場の表明として置く（誤りを集める場は放っておくと
+            批判的な場に見えるため、何の上に成り立っているかを自分で書く）。
+            ⚠️ 投稿の作法をここでルールとして繰り返さない。「批判は内容へ」の線引きは
+               /how-to-use のルールが持っており、二重に書くと片方だけ古くなる。 */}
+        <section aria-labelledby="acknowledgements" className="mt-12 border-t border-gray-200 pt-6">
+          <h2 id="acknowledgements" className="text-sm font-semibold text-gray-700">謝辞</h2>
+          <div className="mt-2 space-y-2 text-sm text-gray-500 [word-break:auto-phrase]">
+            <p>
+              このサイトは、出版社と著者が時間をかけて世に送り出した著作物があってはじめて成り立っています。その営みに最大限の敬意を表します。
+            </p>
+            <p>
+              同時に、誤りを見つけて共有してくださる投稿者の方々にも同じ敬意を表します。指摘は、本を丁寧に読んだ人からしか生まれません。
+            </p>
+            <p>
+              誤りの指摘は、その本の価値を否定するものではありません。このサイトは、著者と出版社への敬意のうえに指摘が交わされる場でありたいと考えています。
+            </p>
+          </div>
+        </section>
       </main>
     </div>
   );
