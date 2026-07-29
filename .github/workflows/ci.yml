@@ -16,10 +16,19 @@ on:
 permissions:
   contents: read
 
-# 同一ブランチで新しい push があれば古い実行をキャンセル
+# 古くなった実行を打ち切って CI の待ち時間を短くする。レーンは PR 単位（push は ref 単位）。
+#
+# ⚠️ 打ち切るのは「新しいコミットが来たとき」= pull_request の synchronize だけに限る。
+# 1つの PR には opened / labeled / synchronize が数秒差で届き、既定の cancel-in-progress: true だと
+# **同じコミットに対する実行同士が互いを打ち切り合う**。必須チェックの判定は同名チェックの
+# 「最後の報告」を見るため、success の後に cancelled が届くと未達と判定されて PR がマージできなくなる
+# （2026-07-29 に Dependabot の PR #128 で発生。同一 SHA に success 1件・cancelled 4件）。
+# synchronize はコミットが変わったときにしか起きないので、この条件なら同一コミットで
+# 打ち切りが起きない。push（main）は従来どおり古い実行を打ち切る。
+# 出典: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'pull_request' || github.event.action == 'synchronize' }}
 
 jobs:
   ci:
