@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
@@ -112,6 +112,10 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
   const [submitting, setSubmitting] = useState(false);
   // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
   const [compressing, setCompressing] = useState(false);
+  // 添付画像の拡大表示。圧縮で文字が読めなくなっていないかを投稿前に自分で確かめられるようにする。
+  // <dialog> を使うのは ESC で閉じる挙動とフォーカス管理がネイティブで付いてくるため。
+  const zoomRef = useRef<HTMLDialogElement>(null);
+  const [zoomed, setZoomed] = useState<{ url: string; name: string } | null>(null);
   const [error, setError] = useState("");
 
   async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
@@ -591,37 +595,67 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         </div>
 
         <div>
-          <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">
+          {/* ここは <label> にしない。下の「ファイルを選択」が input のラベル兼クリック領域で、
+              label が2つあると読み上げ・getByLabel の解決が曖昧になるため */}
+          <p className="block text-sm font-medium text-gray-700 mb-1">
             画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
-          </label>
+          </p>
           <p className="text-xs text-gray-500 mb-2">
             該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
             （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
             添付できません。
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
-            <input
-              id="images"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={handleImageSelect}
-              disabled={compressing}
-              className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-gray-700 hover:file:bg-gray-50 file:cursor-pointer disabled:opacity-50"
-            />
+            <>
+              {/* input 本体は視覚的に隠し、<label> をボタンとして見せる。
+                  素の input はブラウザが描く「選択されていません」まで含めて要素全体が
+                  クリック可能で、当たり判定がボタンの見た目より広い（実測: 隣の入力欄の
+                  オートフィル候補を押したつもりでファイル選択が開く）。
+                  ⚠️ sr-only であって display:none ではない。隠すとフォーカスできず
+                     キーボード操作と読み上げが壊れる。peer-focus でラベル側に輪郭を出す。
+                  ⚠️ 「選択されていません」表示が消えるのも同じ修正の効果（handleImageSelect が
+                     e.target.value を空に戻すため、実体は state 側にあるのに未選択と表示されていた）。 */}
+              <input
+                id="images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={handleImageSelect}
+                disabled={compressing}
+                className="peer sr-only"
+              />
+              <label
+                htmlFor="images"
+                className="inline-block rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
+              >
+                ファイルを選択
+              </label>
+            </>
           )}
           {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
           {images.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-3">
               {images.map(({ file, previewUrl }, index) => (
                 <div key={previewUrl} className="relative">
-                  {/* 選択中ファイルのローカルプレビュー（blob: URL）なので next/image は使わない */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewUrl}
-                    alt={file.name}
-                    className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
-                  />
+                  {/* クリックで拡大。縮小後に紙面の文字が読めるかを投稿前に確かめるための導線
+                      （プレビューが小さいままだと劣化に気づけない）。button にしてキーボードでも開ける */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setZoomed({ url: previewUrl, name: file.name });
+                      zoomRef.current?.showModal();
+                    }}
+                    className="cursor-zoom-in"
+                    aria-label={`${file.name} を拡大`}
+                  >
+                    {/* 選択中ファイルのローカルプレビュー（blob: URL）なので next/image は使わない */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewUrl}
+                      alt={file.name}
+                      className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                    />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
@@ -636,6 +670,30 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           )}
         </div>
       </section>
+
+      {/* 添付画像の拡大表示。backdrop クリックでも閉じられるよう、中身を1枚の button で覆う。
+          ⚠️ <dialog> の閉じる操作（ESC）はネイティブ任せで、onClose で state を捨てる */}
+      <dialog
+        ref={zoomRef}
+        onClose={() => setZoomed(null)}
+        className="m-auto max-h-[90dvh] max-w-[90vw] rounded-lg bg-transparent p-0 backdrop:bg-black/60"
+      >
+        {zoomed && (
+          <button
+            type="button"
+            onClick={() => zoomRef.current?.close()}
+            className="block cursor-zoom-out"
+            aria-label="拡大表示を閉じる"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={zoomed.url}
+              alt={zoomed.name}
+              className="max-h-[90dvh] max-w-[90vw] rounded-lg bg-white object-contain"
+            />
+          </button>
+        )}
+      </dialog>
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
