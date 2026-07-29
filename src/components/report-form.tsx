@@ -513,9 +513,22 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               <CharCounter id="wrong-count" value={wrong} max={REPORT_LIMITS.wrong} />
             </div>
             <div>
-              <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
-                正（正しい内容） <span className="text-red-700">*</span>
-              </label>
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <label htmlFor="correct" className="block text-sm font-medium text-gray-700">
+                  正（正しい内容） <span className="text-red-700">*</span>
+                </label>
+                {/* 誤の全文を持ってきて、違う数文字だけ直せるようにする（長い引用を2回打たせない）。
+                    ⚠️ 上書きはしない（打ち込んだ内容を黙って消さない）。すでに正が埋まっているときは
+                       押せない状態にして、消したい人には自分で消してもらう。 */}
+                <button
+                  type="button"
+                  onClick={() => setCorrect(wrong)}
+                  disabled={!wrong.trim() || correct.length > 0}
+                  className="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                >
+                  誤の内容をコピー
+                </button>
+              </div>
               <textarea
                 id="correct"
                 value={correct}
@@ -527,6 +540,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
               <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
+              {/* コピーしただけで送ると弾かれる（誤と正が同じ投稿は受け付けない = #133）。
+                  投稿ボタンを押してから気づくのは遅いので、同じ間は先に出しておく */}
+              {correct.length > 0 && wrong.trim() === correct.trim() && (
+                <p className="mt-1 text-xs text-gray-500">{IDENTICAL_WRONG_CORRECT_MESSAGE}</p>
+              )}
             </div>
           </div>
         ) : (

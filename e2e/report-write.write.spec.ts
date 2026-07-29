@@ -124,6 +124,36 @@ test.describe("投稿フォーム（書き込み）", () => {
     await adminContext.close();
   });
 
+  test("「誤の内容をコピー」で正に全文が入り、同じ間は注意が出る", async ({ page }) => {
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    const wrong = page.getByPlaceholder("誤りのある文章をそのまま入力してください");
+    const correct = page.getByPlaceholder("正しいと思われる内容を入力してください");
+    const copyButton = page.getByRole("button", { name: "誤の内容をコピー" });
+
+    // 誤が空のうちは押せない（コピーするものが無い）
+    await expect(copyButton).toBeDisabled();
+
+    await wrong.fill("RFC 822, updated by RFC 6854");
+    await copyButton.click();
+    await expect(correct).toHaveValue("RFC 822, updated by RFC 6854");
+
+    // コピーしただけでは投稿できないので、その場で知らせる（投稿ボタンを押す前に気づける）
+    await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeVisible();
+
+    // 打ち込んだ内容を黙って上書きしない＝正が埋まっている間は押せない
+    await expect(copyButton).toBeDisabled();
+
+    // 直せば注意は消える
+    await correct.fill("RFC 822, updated by RFC 1123");
+    await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toHaveCount(0);
+  });
+
   // 全角のまま送れてしまうと投稿できない（Number() が NaN になる）。IME の確定の仕方で全角が残る
   // ことがあり、本番の実投稿で「数字を入力してください」で止まった（2026-07-28）ので実ブラウザで固定する。
   // ▲▼ での増減も、type="number" から自前実装に置き換えたので同じテストで担保する。
