@@ -258,7 +258,7 @@ export default function TermsPage() {
       </Article>
 
       <div className="border-t border-gray-200 pt-6 text-xs text-gray-500 space-y-1">
-        <p>制定日：2026年7月28日</p>
+        <p>制定日：2026年7月29日</p>
         <p>運営者：nkn-ms（個人）</p>
         <p className="pt-2">
           関連文書：
