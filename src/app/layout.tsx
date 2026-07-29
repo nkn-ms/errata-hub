@@ -27,9 +27,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Errata Hub",
   description: site.description,
-  // ⚠️ 公開前の検索インデックス除外（一時的）。public 化時にこの robots 行と
-  // app/robots.ts を削除すること。
-  robots: { index: false, follow: false },
 };
 
 export default async function RootLayout({
