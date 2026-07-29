@@ -9,6 +9,13 @@ on:
     # （既定の opened/synchronize/reopened に加える。types を書くと既定は上書きなので明示する）。
     types: [opened, synchronize, reopened, labeled]
 
+# GITHUB_TOKEN の権限を最小限に固定する。指定しないとリポジトリ既定値を継承するが、
+# 既定値は設定画面から変えられるので、ワークフロー側で宣言しておく方が堅い
+# （CodeQL の actions/missing-workflow-permissions の指摘）。
+# このワークフローはチェックアウトして検証するだけで、書き込みは一切しない。
+permissions:
+  contents: read
+
 # 同一ブランチで新しい push があれば古い実行をキャンセル
 concurrency:
   group: ci-${{ github.ref }}
