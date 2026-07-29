@@ -45,7 +45,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport, toggleUpvote, updateReport, IDENTICAL_WRONG_CORRECT_MESSAGE } from "./report";
+import { createReport, toggleUpvote, updateReport } from "./report";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 

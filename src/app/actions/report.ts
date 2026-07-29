@@ -14,6 +14,7 @@ import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
 import { REPORT_LIMITS } from "@/constants/report-limits";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
@@ -45,9 +46,6 @@ const BookSchema = z.object({
 //    そちらは意味のある差として保つ＝正規化はしない。
 const limited = (max: number, label: string) =>
   z.string().trim().max(max, `${label}は${max}文字以内で入力してください`);
-
-// 誤と正が同じときの文言。クライアント（report-form）とサーバーで同じものを出すため export する
-export const IDENTICAL_WRONG_CORRECT_MESSAGE = "誤と正が同じ内容です。正しい内容に直してください";
 
 const ReportSchema = z.object({
   book: BookSchema,
