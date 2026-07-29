@@ -124,6 +124,54 @@ test.describe("投稿フォーム（書き込み）", () => {
     await adminContext.close();
   });
 
+  // 全角のまま送れてしまうと投稿できない（Number() が NaN になる）。IME の確定の仕方で全角が残る
+  // ことがあり、本番の実投稿で「数字を入力してください」で止まった（2026-07-28）ので実ブラウザで固定する。
+  // ▲▼ での増減も、type="number" から自前実装に置き換えたので同じテストで担保する。
+  test("数値欄は全角で入れても半角として投稿でき、▲▼で増減できる", async ({ page, browser }) => {
+    const uniqueTitle = `E2E全角数字テスト ${Date.now()}`;
+
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    const edition = page.getByPlaceholder("例: 1", { exact: true });
+    const pageNumber = page.getByPlaceholder("例: 42", { exact: true });
+
+    // 版は ▲ を押して入れる（未入力から押すと下限の 1 になる）
+    await edition.click();
+    await page.locator('#edition ~ div button[title="1増やす"]').click();
+    await expect(edition).toHaveValue("1");
+    // 押した後もフォーカスは入力欄に残る（そのまま打ち続けられる＝ネイティブと同じ操作感）
+    await expect(edition).toBeFocused();
+
+    // ページ番号は全角で入力し、フォーカスが外れた時点で半角になる
+    await pageNumber.fill("１４１");
+    await pageNumber.blur();
+    await expect(pageNumber).toHaveValue("141");
+
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("全角の誤");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("全角の正");
+    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.waitForURL(/\/$/);
+
+    // 半角の数値として保存されている（位置の表示が "第1版 p.141"）
+    const reportId = await openReportByTitle(page, uniqueTitle);
+    await expect(page.getByText("p.141")).toBeVisible();
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, ADMIN);
+    await adminPage.goto(`/admin/reports/${reportId}`);
+    adminPage.once("dialog", (dialog) => dialog.accept());
+    await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+    await adminPage.waitForURL(/\/admin\/reports$/);
+    await adminContext.close();
+  });
+
   test("書籍ページの「この本に投稿する」から入ると、書籍を選び直さずに投稿できる", async ({ page, browser }) => {
     const uniqueTitle = `E2E確定書籍テスト ${Date.now()}`;
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { deleteReport, updateReport } from "@/app/actions/report";
+import { NumberField } from "@/components/number-field";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { routes } from "@/constants/routes";
@@ -95,26 +96,22 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         <div className="flex gap-4">
           <div>
             <label htmlFor="fixed-edition" className="block text-sm font-medium text-gray-700 mb-1">修正済みの版</label>
-            <input
+            <NumberField
               id="fixed-edition"
-              type="number"
-              min={1}
               value={fixedEdition}
-              onChange={(e) => { setFixedEdition(e.target.value); setSaved(false); }}
+              onChange={(v) => { setFixedEdition(v); setSaved(false); }}
               placeholder="例: 2"
-              className="w-24 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24"
             />
           </div>
           <div>
             <label htmlFor="fixed-printing" className="block text-sm font-medium text-gray-700 mb-1">修正済みの刷</label>
-            <input
+            <NumberField
               id="fixed-printing"
-              type="number"
-              min={1}
               value={fixedPrinting}
-              onChange={(e) => { setFixedPrinting(e.target.value); setSaved(false); }}
+              onChange={(v) => { setFixedPrinting(v); setSaved(false); }}
               placeholder="例: 3"
-              className="w-24 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24"
             />
           </div>
         </div>

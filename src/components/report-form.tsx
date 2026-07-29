@@ -4,12 +4,13 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
+import { NumberField } from "@/components/number-field";
 import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
 import { createReport } from "@/app/actions/report";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { routes } from "@/constants/routes";
-import { toIntOrNull } from "@/utils/parse";
+import { normalizeDigits, toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import {
@@ -31,6 +32,16 @@ type BookData = {
 
 type ReportType = "ERRATA" | "SUGGESTION" | "OTHER";
 type Medium = "PAPER" | "EBOOK" | "OTHER";
+
+// 数値欄（版・刷・ページ番号・行番号）の検査。問題なければ null、あればそのまま画面に出す文言を返す。
+// サーバーの ReportSchema（z.number().int().positive()）と同じ条件をクライアントでも見る
+export function numberFieldError(label: string, raw: string, required: boolean): string | null {
+  const value = normalizeDigits(raw);
+  if (value === "") return required ? `${label}を入力してください` : null;
+  const parsed = toIntOrNull(value);
+  if (parsed === null || parsed < 1) return `${label}は半角数字（1以上の整数）で入力してください`;
+  return null;
+}
 
 // 文字数カウンター（「820/1000」）。maxLength に達すると入力できなくなるので、
 // 打ち切られる前に残りが見えるようにする。自由記述の欄（タイトル・誤・正・内容/提案・備考）に付け、
@@ -171,8 +182,16 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     if (!book) { setError("書籍を選択してください"); return; }
     if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
-    if (medium === "PAPER" && !edition) { setError("版を入力してください"); return; }
-    if (medium === "PAPER" && !page) { setError("ページ番号を入力してください"); return; }
+    if (isPaper) {
+      // 数値欄はブラウザの検証（type="number"）に頼らず自前で見る（= NumberField のコメント）。
+      // 全角は入力欄の blur で半角に直るが、"42ページ" のように直しようのない入力はここで止める
+      const numberError =
+        numberFieldError("版", edition, true) ??
+        numberFieldError("刷", printing, false) ??
+        numberFieldError("ページ番号", page, true) ??
+        numberFieldError("行番号", line, false);
+      if (numberError) { setError(numberError); return; }
+    }
     if (medium === "EBOOK" && !ebookLocation.trim()) { setError("位置を入力してください"); return; }
     if (medium === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
     if (isErrataType) {
@@ -343,27 +362,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             <label htmlFor="edition" className="block text-sm font-medium text-gray-700 mb-1">
               版 <span className="text-red-700">*</span>
             </label>
-            <input
-              id="edition"
-              type="number"
-              min={1}
-              value={edition}
-              onChange={(e) => setEdition(e.target.value)}
-              placeholder="例: 1"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <NumberField id="edition" value={edition} onChange={setEdition} placeholder="例: 1" />
           </div>
           <div className="flex-1">
             <label htmlFor="printing" className="block text-sm font-medium text-gray-700 mb-1">刷（任意）</label>
-            <input
-              id="printing"
-              type="number"
-              min={1}
-              value={printing}
-              onChange={(e) => setPrinting(e.target.value)}
-              placeholder="例: 2"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <NumberField id="printing" value={printing} onChange={setPrinting} placeholder="例: 2" />
           </div>
         </div>
         <p className="mt-1.5 text-xs text-gray-400">版・刷は奥付（本の最後のページ）に記載されています。</p>
@@ -420,27 +423,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 <label htmlFor="page" className="block text-sm font-medium text-gray-700 mb-1">
                   ページ番号 <span className="text-red-700">*</span>
                 </label>
-                <input
-                  id="page"
-                  type="number"
-                  min={1}
-                  value={page}
-                  onChange={(e) => setPage(e.target.value)}
-                  placeholder="例: 42"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <NumberField id="page" value={page} onChange={setPage} placeholder="例: 42" />
               </div>
               <div className="flex-1">
                 <label htmlFor="line" className="block text-sm font-medium text-gray-700 mb-1">行番号（任意）</label>
-                <input
-                  id="line"
-                  type="number"
-                  min={1}
-                  value={line}
-                  onChange={(e) => setLine(e.target.value)}
-                  placeholder="例: 3"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <NumberField id="line" value={line} onChange={setLine} placeholder="例: 3" />
               </div>
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
