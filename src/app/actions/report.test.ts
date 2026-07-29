@@ -296,19 +296,28 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
     expect(prismaMock.report.create).not.toHaveBeenCalled();
   });
 
-  // ここがこの機能の肝。trim や全角半角の正規化をしてから比べると、
-  // 「末尾に余分な空白がある」「全角と半角が混ざっている」という**このサイトで最も価値のある指摘**を
-  // 弾いてしまう。だから比較は厳密一致でなければならない。
-  it("末尾の空白だけが違う指摘は通す（trim して比較していないこと）", async () => {
+  // 前後の空白は①画面に現れず②指摘の対象にもなり得ない（紙面の「前後の空白」は観測できない）ので
+  // 保存前にトリムする。結果、空白しか違わないものは「同じ」と見なして弾く
+  it("前後の空白しか違わないものは同じと見なして弾く", async () => {
+    const result = await createReport({ ...baseInput, wrong: " 冪等 ", correct: "冪等" });
+    expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+  });
+
+  it("値はトリムして保存する（見えない差を残さない）", async () => {
     prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
     prismaMock.report.create.mockResolvedValue({ id: "report-1" });
 
-    const result = await createReport({ ...baseInput, wrong: "冪等 ", correct: "冪等" });
-    expect(result.error).toBeUndefined();
-    expect(result.id).toBe("report-1");
+    await createReport({ ...baseInput, wrong: "  冪等  ", correct: "べき等" });
+    expect(prismaMock.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ wrong: "冪等", correct: "べき等" }) })
+    );
   });
 
+  // ⚠️ ここがこの機能の肝。**全角/半角の正規化はしない**。
+  // 「ＡＰＩ → API」は画面に現れる差であり、このサイトで最も価値のある種類の指摘に含まれる。
+  // 正規化してから比べると、そういう投稿を「誤と正が同じ」と誤判定して弾いてしまう。
   it("全角と半角の違いだけの指摘も通す", async () => {
     prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
