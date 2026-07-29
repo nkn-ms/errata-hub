@@ -25,6 +25,26 @@ test.describe("認可（管理画面）", () => {
   });
 });
 
+test.describe("現在地の表示（管理画面のナビ）", () => {
+  test("見ている画面の項目が現在地になり、詳細に入っても一覧のまま", async ({ page }) => {
+    await login(page, ADMIN);
+
+    await page.goto("/admin/books");
+    const booksNav = page.getByRole("link", { name: "書籍マスタ" });
+    await expect(booksNav).toHaveAttribute("aria-current", "page");
+    // 他の項目は現在地にならない（＝どこに居るか1つに定まる）
+    await expect(page.getByRole("link", { name: "ユーザー管理" })).not.toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+
+    // 詳細ページは一覧の下位なので、入っても一覧の項目が点いたまま（前方一致）
+    await page.getByRole("row").filter({ hasText: "Web API" }).getByRole("link", { name: "編集" }).click();
+    await page.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
+    await expect(page.getByRole("link", { name: "書籍マスタ" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
 test.describe("投稿のステータス更新（管理者）", () => {
   test("ステータスと出版社コメントを保存すると、公開ページに反映される", async ({ page }) => {
     const comment = `E2E 出版社コメント ${Date.now()}`;

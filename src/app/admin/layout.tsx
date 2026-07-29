@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavLink } from "@/components/nav-link";
 import { requireAdminPage } from "@/services/auth";
 import { routes } from "@/constants/routes";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,22 +22,26 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 ここだけ 300 を使う＝暗い面の上では「薄いグレー」の方が読める（12.05:1） */}
             <span className="text-gray-300 dark:text-gray-500 text-xs">管理画面</span>
           </div>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href={routes.admin.reports} className="text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors">
-              投稿
-            </Link>
-            <Link href={routes.admin.publishers} className="text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors">
-              出版社マスタ
-            </Link>
-            <Link href={routes.admin.books} className="text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors">
-              書籍マスタ
-            </Link>
-            <Link href={routes.admin.users} className="text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors">
-              ユーザー管理
-            </Link>
-            <Link href={routes.admin.logs} className="text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors">
-              操作ログ
-            </Link>
+          {/* 現在地は NavLink が背景色＋太字＋aria-current で示す（管理画面は画面数が多く、
+              どの一覧を見ているか分からなくなる）。この帯は light/dark とも暗い面なので、
+              現在地の面は「一段明るいグレー」＝ gray-800（dark 側は反転して gray-200）。 */}
+          <nav className="flex items-center gap-1 text-sm">
+            {[
+              { href: routes.admin.reports, label: "投稿" },
+              { href: routes.admin.publishers, label: "出版社マスタ" },
+              { href: routes.admin.books, label: "書籍マスタ" },
+              { href: routes.admin.users, label: "ユーザー管理" },
+              { href: routes.admin.logs, label: "操作ログ" },
+            ].map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                className="rounded-md px-2.5 py-1 text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors"
+                activeClassName="bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900"
+              >
+                {item.label}
+              </NavLink>
+            ))}
             <Link href={routes.home} className="text-gray-300 hover:text-white dark:text-gray-500 dark:hover:text-gray-900 text-xs transition-colors">
               ← サイトへ戻る
             </Link>
