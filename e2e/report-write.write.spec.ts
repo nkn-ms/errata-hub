@@ -124,7 +124,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await adminContext.close();
   });
 
-  test("「誤の内容をコピー」で正に全文が入り、同じ間は注意が出る", async ({ page }) => {
+  test("「誤の内容をコピー」で正に全文が入り、直さず投稿すると弾かれる", async ({ page }) => {
     await login(page, READER);
     await mockBookApis(page);
     await page.goto("/submit");
@@ -143,17 +143,17 @@ test.describe("投稿フォーム（書き込み）", () => {
     await copyButton.click();
     await expect(correct).toHaveValue("RFC 822, updated by RFC 6854");
 
-    // コピーしただけでは投稿できないので、その場で知らせる（投稿ボタンを押す前に気づける）。
-    // 注意文は常に DOM にあり visibility で出し入れする（出入りで下の欄が動かないため）＝
-    // 見えているかどうかで判定する
-    await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeVisible();
-
     // 打ち込んだ内容を黙って上書きしない＝正が埋まっている間は押せない
     await expect(copyButton).toBeDisabled();
 
-    // 直せば注意は消える（要素は残るが見えなくなる）
-    await correct.fill("RFC 822, updated by RFC 1123");
-    await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeHidden();
+    // コピーしたまま（＝直し忘れ）で投稿すると弾かれる。他の項目と同じく投稿時にまとめて出す
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
+    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2Eコピー確認");
+    await page.getByRole("button", { name: "投稿する" }).click();
+    await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeVisible();
+    // 投稿は成立していない（トップへ遷移しない）
+    await expect(page).toHaveURL(/\/submit/);
   });
 
   // 全角のまま送れてしまうと投稿できない（Number() が NaN になる）。IME の確定の仕方で全角が残る

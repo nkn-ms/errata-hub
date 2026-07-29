@@ -539,22 +539,10 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
-              {/* コピーしただけで送ると弾かれる（誤と正が同じ投稿は受け付けない = #133）。
-                  投稿ボタンを押してから気づくのは遅いので、同じ間は先に出しておく。
-                  ⚠️ カウンターと同じ行に置き、隠れている間も場所を取らせる（invisible であって
-                     display:none ではない）。出入りで行が増えると下の欄が動いて気持ち悪いため。 */}
-              <div className="flex items-start justify-between gap-3">
-                <p
-                  className={`mt-1 text-xs text-gray-500 ${
-                    correct.length > 0 && wrong.trim() === correct.trim() ? "" : "invisible"
-                  }`}
-                >
-                  {IDENTICAL_WRONG_CORRECT_MESSAGE}
-                </p>
-                <div className="shrink-0">
-                  <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
-                </div>
-              </div>
+              {/* 誤と正が同じまま送ると弾かれる（= #133）が、それはここでは知らせない。
+                  「コピー → 直す」の途中で必ず通る状態なので、まだ間違っていない人に警告を出すことになる。
+                  検証は他の項目と同じく投稿時にまとめて出す（エラーは投稿ボタンの真上に出る）。 */}
+              <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
             </div>
           </div>
         ) : (
