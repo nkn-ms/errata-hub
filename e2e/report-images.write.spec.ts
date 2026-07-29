@@ -190,3 +190,35 @@ test.describe("画像の圧縮", () => {
     await adminContext.close();
   });
 });
+
+test.describe("添付画像の拡大表示", () => {
+  test("プレビューを押すと拡大表示が開く", async ({ page }) => {
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+
+    // 投稿はしないので書籍だけ選ぶ（拡大表示は選択直後から使えるべき機能）
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "errata.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    });
+
+    // 拡大前は dialog が開いていない
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "errata.png を拡大" }).click();
+
+    const dialog = page.locator("dialog[open]");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByAltText("errata.png")).toBeVisible();
+
+    // ESC で閉じられる（<dialog> のネイティブ挙動に頼っている部分なので担保しておく）
+    await page.keyboard.press("Escape");
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
+  });
+});
