@@ -513,9 +513,22 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               <CharCounter id="wrong-count" value={wrong} max={REPORT_LIMITS.wrong} />
             </div>
             <div>
-              <label htmlFor="correct" className="block text-sm font-medium text-gray-700 mb-1">
-                正（正しい内容） <span className="text-red-700">*</span>
-              </label>
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <label htmlFor="correct" className="block text-sm font-medium text-gray-700">
+                  正（正しい内容） <span className="text-red-700">*</span>
+                </label>
+                {/* 誤の全文を持ってきて、違う数文字だけ直せるようにする（長い引用を2回打たせない）。
+                    ⚠️ 上書きはしない（打ち込んだ内容を黙って消さない）。すでに正が埋まっているときは
+                       押せない状態にして、消したい人には自分で消してもらう。 */}
+                <button
+                  type="button"
+                  onClick={() => setCorrect(wrong)}
+                  disabled={!wrong.trim() || correct.length > 0}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  誤の内容をコピー
+                </button>
+              </div>
               <textarea
                 id="correct"
                 value={correct}
@@ -526,6 +539,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              {/* 誤と正が同じまま送ると弾かれる（= #133）が、それはここでは知らせない。
+                  「コピー → 直す」の途中で必ず通る状態なので、まだ間違っていない人に警告を出すことになる。
+                  検証は他の項目と同じく投稿時にまとめて出す（エラーは投稿ボタンの真上に出る）。 */}
               <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
             </div>
           </div>
