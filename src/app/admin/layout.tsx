@@ -23,8 +23,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="text-gray-300 dark:text-gray-500 text-xs">管理画面</span>
           </div>
           {/* 現在地は NavLink が背景色＋太字＋aria-current で示す（管理画面は画面数が多く、
-              どの一覧を見ているか分からなくなる）。この帯は light/dark とも暗い面なので、
-              現在地の面は「一段明るいグレー」＝ gray-800（dark 側は反転して gray-200）。 */}
+              どの一覧を見ているか分からなくなる）。
+              この帯は light/dark とも暗い面なので、現在地は**面を反転させる**＝明るいグレーの地に
+              濃い文字を乗せる。当初は「一段明るいグレー」＝ gray-800 にしていたが、帯（gray-900）との
+              明度差が1段しかなく実機で選択が読み取れなかった。加えて gray-800 は下の
+              ThemeToggle の hover 色と同じで、「今いる場所」と「マウスが乗っただけ」が同じ見た目になる。
+              ⚠️ dark 側は明度の梯子が逆さなので番号も反転する（light 200 ↔ dark 800・globals.css の対応表）。 */}
           <nav className="flex items-center gap-1 text-sm">
             {[
               { href: routes.admin.reports, label: "投稿" },
@@ -37,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 key={item.href}
                 href={item.href}
                 className="rounded-md px-2.5 py-1 text-gray-300 hover:text-white dark:text-gray-600 dark:hover:text-gray-900 transition-colors"
-                activeClassName="bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900"
+                activeClassName="bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
               >
                 {item.label}
               </NavLink>

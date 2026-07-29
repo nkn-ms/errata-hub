@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { SEED_ADMIN as ADMIN } from "./seed-accounts";
 import { login } from "./login";
+import { backgroundContrast } from "./contrast";
 
 // ダークモードのうち、ログインが要る画面（管理画面）の検証。
 // 書き込みはしないが、シードアカウントでのログインを伴うので write-local project に置く。
@@ -37,7 +38,10 @@ test.describe("ダークモード（管理画面）", () => {
         ctx.fillRect(0, 0, 1, 1);
         return Array.from(ctx.getImageData(0, 0, 1, 1).data);
       };
-      const nav = el.querySelector("a")!;
+      // 帯を地にして読むのは**現在地でない**項目。現在地の項目は自前の面（明るいピル）を
+      // 持っているので、その文字色を帯と比べても意味が無い（比べると必ず落ちる）。
+      // 現在地の側は contrast-admin.write.spec.ts が「実際に見えている地」で測る。
+      const nav = el.querySelector('nav a:not([aria-current="page"])')!;
       return {
         bar: toRgba(getComputedStyle(el).backgroundColor),
         navText: toRgba(getComputedStyle(nav).color),
@@ -48,6 +52,11 @@ test.describe("ダークモード（管理画面）", () => {
     expect(luminance(colors.bar)).toBeLessThan(0.1);
     // ナビの文字は帯の上で AA を満たす
     expect(contrastRatio(colors.navText, colors.bar)).toBeGreaterThanOrEqual(4.5);
+
+    // 現在地の面は dark でも帯と見分けられる（番号の反転を間違えると、ここが 1:1 に近づく）
+    expect(
+      await backgroundContrast(page, 'header nav [aria-current="page"]', "header")
+    ).toBeGreaterThanOrEqual(3);
   });
 
   // 管理画面の帯は唯一 `dark:` ユーティリティを使う場所。globals.css の @custom-variant で

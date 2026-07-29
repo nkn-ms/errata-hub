@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { createThrowawayAccount } from "./throwaway-user";
+import { backgroundContrast } from "./contrast";
 
 // 管理画面（書き込み）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
@@ -42,6 +43,16 @@ test.describe("現在地の表示（管理画面のナビ）", () => {
     await page.getByRole("row").filter({ hasText: "Web API" }).getByRole("link", { name: "編集" }).click();
     await page.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
     await expect(page.getByRole("link", { name: "書籍マスタ" })).toHaveAttribute("aria-current", "page");
+  });
+
+  // 属性が正しくても、面が帯と見分けられなければ「選択されている」ことは伝わらない
+  // （当初 bg-gray-800＝帯より一段明るいだけで、実機では読み取れなかった）。
+  test("現在地の面は帯とはっきり分かれている", async ({ page }) => {
+    await login(page, ADMIN);
+    await page.goto("/admin/books");
+
+    const ratio = await backgroundContrast(page, 'header nav [aria-current="page"]', "header");
+    expect(ratio).toBeGreaterThanOrEqual(3);
   });
 });
 
