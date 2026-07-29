@@ -139,7 +139,7 @@ export default async function Home({ searchParams }: Props) {
           <h2 id="acknowledgements" className="text-sm font-semibold text-gray-700">謝辞</h2>
           <div className="mt-2 space-y-2 text-sm text-gray-500 [word-break:auto-phrase]">
             <p>
-              このサイトは、出版社と著者が時間をかけて世に送り出した著作物があってはじめて成り立っています。その営みに最大限の敬意を表します。
+              このサイトは、著者が積み重ねてきた知見と、それを本にする出版社の仕事があってはじめて成り立っています。その営みに最大限の敬意を表します。
             </p>
             <p>
               同時に、誤りを見つけて共有してくださる投稿者の方々にも同じ敬意を表します。指摘は、本を丁寧に読んだ人からしか生まれません。
