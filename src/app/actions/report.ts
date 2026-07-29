@@ -323,6 +323,58 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
   redirect(routes.admin.reports);
 }
 
+/**
+ * 添付画像を1枚だけ削除する（管理者のみ）。
+ *
+ * 動機は権利者対応の実効性。「この画像だけ消してほしい」と言われたとき、これが無いと
+ * 投稿ごと消すか Supabase の管理画面で行とファイルを手作業で消すしかない
+ * （docs/moderation-policy.md の「部分マスキング」と同じ系統の措置）。
+ *
+ * 投稿本文には触れない＝**投稿を消さずに済ませる**ための手段であることが要点。
+ */
+export async function deleteReportImage(imageId: string): Promise<ReportActionState> {
+  const admin = await requireAdminOrThrow();
+
+  try {
+    const image = await prisma.reportImage.findUnique({ where: { id: imageId } });
+    if (!image) {
+      return { error: "画像が見つかりません" };
+    }
+
+    // deleteReport と同じ順序: DB を先に消す（公開ページから参照が消えるのが先）。
+    // Storage の削除が失敗しても行の削除は成立させ、孤児ファイルはログで追う。
+    await prisma.reportImage.delete({ where: { id: imageId } });
+
+    const path = storagePathFromPublicUrl(image.imageUrl);
+    if (path) {
+      const storageAdmin = createAdminClient();
+      const { error: removeError } = await storageAdmin.storage
+        .from(REPORT_IMAGE_BUCKET)
+        .remove([path]);
+      if (removeError) {
+        console.error("画像ファイルの削除に失敗:", path, removeError);
+      }
+    }
+
+    // 権利者からの削除要請に応じた証跡になるので、この操作は特に記録が要る。
+    // 対象は投稿（画像は投稿の一部）なので targetId は reportId にし、消した画像を before に残す。
+    await createAuditLog({
+      userId: admin.id,
+      userEmail: admin.email,
+      action: "DELETE_REPORT_IMAGE",
+      targetType: TARGET_TYPE.REPORT,
+      targetId: image.reportId,
+      before: image as Record<string, unknown>,
+    });
+
+    refresh();
+    return {};
+  } catch (error) {
+    console.error(error);
+    return { error: "画像の削除に失敗しました" };
+  }
+}
+
 export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
 
 /** 現在の賛同数を返す共通処理。 */

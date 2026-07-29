@@ -6,6 +6,7 @@ import { shortId } from "@/utils/format";
 const ACTION_LABELS: Record<string, string> = {
   UPDATE_REPORT: "投稿更新",
   DELETE_REPORT: "投稿削除",
+  DELETE_REPORT_IMAGE: "添付画像削除",
   ADOPT_ERRATUM_URL: "正誤表URL採用",
   UPDATE_USER_ROLE: "ロール変更",
   GRANT_PUBLISHER_ACCESS: "出版社アクセス付与",
