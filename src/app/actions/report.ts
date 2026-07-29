@@ -36,6 +36,9 @@ const BookSchema = z.object({
 const limited = (max: number, label: string) =>
   z.string().max(max, `${label}は${max}文字以内で入力してください`);
 
+// 誤と正が同じときの文言。クライアント（report-form）とサーバーで同じものを出すため export する
+export const IDENTICAL_WRONG_CORRECT_MESSAGE = "誤と正が同じ内容です。正しい内容に直してください";
+
 const ReportSchema = z.object({
   book: BookSchema,
   edition: z.number().int().positive().nullable().optional(),
@@ -62,6 +65,13 @@ const ReportSchema = z.object({
     }
     if (!data.correct?.trim()) {
       ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）は必須です" });
+    }
+    // 誤と正が同じなら指摘として成立しない。誤をコピーして直し忘れたときに起きる。
+    // ⚠️ **比較は厳密一致にする（trim や全角半角の正規化をしない）**。
+    //    「末尾に余分な空白がある」「全角と半角が混ざっている」は、このサイトで最も価値のある
+    //    指摘に含まれる。正規化してから比べると、そういう投稿を弾いてしまう。
+    if (data.wrong && data.correct && data.wrong === data.correct) {
+      ctx.addIssue({ code: "custom", path: ["correct"], message: IDENTICAL_WRONG_CORRECT_MESSAGE });
     }
   } else if (!data.content?.trim()) {
     ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });

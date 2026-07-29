@@ -45,7 +45,7 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport, toggleUpvote, updateReport } from "./report";
+import { createReport, toggleUpvote, updateReport, IDENTICAL_WRONG_CORRECT_MESSAGE } from "./report";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 
@@ -271,5 +271,51 @@ describe("レート制限", () => {
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.upvote.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("createReport（誤と正が同じ投稿を弾く）", () => {
+  // 他の必須項目は全部満たした状態にして、誤/正 の一致だけを見る
+  const baseInput = {
+    book: { title: "テスト駆動開発", isbn: "9784873115948" },
+    title: "p.42 の誤植",
+    type: "ERRATA" as const,
+    medium: "PAPER" as const,
+    edition: 1,
+    page: 42,
+  };
+
+  beforeEach(() => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+  });
+
+  it("誤と正が完全に同じならエラーにする", async () => {
+    const result = await createReport({ ...baseInput, wrong: "冪等", correct: "冪等" });
+    expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
+    // 弾くべき投稿で DB を触っていないこと（バリデーションは書き込みより手前）
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+  });
+
+  // ここがこの機能の肝。trim や全角半角の正規化をしてから比べると、
+  // 「末尾に余分な空白がある」「全角と半角が混ざっている」という**このサイトで最も価値のある指摘**を
+  // 弾いてしまう。だから比較は厳密一致でなければならない。
+  it("末尾の空白だけが違う指摘は通す（trim して比較していないこと）", async () => {
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-1" });
+
+    const result = await createReport({ ...baseInput, wrong: "冪等 ", correct: "冪等" });
+    expect(result.error).toBeUndefined();
+    expect(result.id).toBe("report-1");
+  });
+
+  it("全角と半角の違いだけの指摘も通す", async () => {
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-2" });
+
+    const result = await createReport({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
+    expect(result.error).toBeUndefined();
+    expect(result.id).toBe("report-2");
   });
 });
