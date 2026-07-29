@@ -610,10 +610,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <p className="block text-sm font-medium text-gray-700 mb-1">
             画像（任意・{REPORT_IMAGE_MAX_COUNT}枚まで）
           </p>
+          {/* 添付する動機は選ぶ前（ボタンの上）に、守るべき制約は選ぶときに（ボタンの下）に置く。
+              まとめて並べると読む塊が大きくなり、いちばん読ませたい1文目が埋もれるため。
+              ⚠️ 「任意」はラベルが言っているのでここでは繰り返さない。また対応の早さなど
+                 運営が保証できないことは書かない（誇張しない） */}
           <p className="text-xs text-gray-500 mb-2">
-            該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
-            （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
-            添付できません。
+            該当箇所の画像があると出版社が確認しやすくなります。
           </p>
           {images.length < REPORT_IMAGE_MAX_COUNT && (
             <>
@@ -640,6 +642,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               >
                 ファイルを選択
               </label>
+              <p className="mt-2 text-xs text-gray-500">
+                該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
+                （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
+                添付できません。
+              </p>
             </>
           )}
           {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
