@@ -524,7 +524,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                   type="button"
                   onClick={() => setCorrect(wrong)}
                   disabled={!wrong.trim() || correct.length > 0}
-                  className="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                  className="rounded-md border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   誤の内容をコピー
                 </button>
@@ -539,12 +539,22 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 placeholder="正しいと思われる内容を入力してください"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
-              <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
               {/* コピーしただけで送ると弾かれる（誤と正が同じ投稿は受け付けない = #133）。
-                  投稿ボタンを押してから気づくのは遅いので、同じ間は先に出しておく */}
-              {correct.length > 0 && wrong.trim() === correct.trim() && (
-                <p className="mt-1 text-xs text-gray-500">{IDENTICAL_WRONG_CORRECT_MESSAGE}</p>
-              )}
+                  投稿ボタンを押してから気づくのは遅いので、同じ間は先に出しておく。
+                  ⚠️ カウンターと同じ行に置き、隠れている間も場所を取らせる（invisible であって
+                     display:none ではない）。出入りで行が増えると下の欄が動いて気持ち悪いため。 */}
+              <div className="flex items-start justify-between gap-3">
+                <p
+                  className={`mt-1 text-xs text-gray-500 ${
+                    correct.length > 0 && wrong.trim() === correct.trim() ? "" : "invisible"
+                  }`}
+                >
+                  {IDENTICAL_WRONG_CORRECT_MESSAGE}
+                </p>
+                <div className="shrink-0">
+                  <CharCounter id="correct-count" value={correct} max={REPORT_LIMITS.correct} />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
