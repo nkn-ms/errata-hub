@@ -94,14 +94,25 @@ export default defineConfig({
     ...authProjects,
     ...writeProjects,
   ],
-  // dev サーバーをローカルで起動（既に起動済みなら再利用）。
-  // dev は初回アクセスでルートをコンパイルするため timeout は長めに取る。
+  // ローカルは dev サーバー（既に起動済みなら再利用 = 開発中の :3000 を奪わない）。
+  //
+  // CI だけ production ビルドで回す。目的は速さではなく「本番と同じ成果物を e2e が通ること」で、
+  // dev のままだと next build / next start の成果物は e2e を1本も通らないまま本番へ出る。
+  // 副次的に、HMR の再コンパイル中にクリックが効かないという dev 由来のフレーキーも消える。
+  //
+  // ⚠️ ビルドは e2e ジョブの中で行う必要がある（ci ジョブの .next を持ち込めない）。
+  //    NEXT_PUBLIC_SUPABASE_URL / …_PUBLISHABLE_KEY は build 時にクライアントバンドルへ焼かれるため
+  //    （src/lib/supabase/client.ts）、Supabase の無い ci ジョブがダミー値で作った成果物を使うと
+  //    ブラウザ側の認証が壊れる。webServer の command でビルドさせれば、ワークフローが
+  //    $GITHUB_ENV に入れた接続情報をそのまま継承できる。
   webServer: isLocal
     ? {
-        command: "npm run dev",
+        command: process.env.CI ? "npm run build && npm start" : "npm run dev",
         url: BASE_URL,
-        reuseExistingServer: true,
-        timeout: 180_000,
+        // CI は毎回まっさらなので再利用しない（ローカルだけ既存 dev を使う）
+        reuseExistingServer: !process.env.CI,
+        // dev は初回アクセスでルートをコンパイルし、CI はビルドを含むので長めに取る
+        timeout: 300_000,
       }
     : undefined,
 });
