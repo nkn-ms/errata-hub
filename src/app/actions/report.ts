@@ -14,6 +14,7 @@ import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
 import { REPORT_LIMITS } from "@/constants/report-limits";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
@@ -33,8 +34,18 @@ const BookSchema = z.object({
 
 // 文字数上限は REPORT_LIMITS（フォームの maxLength と同じ値）で一元管理する。
 // フォームで打ち切られる想定だが、アクション直叩き・貼り付け経路もあるのでサーバーでも弾く。
+//
+// 前後の空白は落とす。判断の基準は2つで、**どちらも No ならトリムしてよい**:
+//   ① その空白は画面に現れるか → No（HTML は前後の空白を描画しない）
+//   ② その空白は内容の一部として指摘の対象になりうるか → No
+//      （誤/正 は紙面からの書き写しで、紙面の「前後の空白」はそもそも観測できない）
+// 残すと「見た目は同じなのに比較・検索・重複判定だけが食い違う」という説明できない挙動になる。
+// ⚠️ trim は**文字列全体の前後**であって各行の前後ではない。複数行のコード例を貼っても
+//    中間行の行末空白は残るので、引用の内部構造は壊れない。
+// ⚠️ 全角/半角の違いはトリムでは変わらない（"ＡＰＩ".trim() === "ＡＰＩ"）。
+//    そちらは意味のある差として保つ＝正規化はしない。
 const limited = (max: number, label: string) =>
-  z.string().max(max, `${label}は${max}文字以内で入力してください`);
+  z.string().trim().max(max, `${label}は${max}文字以内で入力してください`);
 
 const ReportSchema = z.object({
   book: BookSchema,
@@ -62,6 +73,14 @@ const ReportSchema = z.object({
     }
     if (!data.correct?.trim()) {
       ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）は必須です" });
+    }
+    // 誤と正が同じなら指摘として成立しない。誤をコピーして直し忘れたときに起きる。
+    // この時点で値は limited() によりトリム済みなので、前後の空白しか違わないものも同じと見なす
+    // （見えない差なので、投稿者にとっては「同じものを送った」のと変わらない）。
+    // ⚠️ 一方で**全角/半角の正規化はしない**。「ＡＰＩ → API」は見える差であり、
+    //    このサイトで最も価値のある種類の指摘に含まれるため、別物として通す。
+    if (data.wrong && data.correct && data.wrong === data.correct) {
+      ctx.addIssue({ code: "custom", path: ["correct"], message: IDENTICAL_WRONG_CORRECT_MESSAGE });
     }
   } else if (!data.content?.trim()) {
     ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });

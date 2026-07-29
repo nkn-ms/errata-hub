@@ -46,6 +46,7 @@ vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { createReport, toggleUpvote, updateReport } from "./report";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 
@@ -271,5 +272,60 @@ describe("レート制限", () => {
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.upvote.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("createReport（誤と正が同じ投稿を弾く）", () => {
+  // 他の必須項目は全部満たした状態にして、誤/正 の一致だけを見る
+  const baseInput = {
+    book: { title: "テスト駆動開発", isbn: "9784873115948" },
+    title: "p.42 の誤植",
+    type: "ERRATA" as const,
+    medium: "PAPER" as const,
+    edition: 1,
+    page: 42,
+  };
+
+  beforeEach(() => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+  });
+
+  it("誤と正が完全に同じならエラーにする", async () => {
+    const result = await createReport({ ...baseInput, wrong: "冪等", correct: "冪等" });
+    expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
+    // 弾くべき投稿で DB を触っていないこと（バリデーションは書き込みより手前）
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+  });
+
+  // 前後の空白は①画面に現れず②指摘の対象にもなり得ない（紙面の「前後の空白」は観測できない）ので
+  // 保存前にトリムする。結果、空白しか違わないものは「同じ」と見なして弾く
+  it("前後の空白しか違わないものは同じと見なして弾く", async () => {
+    const result = await createReport({ ...baseInput, wrong: " 冪等 ", correct: "冪等" });
+    expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
+    expect(prismaMock.report.create).not.toHaveBeenCalled();
+  });
+
+  it("値はトリムして保存する（見えない差を残さない）", async () => {
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-1" });
+
+    await createReport({ ...baseInput, wrong: "  冪等  ", correct: "べき等" });
+    expect(prismaMock.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ wrong: "冪等", correct: "べき等" }) })
+    );
+  });
+
+  // ⚠️ ここがこの機能の肝。**全角/半角の正規化はしない**。
+  // 「ＡＰＩ → API」は画面に現れる差であり、このサイトで最も価値のある種類の指摘に含まれる。
+  // 正規化してから比べると、そういう投稿を「誤と正が同じ」と誤判定して弾いてしまう。
+  it("全角と半角の違いだけの指摘も通す", async () => {
+    prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1" });
+    prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
+    prismaMock.report.create.mockResolvedValue({ id: "report-2" });
+
+    const result = await createReport({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
+    expect(result.error).toBeUndefined();
+    expect(result.id).toBe("report-2");
   });
 });

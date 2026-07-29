@@ -7,6 +7,7 @@ import { BookSearch } from "@/components/book-search";
 import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
 import { createReport } from "@/app/actions/report";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
@@ -173,6 +174,9 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     if (isErrataType) {
       if (!wrong.trim()) { setError("誤（該当箇所）を入力してください"); return; }
       if (!correct.trim()) { setError("正（正しい内容）を入力してください"); return; }
+      // サーバー側（ReportSchema）はトリム後に比較するので、クライアントでも揃える。
+      // 揃えないと「画面では通るのにサーバーで弾かれる」ことになる
+      if (wrong.trim() === correct.trim()) { setError(IDENTICAL_WRONG_CORRECT_MESSAGE); return; }
     } else if (!content.trim()) {
       setError("内容・提案を入力してください"); return;
     }
