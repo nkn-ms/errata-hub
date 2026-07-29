@@ -27,6 +27,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Errata Hub",
   description: site.description,
+  // Google Search Console の所有権確認（URL プレフィックスプロパティ）。
+  // ⚠️ 消すと所有権が失効し、Search Console のデータが見られなくなる。確認後も残し続けること。
+  // 値は秘密ではなく公開される目印（全ページの <head> に出る）。
+  // ※ vercel.app はドメインを間借りしているため DNS 方式は使えず、この方式を選んでいる。
+  verification: {
+    google: "CSDEREPOA9nq51Ywk000xDCotcVq_5S9S8qar4gny6s",
+  },
 };
 
 export default async function RootLayout({
