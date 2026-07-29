@@ -1,6 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { SEED_ADMIN as ADMIN } from "./seed-accounts";
 import { login } from "./login";
+import { openBookEditor } from "./admin-book-editor";
 
 // 書籍マスタ編集（/admin/books/[id]）の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
@@ -16,16 +17,6 @@ const BOOK_EDITABLE = {
   isbn: "9784274224478",
   title: "マスタリングTCP/IP 入門編",
 };
-
-async function openBookEditor(page: Page, title: string) {
-  await page.goto("/admin/books");
-  await page
-    .getByRole("row")
-    .filter({ hasText: title })
-    .getByRole("link", { name: "編集" })
-    .click();
-  await page.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
-}
 
 test.describe("書籍マスタの編集（管理者）", () => {
   test("書籍名と正誤表URLを保存すると公開ページに反映される", async ({ page }) => {

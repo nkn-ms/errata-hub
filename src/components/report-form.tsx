@@ -206,7 +206,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         correct: isErrataType ? correct : null,
         content: isErrataType ? null : content,
         note: note || null,
-        reportedErratumUrl: reportedErratumUrl.trim() || null,
+        // 登録済みの本では入力欄を出していないので、書籍を選び直す前に入力された値も送らない
+        reportedErratumUrl: knownErratumUrl ? null : reportedErratumUrl.trim() || null,
       });
 
       if (created.error !== undefined) {
@@ -575,24 +576,46 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <CharCounter id="note-count" value={note} max={REPORT_LIMITS.note} />
         </div>
 
-        <div>
-          <label htmlFor="reported-erratum-url" className="block text-sm font-medium text-gray-700 mb-1">
-            出版社の正誤表URL（任意）
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
-            確認した正誤表のURLを登録してください。管理者が正規のURLであることを確認のうえ、書籍ページに
-            公式リンクとして掲載します。
-          </p>
-          <input
-            id="reported-erratum-url"
-            type="url"
-            value={reportedErratumUrl}
-            onChange={(e) => setReportedErratumUrl(e.target.value)}
-            maxLength={REPORT_LIMITS.reportedErratumUrl}
-            placeholder="https://..."
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {/* この欄の目的は「管理者がまだ知らないURLを教えてもらう」こと。既に登録済みの本では
+            申告してもらう必要が無いので、入力欄を出さずに登録済みであることだけを伝える
+            （出したままだと、画面上部で「正誤表があります」と案内しながら下部で同じものを
+            入力させることになる）。 */}
+        {knownErratumUrl ? (
+          <div>
+            <span className="block text-sm font-medium text-gray-700 mb-1">出版社の正誤表URL</span>
+            <p className="text-xs text-gray-500">
+              この本には登録済みの{" "}
+              <a
+                href={knownErratumUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-blue-600 underline"
+              >
+                正誤表
+              </a>
+              {" "}があるため、申告は不要です。
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="reported-erratum-url" className="block text-sm font-medium text-gray-700 mb-1">
+              出版社の正誤表URL（任意）
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              確認した正誤表のURLを登録してください。管理者が正規のURLであることを確認のうえ、書籍ページに
+              公式リンクとして掲載します。
+            </p>
+            <input
+              id="reported-erratum-url"
+              type="url"
+              value={reportedErratumUrl}
+              onChange={(e) => setReportedErratumUrl(e.target.value)}
+              maxLength={REPORT_LIMITS.reportedErratumUrl}
+              placeholder="https://..."
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
 
         <div>
           {/* ここは <label> にしない。下の「ファイルを選択」が input のラベル兼クリック領域で、
