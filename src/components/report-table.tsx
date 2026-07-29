@@ -103,7 +103,8 @@ const columns: ColumnDef<Report>[] = [
       // 折り返しを許す: 電子書籍の位置（"電子書籍 位置No.500（43%付近）"）は長く、
       // nowrap にすると1セルで 220px 使って表全体を横スクロールに追い込む
       return label ? (
-        <div className="text-xs text-gray-600">{label}</div>
+        // 数字を等幅にする理由は report-card.tsx の ErrataSummary のコメント参照
+        <div className="text-xs text-gray-600 tabular-nums">{label}</div>
       ) : (
         <span className="text-xs text-gray-400">-</span>
       );

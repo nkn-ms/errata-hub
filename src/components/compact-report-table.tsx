@@ -54,7 +54,8 @@ export function CompactReportTable({ data }: { data: Report[] }) {
                 </div>
               </td>
               {/* 折り返しを許す（電子書籍の位置は長く、nowrap だと表が横スクロールに追い込まれる） */}
-              <td className="px-4 py-3 align-top text-xs text-gray-500">
+              {/* 数字を等幅にする理由は report-card.tsx の ErrataSummary のコメント参照 */}
+              <td className="px-4 py-3 align-top text-xs text-gray-500 tabular-nums">
                 {getEditionLocationLabel(r)}
               </td>
               <td className="px-4 py-3 align-top">

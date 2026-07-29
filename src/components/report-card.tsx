@@ -33,10 +33,14 @@ export function getLocationLabel(report: Report): string {
 // テーブルの列幅で途中で切れると肝心の誤り/訂正が読めなくなるため。行頭に色付きラベルを置いて、
 // どちらが誤でどちらが正かを一目で分けられるようにする（詳細ページの赤/緑ブロックと同じ意味付け）。
 // 改善提案など content だけの投稿は従来どおり1行で出す。
+// 数字は tabular-nums（等幅数字）で描く。本文の Geist は既定が proportional figures ＝ 1 が 6/8 より細く、
+// 「誤: RFC 822, updated by RFC 6854 / 正: RFC 822, updated by RFC 1123」のように上下で見比べる場面で
+// 桁が縦に揃わない（2026-07-28 に本番の実投稿で判明）。書体は本文のまま数字の字送りだけを揃える。
+// 同じ理由で版・刷・ページも揃える（一覧では縦に並ぶため）。
 export function ErrataSummary({ report }: { report: Report }) {
   if (report.wrong && report.correct) {
     return (
-      <div className="text-sm space-y-0.5">
+      <div className="text-sm space-y-0.5 tabular-nums">
         <div className="line-clamp-1 text-gray-800">
           <span className="font-semibold text-gray-900">誤:</span> {report.wrong}
         </div>
@@ -129,7 +133,7 @@ export function ReportCard({ report }: { report: Report }) {
         {/* どの本か・どこか */}
         <div className="text-sm font-medium text-gray-900 truncate">{report.bookTitle}</div>
         {(editionLabel || locationLabel) && (
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 tabular-nums">
             {[editionLabel, locationLabel].filter(Boolean).join(" ・ ")}
           </div>
         )}

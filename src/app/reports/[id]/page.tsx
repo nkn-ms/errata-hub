@@ -132,8 +132,8 @@ export default async function ReportDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* 版・刷・位置情報 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          {/* 版・刷・位置情報。数字を等幅にする理由は report-card.tsx の ErrataSummary のコメント参照 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm tabular-nums">
             {(report.edition || report.printing) && (
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">版・刷</p>
@@ -177,7 +177,7 @@ export default async function ReportDetailPage({ params }: Props) {
                     地・文字・枠を全部塗ると色が重なって読みにくいため（特にダーク）。
                     ラベルは 700＝淡い地の上でも AA を満たす値 */}
                 {report.wrong && (
-                  <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-sm text-gray-800">
+                  <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-sm text-gray-800 tabular-nums">
                     <p className="text-xs text-red-700 mb-1">誤</p>
                     {report.wrong}
                   </div>
@@ -186,7 +186,7 @@ export default async function ReportDetailPage({ params }: Props) {
                   <span className="text-gray-400 text-lg">→</span>
                 )}
                 {report.correct && (
-                  <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm text-gray-800">
+                  <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm text-gray-800 tabular-nums">
                     <p className="text-xs text-green-700 mb-1">正</p>
                     {report.correct}
                   </div>
