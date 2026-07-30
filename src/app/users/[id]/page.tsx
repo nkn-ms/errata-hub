@@ -9,10 +9,9 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
-import { SiteHeader } from "@/components/site-header";
+import { SiteShell } from "@/components/site-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
-import { PAGE_CONTAINER } from "@/constants/layout";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -58,19 +57,19 @@ export default async function UserDetailPage({ params }: Props) {
   // 公開上の追跡可能性を弱めるため。email は判定にのみ使い表示はしない。
   if (isWithdrawnEmail(profile.email)) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <SiteHeader crumbs={[{ label: "ユーザー" }]} />
-        <main className={`${PAGE_CONTAINER} py-16`}>
-          <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
-            <p className="text-2xl mb-3">👤</p>
-            <p className="text-base font-medium text-gray-700">{WITHDRAWN_DISPLAY_NAME}です</p>
-            <p className="mt-2 text-sm text-gray-400">このユーザーは退会しています。</p>
-          </div>
-          <div className="mt-6">
-            <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
-          </div>
-        </main>
+      <SiteShell crumbs={[{ label: "ユーザー" }]}>
+      {/* 退会済みの表示だけは余白を広く取る（中身が短く、上に詰まって見えるため） */}
+      <div className="py-8">
+        <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
+          <p className="text-2xl mb-3">👤</p>
+          <p className="text-base font-medium text-gray-700">{WITHDRAWN_DISPLAY_NAME}です</p>
+          <p className="mt-2 text-sm text-gray-400">このユーザーは退会しています。</p>
+        </div>
+        <div className="mt-6">
+          <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+        </div>
       </div>
+      </SiteShell>
     );
   }
 
@@ -85,129 +84,123 @@ export default async function UserDetailPage({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader
-        crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}
-      />
-
-      <main className={`${PAGE_CONTAINER} py-8`}>
-        {/* プロフィール情報 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-4">
-            {/* アバター（仮置き） */}
-            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl text-gray-400 shrink-0">
-              {(profile.displayName ?? "?")[0]}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {profile.displayName ?? "匿名"}
-              </h1>
-              <p className="text-sm text-gray-400">@{shortId(profile.id)}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {formatJstDate(profile.createdAt)} から参加
-              </p>
-            </div>
+    <SiteShell crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}>
+      {/* プロフィール情報 */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-4">
+          {/* アバター（仮置き） */}
+          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl text-gray-400 shrink-0">
+            {(profile.displayName ?? "?")[0]}
           </div>
-
-          {/* 統計 */}
-          <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-100">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-xs text-gray-500">投稿数</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{stats.fixed}</p>
-              <p className="text-xs text-gray-500">修正済み</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-400">{stats.pending}</p>
-              <p className="text-xs text-gray-500">未対応</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              {profile.displayName ?? "匿名"}
+            </h1>
+            <p className="text-sm text-gray-400">@{shortId(profile.id)}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {formatJstDate(profile.createdAt)} から参加
+            </p>
           </div>
-
-          {/* 公開リンク（本人がアカウント設定で入力した場合のみ表示）。
-              自己申告のため rel=nofollow（リンクスパム対策）＋ ugc を付ける。 */}
-          {(profile.githubUsername || profile.xUsername) && (
-            <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-gray-100">
-              {profile.githubUsername && (
-                <a
-                  href={`https://github.com/${profile.githubUsername}`}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow ugc"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                >
-                  <GitHubIcon className="w-3.5 h-3.5" />
-                  {profile.githubUsername}
-                </a>
-              )}
-              {profile.xUsername && (
-                <a
-                  href={`https://x.com/${profile.xUsername}`}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow ugc"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                >
-                  <XIcon className="w-3.5 h-3.5" />
-                  @{profile.xUsername}
-                </a>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* 投稿一覧 */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            投稿一覧 <span className="text-sm font-normal text-gray-500">{mapped.length}件</span>
-          </h2>
+        {/* 統計 */}
+        <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-100">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-xs text-gray-500">投稿数</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-green-600">{stats.fixed}</p>
+            <p className="text-xs text-gray-500">修正済み</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-400">{stats.pending}</p>
+            <p className="text-xs text-gray-500">未対応</p>
+          </div>
         </div>
 
-        {mapped.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
-            まだ投稿はありません
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {mapped.map((report) => (
-              <Link
-                key={report.id}
-                href={routes.report(report.id)}
-                className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
+        {/* 公開リンク（本人がアカウント設定で入力した場合のみ表示）。
+            自己申告のため rel=nofollow（リンクスパム対策）＋ ugc を付ける。 */}
+        {(profile.githubUsername || profile.xUsername) && (
+          <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-gray-100">
+            {profile.githubUsername && (
+              <a
+                href={`https://github.com/${profile.githubUsername}`}
+                target="_blank"
+                rel="noopener noreferrer nofollow ugc"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {TYPE_LABELS[report.type]}
-                      </span>
-                      <StatusBadge status={report.status} />
-                    </div>
-                    <p className="font-medium text-gray-900 truncate">{report.title}</p>
-                    <p className="text-sm text-gray-500 mt-0.5 truncate">
-                      {report.bookTitle}
-                    </p>
-                    {(report.wrong || report.correct) && (
-                      <p className="text-sm text-gray-600 mt-0.5 truncate">
-                        {report.wrong} → {report.correct}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    {report.page && (
-                      <p className="text-sm text-gray-500">p.{report.page}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                <GitHubIcon className="w-3.5 h-3.5" />
+                {profile.githubUsername}
+              </a>
+            )}
+            {profile.xUsername && (
+              <a
+                href={`https://x.com/${profile.xUsername}`}
+                target="_blank"
+                rel="noopener noreferrer nofollow ugc"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <XIcon className="w-3.5 h-3.5" />
+                @{profile.xUsername}
+              </a>
+            )}
           </div>
         )}
+      </div>
 
-        <div className="mt-6">
-          <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+      {/* 投稿一覧 */}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          投稿一覧 <span className="text-sm font-normal text-gray-500">{mapped.length}件</span>
+        </h2>
+      </div>
+
+      {mapped.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
+          まだ投稿はありません
         </div>
-      </main>
-    </div>
+      ) : (
+        <div className="space-y-3">
+          {mapped.map((report) => (
+            <Link
+              key={report.id}
+              href={routes.report(report.id)}
+              className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type] ?? "bg-gray-100 text-gray-600"}`}>
+                      {TYPE_LABELS[report.type]}
+                    </span>
+                    <StatusBadge status={report.status} />
+                  </div>
+                  <p className="font-medium text-gray-900 truncate">{report.title}</p>
+                  <p className="text-sm text-gray-500 mt-0.5 truncate">
+                    {report.bookTitle}
+                  </p>
+                  {(report.wrong || report.correct) && (
+                    <p className="text-sm text-gray-600 mt-0.5 truncate">
+                      {report.wrong} → {report.correct}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  {report.page && (
+                    <p className="text-sm text-gray-500">p.{report.page}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6">
+        <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+      </div>
+    </SiteShell>
   );
 }
