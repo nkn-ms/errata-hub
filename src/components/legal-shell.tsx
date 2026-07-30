@@ -1,14 +1,10 @@
-import { SiteHeader } from "@/components/site-header";
-import { PAGE_CONTAINER } from "@/constants/layout";
-
-// 利用規約・プライバシーポリシーの共通体裁。どちらも「戻れるヘッダー＋読みやすい本文幅」で統一する。
+// 利用規約・プライバシーポリシーの共通体裁（見出し＋読みやすい本文の行間）。
 //
-// ヘッダーは公開側の共通ヘッダー（SiteHeader）をそのまま使う。以前はロゴだけの独自ヘッダーを
-// 手書きしていたため、テーマ切り替えもナビも無い亜種になっていた。
+// 枠（背景・共通ヘッダー・本文の幅）は app/(site)/layout.tsx が持つので、ここは中身だけを整える。
 //
 // 中身の部品（Article・OrderedList・LegalConsentNote）は legal.tsx 側にある。あちらは
-// クライアントコンポーネント（/login・/register）からも読まれるので、サーバー専用の
-// SiteHeader を含むこのシェルだけを別ファイルにしている。
+// クライアントコンポーネント（/login・/register）からも読まれるので、
+// サーバー専用のものを混ぜないよう分けている。
 export function LegalShell({
   title,
   children,
@@ -17,15 +13,9 @@ export function LegalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader />
-
-      <main className={`${PAGE_CONTAINER} py-8`}>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <div className="mt-6 space-y-8 text-sm leading-relaxed text-gray-700">
-          {children}
-        </div>
-      </main>
-    </div>
+    <>
+      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+      <div className="mt-6 space-y-8 text-sm leading-relaxed text-gray-700">{children}</div>
+    </>
   );
 }

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { SiteHeader } from "@/components/site-header";
-import { PAGE_CONTAINER } from "@/constants/layout";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
@@ -37,10 +35,7 @@ const TECHS = [
 
 export default function TechPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader />
-
-      <main className={`${PAGE_CONTAINER} py-8 space-y-10`}>
+    <div className="space-y-10">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">使用技術</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -82,7 +77,6 @@ export default function TechPage() {
             </p>
           </div>
         </section>
-      </main>
     </div>
   );
 }

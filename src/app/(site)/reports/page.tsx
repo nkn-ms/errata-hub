@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { findAllReports } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { ReportTable } from "@/components/report-table";
-import { SiteHeader } from "@/components/site-header";
-import { PAGE_CONTAINER } from "@/constants/layout";
 
 export const metadata: Metadata = {
   title: "すべての投稿 | Errata Hub",
@@ -20,19 +18,15 @@ export default async function ReportsPage({ searchParams }: Props) {
   const reports = rows.map(mapReport);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader />
+    <>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">すべての投稿</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          書籍名・タイトルで検索し、種別・ステータスで絞り込めます。
+        </p>
+      </div>
 
-      <main className={`${PAGE_CONTAINER} py-8`}>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">すべての投稿</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            書籍名・タイトルで検索し、種別・ステータスで絞り込めます。
-          </p>
-        </div>
-
-        <ReportTable data={reports} initialQuery={q ?? ""} />
-      </main>
-    </div>
+      <ReportTable data={reports} initialQuery={q ?? ""} />
+    </>
   );
 }

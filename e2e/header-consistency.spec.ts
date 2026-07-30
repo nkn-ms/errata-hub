@@ -14,7 +14,6 @@ import { test, expect, type Page } from "@playwright/test";
 async function expectPublicHeader(page: Page) {
   const header = page.getByRole("banner");
 
-  // トップだけロゴが自己リンクでなく span になるので、リンクではなく文字で見る
   await expect(header.getByText("Errata Hub")).toBeVisible();
   await expect(header.getByRole("button", { name: /表示テーマ/ })).toBeVisible();
   await expect(header.getByRole("link", { name: "使い方" })).toBeVisible();

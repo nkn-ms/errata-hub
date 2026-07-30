@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
+import { site } from "@/constants/site";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderNav } from "@/components/header-nav";
 import { getHeaderUser } from "@/lib/header-user";
@@ -16,8 +16,6 @@ export type SiteHeaderCrumb = {
 type SiteHeaderProps = {
   /** アカウント設定など、追従させたくないページだけ false にする */
   sticky?: boolean;
-  /** トップページ自身ではロゴを自己リンクにしない（現在地なので） */
-  logoAsLink?: boolean;
   crumbs?: SiteHeaderCrumb[];
 };
 
@@ -31,30 +29,21 @@ type SiteHeaderProps = {
 // ⚠️ ナビの表示にはログイン状態が要るので、この共通ヘッダーを出す全ページで
 //    getHeaderUser()（Supabase の getUser ＋ Profile 1件）が走る。CSP nonce の都合で
 //    どのページも既に動的レンダリングなので、静的化を壊してはいない。
-export async function SiteHeader({
-  sticky = true,
-  logoAsLink = true,
-  crumbs,
-}: SiteHeaderProps) {
+export async function SiteHeader({ sticky = true, crumbs }: SiteHeaderProps) {
   const { userName, isAdmin } = await getHeaderUser();
 
   return (
     <header className={`bg-white border-b border-gray-200${sticky ? " sticky top-0 z-10" : ""}`}>
       <div className={`${PAGE_CONTAINER} h-14 flex items-center gap-4`}>
         {/* ロゴとナビは縮めない（shrink-0）。詰まったときに縮む・切れるのはパンくずの側で、
-            そうしないと「Errata Hub」や「投稿する」が2〜3行に折り返してヘッダーが崩れる */}
-        {logoAsLink ? (
-          <Link
-            href={routes.home}
-            className="shrink-0 whitespace-nowrap text-lg font-bold text-gray-900 hover:text-gray-700 transition-colors"
-          >
-            {site.name}
-          </Link>
-        ) : (
-          <span className="shrink-0 whitespace-nowrap text-lg font-bold text-gray-900">
-            {site.name}
-          </span>
-        )}
+            そうしないと「Errata Hub」や「投稿する」が2〜3行に折り返してヘッダーが崩れる。
+            トップに居るときもリンクのままにする（?page=N から1ページ目へ戻れる導線になるため） */}
+        <Link
+          href={routes.home}
+          className="shrink-0 whitespace-nowrap text-lg font-bold text-gray-900 hover:text-gray-700 transition-colors"
+        >
+          {site.name}
+        </Link>
 
         {/* sm 未満はパンくずを畳む。ナビ＋主 CTA と幅を取り合うと文字が全部 truncate され、
             区切りの「/」だけが残って意味を失う。詳細ページはいずれも本文側に戻り導線

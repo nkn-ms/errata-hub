@@ -8,10 +8,9 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
-import { SiteHeader } from "@/components/site-header";
+import { SiteShell } from "@/components/site-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
-import { PAGE_CONTAINER } from "@/constants/layout";
 
 type Props = {
   params: Promise<{ isbn: string }>;
@@ -58,115 +57,111 @@ export default async function BookDetailPage({ params }: Props) {
   const reports = book.reports.map(mapReport);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader crumbs={[{ label: book.title }]} />
+    <SiteShell crumbs={[{ label: book.title }]}>
+      {/* 書籍情報 */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="flex gap-5">
+          <BookCover src={book.coverImageUrl} alt={book.title} width={96} height={134} className="w-24 shrink-0" />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
+            {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
+            {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher.name}</p>}
+            {book.isbn && (
+              <p className="text-xs text-gray-400 mt-2">
+                {/* 数字だけ等幅（識別子は桁が揃うと読みやすい）。ラベルは本文書体のまま */}
+                ISBN: <span className="font-mono">{book.isbn}</span>
+              </p>
+            )}
+            {book.erratumUrl && (
+              <div className="mt-3">
+                <a
+                  href={book.erratumUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="text-sm text-blue-700 hover:underline"
+                >
+                  出版社の正誤表を見る（{hostnameOf(book.erratumUrl)}）→
+                </a>
+                {isInsecureUrl(book.erratumUrl) && (
+                  <span className="ml-2 text-xs text-gray-500">保護されていない接続（http://）</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-      <main className={`${PAGE_CONTAINER} py-8`}>
-        {/* 書籍情報 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="flex gap-5">
-            <BookCover src={book.coverImageUrl} alt={book.title} width={96} height={134} className="w-24 shrink-0" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
-              {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
-              {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher.name}</p>}
-              {book.isbn && (
-                <p className="text-xs text-gray-400 mt-2">
-                  {/* 数字だけ等幅（識別子は桁が揃うと読みやすい）。ラベルは本文書体のまま */}
-                  ISBN: <span className="font-mono">{book.isbn}</span>
-                </p>
-              )}
-              {book.erratumUrl && (
-                <div className="mt-3">
-                  <a
-                    href={book.erratumUrl}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    className="text-sm text-blue-700 hover:underline"
-                  >
-                    出版社の正誤表を見る（{hostnameOf(book.erratumUrl)}）→
-                  </a>
-                  {isInsecureUrl(book.erratumUrl) && (
-                    <span className="ml-2 text-xs text-gray-500">保護されていない接続（http://）</span>
+      {/* 投稿一覧 */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">
+          投稿 <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
+        </h2>
+        <Link
+          href={routes.submitForBook(book.isbn)}
+          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
+        >
+          この本に投稿する
+        </Link>
+      </div>
+
+      {/* 免責バナー */}
+      <div className="mb-4 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+        <span className="mt-0.5 shrink-0">⚠️</span>
+        <span>
+          掲載されている投稿は投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
+        </span>
+      </div>
+
+      {reports.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
+          まだ投稿はありません
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reports.map((report) => (
+            <Link
+              key={report.id}
+              href={routes.report(report.id)}
+              className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    <StatusBadge status={report.status} />
+                  </div>
+                  <p className="font-medium text-gray-900 truncate">{report.title}</p>
+                  {(report.wrong || report.correct) && (
+                    <p className="text-sm text-gray-600 mt-0.5 truncate">
+                      {report.wrong} → {report.correct}
+                    </p>
+                  )}
+                  {report.content && !report.wrong && (
+                    <p className="text-sm text-gray-600 mt-0.5 truncate">{report.content}</p>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 投稿一覧 */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            投稿 <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
-          </h2>
-          <Link
-            href={routes.submitForBook(book.isbn)}
-            className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-          >
-            この本に投稿する
-          </Link>
-        </div>
-
-        {/* 免責バナー */}
-        <div className="mb-4 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-          <span className="mt-0.5 shrink-0">⚠️</span>
-          <span>
-            掲載されている投稿は投稿者からの報告であり、<strong>出版社による確認が完了していない情報を含みます。</strong>
-          </span>
-        </div>
-
-        {reports.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
-            まだ投稿はありません
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {reports.map((report) => (
-              <Link
-                key={report.id}
-                href={routes.report(report.id)}
-                className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      <StatusBadge status={report.status} />
-                    </div>
-                    <p className="font-medium text-gray-900 truncate">{report.title}</p>
-                    {(report.wrong || report.correct) && (
-                      <p className="text-sm text-gray-600 mt-0.5 truncate">
-                        {report.wrong} → {report.correct}
-                      </p>
-                    )}
-                    {report.content && !report.wrong && (
-                      <p className="text-sm text-gray-600 mt-0.5 truncate">{report.content}</p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    {report.page && (
-                      <p className="text-sm text-gray-500">p.{report.page}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
-                  </div>
+                <div className="text-right shrink-0">
+                  {report.page && (
+                    <p className="text-sm text-gray-500">p.{report.page}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">{report.createdAt}</p>
                 </div>
-                {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
-                  <p className="mt-2 text-xs text-green-700">
-                    ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
-                    {report.fixedEdition && report.fixedPrinting && " "}
-                    {report.fixedPrinting && `第${report.fixedPrinting}刷`}
-                    より修正済み
-                  </p>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6">
-          <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+              </div>
+              {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
+                <p className="mt-2 text-xs text-green-700">
+                  ✅ {report.fixedEdition && `第${report.fixedEdition}版`}
+                  {report.fixedEdition && report.fixedPrinting && " "}
+                  {report.fixedPrinting && `第${report.fixedPrinting}刷`}
+                  より修正済み
+                </p>
+              )}
+            </Link>
+          ))}
         </div>
-      </main>
-    </div>
+      )}
+
+      <div className="mt-6">
+        <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
+      </div>
+      </SiteShell>
   );
 }
