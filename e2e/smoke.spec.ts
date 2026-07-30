@@ -237,9 +237,5 @@ test.describe("検索エンジン向けのファイル", () => {
   });
 });
 
-test.describe("存在しないルート", () => {
-  test("404 を返す", async ({ page }) => {
-    const res = await page.goto("/this-route-does-not-exist-xyz");
-    expect(res?.status()).toBe(404);
-  });
-});
+// 存在しないルートの検査は not-found.spec.ts に移した（ステータスだけでなく、
+// 共通の枠が付くこと・notFound() 経由でも同じ画面になることまで見るため）。

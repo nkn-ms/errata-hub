@@ -19,6 +19,9 @@ const GUEST_PAGES = [
   "/privacy",
   // 退会完了ページ。退会後は signOut 済みなので認証は要らない（＝ゲストで測れる）
   "/account/withdrawn",
+  // 404（app/not-found.tsx）。どのルートにも一致しない URL なら何でもここに来る。
+  // ⚠️ 対象ページに入れていない画面の AA 違反は素通りする（/submit の必須マークがそうだった）。
+  "/no-such-page",
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {

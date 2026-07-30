@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { expectPublicHeader } from "./site-header";
 
 // 公開側ヘッダーは「どのページでも同じ中身」であることを固定する回帰テスト。
 //
@@ -8,20 +9,7 @@ import { test, expect, type Page } from "@playwright/test";
 // 元へ戻っていないかをここで見る。
 //
 // 読み取り専用（未ログインで見える範囲だけ）。ログイン済みヘッダーは header.write.spec.ts で見る。
-
-// ナビ項目は sm 以上でインライン表示（sm 未満はハンバーガー）。既定ビューポートは Desktop なので
-// そのまま見える。
-async function expectPublicHeader(page: Page) {
-  const header = page.getByRole("banner");
-
-  await expect(header.getByText("Errata Hub")).toBeVisible();
-  await expect(header.getByRole("button", { name: /表示テーマ/ })).toBeVisible();
-  await expect(header.getByRole("link", { name: "使い方" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "使用技術" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "会員登録" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "ログイン" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "投稿する" })).toBeVisible();
-}
+// 404 も同じヘッダーを持つ（→ not-found.spec.ts）。判定は ./site-header に共有している。
 
 // /submit はログインが要る（proxy.ts の protectedPaths）ので header.write.spec.ts 側で見る。
 // /login・/register・/auth/* と退会フローは、フォームに集中させるため意図的にヘッダーを持たない。
