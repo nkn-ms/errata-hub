@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { findAllReports } from "@/services/report";
-import { getHeaderUser } from "@/lib/header-user";
 import { mapReport } from "@/utils/mappers";
 import { ReportTable } from "@/components/report-table";
-import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
@@ -17,18 +15,12 @@ type Props = {
 };
 
 export default async function ReportsPage({ searchParams }: Props) {
-  const [{ q }, rows, headerUser] = await Promise.all([
-    searchParams,
-    findAllReports(),
-    getHeaderUser(),
-  ]);
+  const [{ q }, rows] = await Promise.all([searchParams, findAllReports()]);
   const reports = rows.map(mapReport);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SiteHeader>
-        <HeaderNav userName={headerUser.userName} isAdmin={headerUser.isAdmin} />
-      </SiteHeader>
+      <SiteHeader />
 
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">

@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { findReportsPage } from "@/services/report";
-import { getHeaderUser } from "@/lib/header-user";
 import { mapReport } from "@/utils/mappers";
 import { ReportCard } from "@/components/report-card";
 import { CompactReportTable } from "@/components/compact-report-table";
-import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { routes } from "@/constants/routes";
 
@@ -21,10 +19,7 @@ export default async function Home({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const [{ reports: rows, total }, headerUser] = await Promise.all([
-    findReportsPage(page, PAGE_SIZE),
-    getHeaderUser(),
-  ]);
+  const { reports: rows, total } = await findReportsPage(page, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (n: number) => (n <= 1 ? routes.home : `${routes.home}?page=${n}`);
 
@@ -38,9 +33,7 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SiteHeader width="lg" logoAsLink={false}>
-        <HeaderNav userName={headerUser.userName} isAdmin={headerUser.isAdmin} />
-      </SiteHeader>
+      <SiteHeader width="lg" logoAsLink={false} />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">

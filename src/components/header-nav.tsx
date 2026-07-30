@@ -111,7 +111,7 @@ function DesktopUserMenu({ userName, isAdmin }: { userName: string; isAdmin: boo
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        className="flex items-center gap-1 whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 transition-colors"
       >
         <span className="max-w-[10rem] truncate">{userName}</span>
         <ChevronDownIcon className={`transition-transform ${open ? "rotate-180" : ""}`} />
@@ -195,6 +195,10 @@ function MobileMenu({ userName, isAdmin }: { userName: string | null; isAdmin: b
 
 // ヘッダー右側のナビ。sm 以上はインライン、sm 未満は MobileMenu に集約。
 // 主 CTA「投稿する」だけは常時表示。
+//
+// 並ぶ項目はすべて whitespace-nowrap。パンくずを持つページ（投稿詳細など）では横幅の取り合いに
+// なり、折り返しを許すと「投稿する」が2〜3行になってヘッダーの高さごと崩れる。
+// 詰まったときに縮む・切れるのはパンくず側（site-header.tsx の min-w-0 + truncate）。
 export function HeaderNav({
   userName,
   isAdmin = false,
@@ -212,7 +216,7 @@ export function HeaderNav({
         <NavLink
           key={link.href}
           href={link.href}
-          className="hidden sm:block rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          className="hidden sm:block whitespace-nowrap rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
           activeClassName="bg-gray-100 text-gray-900"
         >
           {link.label}
@@ -226,14 +230,14 @@ export function HeaderNav({
         <>
           <Link
             href={routes.register}
-            className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="hidden sm:block whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
             会員登録
           </Link>
           {/* 塗りは主 CTA「投稿する」（青）に譲り、ログインは枠線で階層を下げる */}
           <Link
             href={routes.login}
-            className="hidden sm:block text-sm text-gray-700 border border-gray-300 px-4 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
+            className="hidden sm:block whitespace-nowrap text-sm text-gray-700 border border-gray-300 px-4 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
           >
             ログイン
           </Link>
@@ -243,7 +247,7 @@ export function HeaderNav({
       {/* 主 CTA（常時表示） */}
       <Link
         href={routes.submit}
-        className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
+        className="whitespace-nowrap text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
       >
         投稿する
       </Link>

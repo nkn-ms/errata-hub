@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { routes } from "@/constants/routes";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
@@ -39,14 +37,7 @@ const TECHS = [
 export default function TechPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <SiteHeader>
-        <Link
-          href={routes.howToUse}
-          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          使い方
-        </Link>
-      </SiteHeader>
+      <SiteHeader />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
         <div>
