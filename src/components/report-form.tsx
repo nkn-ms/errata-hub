@@ -261,13 +261,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
       found.push({ field: "content", message: "内容・提案を入力してください" });
     }
 
-    if (found.length > 0) {
+    // `|| !book` は型の絞り込みも兼ねる（book が null なら必ず found に入るので条件としては冗長だが、
+    // これを書かないと下の createReport で BookData | null のままになる。
+    // 「実際には来ない早期 return」を別に足すよりこちらの方が死んだ分岐を作らない）
+    if (found.length > 0 || !book) {
       setErrors(found);
       return;
     }
-    // book が null なら上で必ず found に入るのでここには来ない。
-    // 型の絞り込み（BookData | null → BookData）のために置いている
-    if (!book) return;
 
     setSubmitting(true);
     setError("");
