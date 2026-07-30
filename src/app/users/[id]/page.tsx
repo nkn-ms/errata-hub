@@ -12,6 +12,7 @@ import { GitHubIcon, XIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -58,8 +59,8 @@ export default async function UserDetailPage({ params }: Props) {
   if (isWithdrawnEmail(profile.email)) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <SiteHeader width="lg" crumbs={[{ label: "ユーザー" }]} />
-        <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-16">
+        <SiteHeader crumbs={[{ label: "ユーザー" }]} />
+        <main className={`${PAGE_CONTAINER} py-16`}>
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
             <p className="text-2xl mb-3">👤</p>
             <p className="text-base font-medium text-gray-700">{WITHDRAWN_DISPLAY_NAME}です</p>
@@ -86,11 +87,10 @@ export default async function UserDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <SiteHeader
-        width="lg"
         crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}
       />
 
-      <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         {/* プロフィール情報 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-4">

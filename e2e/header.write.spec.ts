@@ -26,3 +26,22 @@ test.describe("ヘッダーの管理画面リンク", () => {
     await expect(page.getByRole("menuitem", { name: "管理画面" })).toHaveCount(0);
   });
 });
+
+// 未ログインのヘッダーの一様性は header-consistency.spec.ts が見る。こちらはログインが要る
+// /account を含めて「ログイン済みでも画面によって中身が変わらない」ことを見る。
+test.describe("ログイン済みヘッダーの中身", () => {
+  for (const path of ["/", "/reports", "/submit", "/account"]) {
+    test(`${path} でも同じナビ＋ユーザーメニューが出る`, async ({ page }) => {
+      await login(page, READER);
+      await page.goto(path);
+
+      const header = page.getByRole("banner");
+      await expect(header.getByRole("link", { name: "使い方" })).toBeVisible();
+      await expect(header.getByRole("link", { name: "使用技術" })).toBeVisible();
+      await expect(header.getByRole("link", { name: "投稿する" })).toBeVisible();
+      await expect(header.getByRole("button", { name: "ローカル読者" })).toBeVisible();
+      // ログイン済みなので未ログイン用の導線は出ない
+      await expect(header.getByRole("link", { name: "ログイン" })).toHaveCount(0);
+    });
+  }
+});
