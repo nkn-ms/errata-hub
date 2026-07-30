@@ -213,11 +213,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     // （上から直していけるようにする。検証の都合で順番が飛ぶと直す順序を組み立て直させる）。
     const found: { field?: string; message: string }[] = [];
 
+    // 飛ばす先の book-search は「未選択なら検索欄／選択済みなら別の本を選ぶ」＝
+    // どちらの状態でも書籍を選ぶ操作の場所を指す（他の項目と同じくリンクにするため）
     if (!book) {
-      // 書籍だけは入力欄ではなく検索・確定表示なので、飛ばす先の id を持たない
-      found.push({ message: "書籍を選択してください" });
+      found.push({ field: "book-search", message: "書籍を選択してください" });
     } else if (!book.isbn) {
-      found.push({ message: "ISBNのある書籍を選択してください" });
+      found.push({ field: "book-search", message: "ISBNのある書籍を選択してください" });
     }
     if (isPaper) {
       // 数値欄はブラウザの検証（type="number"）に頼らず自前で見る（= NumberField のコメント）。
@@ -359,8 +360,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                   )}
                 </div>
               </div>
-              {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す */}
-              <Link href={routes.submit} className="text-xs text-blue-600 hover:underline">
+              {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す。
+                  id は書籍が未選択のときの検索欄（book-search.tsx）と共有する＝選択済み・未選択の
+                  どちらでも「書籍を選ぶ操作の場所」を同じ id で指せる（エラーサマリーの飛ばし先）。
+                  排他的に描画されるので id は重複しない */}
+              <Link id="book-search" href={routes.submit} className="text-xs text-blue-600 hover:underline">
                 別の本を選ぶ
               </Link>
             </div>

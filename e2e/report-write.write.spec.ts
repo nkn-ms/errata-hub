@@ -37,11 +37,16 @@ async function mockBookApis(page: Page) {
 }
 
 test.describe("投稿フォーム（書き込み）", () => {
-  test("書籍未選択で投稿するとエラーが表示される", async ({ page }) => {
+  test("書籍未選択で投稿するとエラーが表示され、押すと検索欄へ飛ぶ", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
     await page.getByRole("button", { name: "投稿する" }).click();
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
+
+    // 書籍だけリンクが無い状態にしない（押せない理由が画面から読み取れないため）。
+    // 飛ばす先は「書籍を選ぶ操作の場所」＝未選択なら検索欄
+    await page.getByRole("link", { name: "書籍を選択してください" }).click();
+    await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toBeFocused();
   });
 
   // 検証は1件ずつ出さず全部まとめて出す（1件ずつだと「押す→直す→また押す」を繰り返させる）。
@@ -62,7 +67,9 @@ test.describe("投稿フォーム（書き込み）", () => {
     const summary = page.locator('form [role="alert"]');
     await expect(summary).toBeVisible();
     await expect(summary).toContainText("5件の入力を直してください");
-    // 並び順は画面の並び（版 → タイトル → ページ番号 → 誤 → 正）
+    // 並び順は画面の並び（版 → タイトル → ページ番号 → 誤 → 正）。
+    // 全項目がリンク（1つだけリンクが無い状態を作らない）
+    await expect(summary.getByRole("link")).toHaveCount(5);
     await expect(summary.getByRole("listitem")).toHaveText([
       "版を入力してください",
       "タイトルを入力してください",

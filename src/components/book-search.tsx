@@ -239,6 +239,11 @@ export function BookSearch({ onSelect }: Props) {
         <>
           <div className="relative">
             <input
+              // 投稿フォームのエラーサマリー（「書籍を選択してください」）から飛ばす先。
+              // ⚠️ 下の ISBN 検索の入力欄と同じ id を意図的に共有している。mode で排他的に
+              //    描画されるので同時に存在せず、どちらのモードでも同じ id で指せる
+              //    （選択済みのときは report-form 側の「別の本を選ぶ」がこの id を持つ）。
+              id="book-search"
               type="text"
               value={query}
               onChange={handleChange}
@@ -322,6 +327,8 @@ export function BookSearch({ onSelect }: Props) {
           <p className="text-xs text-gray-500">ISBNは書籍の裏表紙や奥付に記載されています（13桁または10桁）。ISBNがわかる場合はこちらの方が正確なデータを取得できます。</p>
           <div className="flex gap-2">
             <input
+              // 上のタイトル検索の入力欄と同じ id（mode で排他的に描画される。理由はそちらのコメント）
+              id="book-search"
               type="text"
               value={isbnQuery}
               onChange={(e) => setIsbnQuery(e.target.value)}
