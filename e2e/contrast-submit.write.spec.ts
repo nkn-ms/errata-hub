@@ -48,10 +48,13 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectAllTextMeetsAA(page, "媒体＝その他（位置メモ）");
 
       // 未入力のまま送信するとエラー帯（bg-red-50）が出る。書籍未選択の時点で弾かれるので
-      // サーバーには何も送られない＝この操作で投稿は作られない
+      // サーバーには何も送られない＝この操作で投稿は作られない。
+      // 検証は全項目まとめて出すので、ここで測るのは**箇条書き＋該当欄へのリンク（下線つき）**の状態
+      // ＝地が bg-red-50 の上の text-red-700。1件だけの帯より条件が厳しい
       await page.getByRole("button", { name: "投稿する" }).click();
       await expect(page.getByText("書籍を選択してください")).toBeVisible();
-      await expectAllTextMeetsAA(page, "送信エラーの帯");
+      await expect(page.locator('form [role="alert"]').getByRole("listitem").first()).toBeVisible();
+      await expectAllTextMeetsAA(page, "送信エラーの帯（全件の箇条書き＋リンク）");
     });
   });
 }

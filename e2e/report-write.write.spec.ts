@@ -37,11 +37,55 @@ async function mockBookApis(page: Page) {
 }
 
 test.describe("投稿フォーム（書き込み）", () => {
-  test("書籍未選択で投稿するとエラーが表示される", async ({ page }) => {
+  test("書籍未選択で投稿するとエラーが表示され、押すと検索欄へ飛ぶ", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
     await page.getByRole("button", { name: "投稿する" }).click();
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
+
+    await page.getByRole("link", { name: "書籍を選択してください" }).click();
+    await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toBeFocused();
+  });
+
+  // 検証は1件ずつ出さず全部まとめて出す（1件ずつだと「押す→直す→また押す」を繰り返させる）。
+  // 読み上げ環境ではフォーカスが押したボタンに残るため、role="alert" が無いと何も知らされない。
+  test("投稿時のエラーは全件まとまって出て、押すと該当欄へ飛ぶ", async ({ page }) => {
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    // 何も入れずに投稿＝紙の必須（版・ページ）＋タイトル＋誤＋正 の5件が一度に出る
+    await page.getByRole("button", { name: "投稿する" }).click();
+
+    // ⚠️ Next.js が挿入するルートアナウンサー（#__next-route-announcer__）も role="alert" なので、
+    //    フォーム内に限定して指す（素の getByRole("alert") は2件に当たって strict mode 違反になる）
+    const summary = page.locator('form [role="alert"]');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText("5件の入力を直してください");
+    // 並び順は画面の並び（版 → タイトル → ページ番号 → 誤 → 正）。全項目がリンクであること
+    await expect(summary.getByRole("link")).toHaveCount(5);
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "版を入力してください",
+      "タイトルを入力してください",
+      "ページ番号を入力してください",
+      "誤（該当箇所）を入力してください",
+      "正（正しい内容）を入力してください",
+    ]);
+
+    // 項目を押すとその入力欄へフォーカスが移る（長いフォームで探させない）
+    await summary.getByRole("link", { name: "ページ番号を入力してください" }).click();
+    await expect(page.getByLabel("ページ番号")).toBeFocused();
+
+    // 直した項目は消え、残りだけが出る（1件になったら箇条書きにしない）
+    await page.getByLabel("ページ番号").fill("42");
+    await page.getByLabel(/^版/).fill("1");
+    await page.getByLabel("タイトル").fill("E2Eエラー集約の確認");
+    await page.getByLabel("誤（該当箇所）").fill("誤った文");
+    await page.getByRole("button", { name: "投稿する" }).click();
+    await expect(summary).toHaveText("正（正しい内容）を入力してください");
   });
 
   test("文字数カウンターは上限の8割に達してから出る", async ({ page }) => {
