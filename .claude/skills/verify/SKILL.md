@@ -31,3 +31,7 @@ description: errata-hub の変更をローカル実機で検証する手順（�
 - dev 直後のクリックは HMR 再ビルド直後だと hydration 前で form action が発火しないことがある → リロードして再操作
 - ログイン/登録ページはカード div の中に form が複数（メイン+GitHub ボタン）。form ネストは hydration エラーになるので構造変更時は注意
 - 本番/Preview に向けた検証はしない（検証は原則ローカル、Preview は最終スモークのみ）
+- **e2e を1日に何度も回すとレート制限に当たる**（`createReport` は 20件/24時間・シード垢は共通）。
+  症状は「投稿するを押しても遷移しない」＝投稿系の write テストが軒並みタイムアウト。
+  ローカルは `docker exec supabase_db_errata-hub psql -U postgres -c 'delete from "RateLimit";'` で解消。
+  CI は毎回まっさらな Supabase を立てるので起きない

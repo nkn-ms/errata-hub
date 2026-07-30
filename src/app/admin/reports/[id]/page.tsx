@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
 import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
+import { ReportImageDeleter } from "@/components/admin/report-image-deleter";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { formatJstDate } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
@@ -97,19 +97,11 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           {report.images.length > 0 && (
             <>
               <dt className="text-gray-500">添付画像</dt>
+              {/* 画像は1枚ずつ削除できる（権利者から「この画像だけ」と言われたときに
+                  投稿ごと消さずに応えるため = docs/moderation-policy.md） */}
               <dd className="flex flex-wrap gap-3">
                 {report.images.map((img) => (
-                  <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
-                    {/* 自前 Storage 由来だが書影と同じ unoptimized 恒久運用に合わせる */}
-                    <Image
-                      src={img.imageUrl}
-                      alt="添付画像"
-                      width={128}
-                      height={180}
-                      unoptimized
-                      className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
-                    />
-                  </a>
+                  <ReportImageDeleter key={img.id} imageId={img.id} imageUrl={img.imageUrl} />
                 ))}
               </dd>
             </>

@@ -84,6 +84,68 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await adminContext.close();
   });
 
+  // 権利者から「この画像だけ消してほしい」と言われたときに、投稿を丸ごと消さずに応えるための機能
+  // （docs/moderation-policy.md）。投稿本文が残ることまで含めて担保する。
+  test("管理者は画像を1枚だけ削除でき、投稿本文は残る", async ({ page, browser }) => {
+    const uniqueTitle = `E2E画像単体削除 ${Date.now()}`;
+
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
+    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
+
+    // 2枚添付して、片方だけ消えることを見る（1枚だと「投稿ごと消えた」と区別できない）
+    await page.locator('input[type="file"]').setInputFiles([
+      { name: "keep.png", mimeType: "image/png", buffer: PNG_1X1 },
+      { name: "remove.png", mimeType: "image/png", buffer: PNG_1X1 },
+    ]);
+    await expect(page.getByAltText("keep.png")).toBeVisible();
+    await expect(page.getByAltText("remove.png")).toBeVisible();
+
+    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.waitForURL(/\/$/);
+    const reportId = await openReportByTitle(page, uniqueTitle);
+    await expect(page.getByAltText("証拠画像")).toHaveCount(2);
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+      await adminPage.goto(`/admin/reports/${reportId}`);
+      await expect(adminPage.getByAltText("添付画像")).toHaveCount(2);
+
+      adminPage.once("dialog", (dialog) => dialog.accept());
+      await adminPage.getByRole("button", { name: "この画像を削除" }).first().click();
+      await expect(adminPage.getByAltText("添付画像")).toHaveCount(1);
+
+      // 操作ログに残る（権利者対応の証跡）
+      await adminPage.goto("/admin/logs");
+      await expect(adminPage.getByRole("row").filter({ hasText: "添付画像削除" }).first()).toBeVisible();
+
+      // 公開側も1枚に減り、投稿そのもの（本文）は残っている
+      await page.goto(`/reports/${reportId}`);
+      await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+      await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
+      await expect(page.getByText("誤った文")).toBeVisible();
+
+      // 後片付け: 投稿ごと削除してシードの前提（本Bは投稿0件）に戻す
+      await adminPage.goto(`/admin/reports/${reportId}`);
+      adminPage.once("dialog", (dialog) => dialog.accept());
+      await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+      await adminPage.waitForURL(/\/admin\/reports$/);
+    } finally {
+      await adminContext.close();
+    }
+  });
+
   test("許可外の形式（テキストファイル）は添付できずエラーになる", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
