@@ -58,7 +58,7 @@ export default async function BookDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SiteHeader width="lg" crumbs={[{ label: book.title }]} />
+      <SiteHeader crumbs={[{ label: book.title }]} />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
         {/* 書籍情報 */}

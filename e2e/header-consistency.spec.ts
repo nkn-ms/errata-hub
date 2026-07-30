@@ -37,6 +37,28 @@ test.describe("公開側ヘッダーの中身", () => {
     });
   }
 
+  test("ロゴと主 CTA の位置がページ間で動かない", async ({ page }) => {
+    // 中身が同じでも、ヘッダーの内容幅がページごとに違うと（以前は 2xl / lg / md を渡していた）
+    // ロゴとナビが左右に動き、画面ごとにヘッダーが引っ越して見える。同じ x 座標に居ることを見る。
+    const positions: { path: string; logoX: number; ctaRight: number }[] = [];
+    for (const path of STATIC_PAGES) {
+      await page.goto(path);
+      const header = page.getByRole("banner");
+      const logo = await header.getByText("Errata Hub").boundingBox();
+      const cta = await header.getByRole("link", { name: "投稿する" }).boundingBox();
+      positions.push({ path, logoX: logo!.x, ctaRight: cta!.x + cta!.width });
+    }
+
+    const [first, ...rest] = positions;
+    for (const p of rest) {
+      expect(p.logoX, `${p.path} のロゴの x が ${first.path} と違う`).toBeCloseTo(first.logoX, 0);
+      expect(p.ctaRight, `${p.path} の「投稿する」の右端が ${first.path} と違う`).toBeCloseTo(
+        first.ctaRight,
+        0
+      );
+    }
+  });
+
   test("投稿詳細・書籍詳細でも同じナビが出る（パンくずと共存する）", async ({ page }) => {
     await page.goto("/reports");
 

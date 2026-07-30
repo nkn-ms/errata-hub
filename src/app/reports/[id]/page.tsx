@@ -62,7 +62,6 @@ export default async function ReportDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <SiteHeader
-        width="lg"
         crumbs={[
           { label: report.bookTitle, href: routes.book(report.isbn) },
           { label: report.title },

@@ -58,7 +58,7 @@ export default async function UserDetailPage({ params }: Props) {
   if (isWithdrawnEmail(profile.email)) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <SiteHeader width="lg" crumbs={[{ label: "ユーザー" }]} />
+        <SiteHeader crumbs={[{ label: "ユーザー" }]} />
         <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-16">
           <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
             <p className="text-2xl mb-3">👤</p>
@@ -86,7 +86,6 @@ export default async function UserDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <SiteHeader
-        width="lg"
         crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}
       />
 

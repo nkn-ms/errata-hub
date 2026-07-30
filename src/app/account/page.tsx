@@ -36,7 +36,7 @@ export default async function AccountPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* sticky は従来から無し（設定ページは追従ヘッダー不要）。挙動を変えないため明示的に無効化 */}
-      <SiteHeader width="md" sticky={false} crumbs={[{ label: "アカウント設定" }]} />
+      <SiteHeader sticky={false} crumbs={[{ label: "アカウント設定" }]} />
 
       <main className="max-w-screen-md mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">

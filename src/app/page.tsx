@@ -33,7 +33,7 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SiteHeader width="lg" logoAsLink={false} />
+      <SiteHeader logoAsLink={false} />
 
       <main className="max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">

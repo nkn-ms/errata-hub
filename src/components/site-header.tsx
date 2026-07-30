@@ -6,13 +6,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderNav } from "@/components/header-nav";
 import { getHeaderUser } from "@/lib/header-user";
 
-// コンテンツ幅はページ種別ごとに異なる（一覧・静的ページ=2xl / 詳細=lg / アカウント設定=md）。
-// 各ページの <main> 側の幅クラスと揃えること（ヘッダーだけ幅が違うと縦のラインがずれる）。
-const WIDTH_CLASSES = {
-  "2xl": "max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8",
-  lg: "max-w-screen-lg mx-auto px-4 sm:px-6",
-  md: "max-w-screen-md mx-auto px-4 sm:px-6",
-} as const;
+// ヘッダーの内容の幅は全ページ共通で、本文（<main>）の幅には合わせない。
+//
+// 以前はページごとに 2xl / lg / md を渡して本文の縦のラインに揃えていたが、本文幅は6種類ある
+// （screen-2xl・3xl・screen-lg・screen-md・2xl…）ので端が揃うのは一部のページだけで、
+// /tech・/terms・/submit などは元から揃っていなかった。一方でロゴとナビの位置は
+// ページを移動するたびに左右に動き、**画面ごとにヘッダーが引っ越して見える**。
+// 「全ページで揃う」方を取れるのは後者だけなので、幅は固定して本文との整列は諦める。
+const CONTENT_WIDTH_CLASS = "max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8";
 
 // パンくず1項目。href があれば書籍詳細などへのリンク、なければ現在地の表示のみ。
 export type SiteHeaderCrumb = {
@@ -21,7 +22,6 @@ export type SiteHeaderCrumb = {
 };
 
 type SiteHeaderProps = {
-  width?: keyof typeof WIDTH_CLASSES;
   /** アカウント設定など、追従させたくないページだけ false にする */
   sticky?: boolean;
   /** トップページ自身ではロゴを自己リンクにしない（現在地なので） */
@@ -40,7 +40,6 @@ type SiteHeaderProps = {
 //    getHeaderUser()（Supabase の getUser ＋ Profile 1件）が走る。CSP nonce の都合で
 //    どのページも既に動的レンダリングなので、静的化を壊してはいない。
 export async function SiteHeader({
-  width = "2xl",
   sticky = true,
   logoAsLink = true,
   crumbs,
@@ -49,7 +48,7 @@ export async function SiteHeader({
 
   return (
     <header className={`bg-white border-b border-gray-200${sticky ? " sticky top-0 z-10" : ""}`}>
-      <div className={`${WIDTH_CLASSES[width]} h-14 flex items-center gap-4`}>
+      <div className={`${CONTENT_WIDTH_CLASS} h-14 flex items-center gap-4`}>
         {/* ロゴとナビは縮めない（shrink-0）。詰まったときに縮む・切れるのはパンくずの側で、
             そうしないと「Errata Hub」や「投稿する」が2〜3行に折り返してヘッダーが崩れる */}
         {logoAsLink ? (
