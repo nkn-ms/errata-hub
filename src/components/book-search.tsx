@@ -241,8 +241,7 @@ export function BookSearch({ onSelect }: Props) {
             <input
               // 投稿フォームのエラーサマリー（「書籍を選択してください」）から飛ばす先。
               // ⚠️ 下の ISBN 検索の入力欄と同じ id を意図的に共有している。mode で排他的に
-              //    描画されるので同時に存在せず、どちらのモードでも同じ id で指せる
-              //    （選択済みのときは report-form 側の「別の本を選ぶ」がこの id を持つ）。
+              //    描画されるので同時に存在せず、どちらのモードでも同じ id で指せる。
               id="book-search"
               type="text"
               value={query}

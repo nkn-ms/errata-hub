@@ -213,12 +213,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     // （上から直していけるようにする。検証の都合で順番が飛ぶと直す順序を組み立て直させる）。
     const found: { field?: string; message: string }[] = [];
 
-    // 飛ばす先の book-search は「未選択なら検索欄／選択済みなら別の本を選ぶ」＝
-    // どちらの状態でも書籍を選ぶ操作の場所を指す（他の項目と同じくリンクにするため）
+    // 未選択のときだけ。ISBN の無い本は選べない作りなので「ISBN が無い」検査は置かない:
+    //   タイトル検索は ISBN の無い候補を一覧から外し（book-search.tsx の filter）、
+    //   ISBN 検索は検索に使った ISBN が必ず入り、書籍ページ由来は DB の Book.isbn（NOT NULL）。
+    // 到達しない分岐を残すと「ISBN の無い本が選べる経路がある」と読ませてしまう。
+    // 万一の経路はサーバーが弾く（ReportSchema の isbn 必須 ＋ toCanonicalIsbn）
     if (!book) {
       found.push({ field: "book-search", message: "書籍を選択してください" });
-    } else if (!book.isbn) {
-      found.push({ field: "book-search", message: "ISBNのある書籍を選択してください" });
     }
     if (isPaper) {
       // 数値欄はブラウザの検証（type="number"）に頼らず自前で見る（= NumberField のコメント）。
@@ -360,11 +361,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                   )}
                 </div>
               </div>
-              {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す。
-                  id は書籍が未選択のときの検索欄（book-search.tsx）と共有する＝選択済み・未選択の
-                  どちらでも「書籍を選ぶ操作の場所」を同じ id で指せる（エラーサマリーの飛ばし先）。
-                  排他的に描画されるので id は重複しない */}
-              <Link id="book-search" href={routes.submit} className="text-xs text-blue-600 hover:underline">
+              {/* 誤って別の本のページから来ても詰まないよう、検索し直す導線は残す */}
+              <Link href={routes.submit} className="text-xs text-blue-600 hover:underline">
                 別の本を選ぶ
               </Link>
             </div>
