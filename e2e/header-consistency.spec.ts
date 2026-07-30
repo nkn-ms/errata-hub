@@ -79,8 +79,15 @@ test.describe("公開側ヘッダーの中身", () => {
     const reportHref = await reportLinks.first().getAttribute("href");
     await page.goto(reportHref!);
     await expectPublicHeader(page);
-    // パンくず（書籍名）が入っても、ナビはナビとして残っている
-    await expect(page.getByRole("banner").locator('a[href^="/books/"]')).toBeVisible();
+
+    // パンくずはヘッダーの帯ではなく本文の先頭に出す（ヘッダーを全ページ同一にするため）。
+    // 「トップ → 書籍 → この投稿」の順で、最後（現在地）はリンクにしない
+    const crumbs = page.getByRole("navigation", { name: "パンくず" });
+    await expect(crumbs.getByRole("link", { name: "トップ" })).toBeVisible();
+    await expect(crumbs.locator('a[href^="/books/"]')).toBeVisible();
+    await expect(crumbs.locator('[aria-current="page"]')).toBeVisible();
+    // ヘッダー側にパンくずは残っていない
+    await expect(page.getByRole("banner").locator('a[href^="/books/"]')).toHaveCount(0);
 
     const bookHref = await (async () => {
       await page.goto("/reports");

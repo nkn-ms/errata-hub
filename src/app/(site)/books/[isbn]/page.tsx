@@ -8,7 +8,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
-import { SiteShell } from "@/components/site-shell";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 
@@ -57,7 +57,8 @@ export default async function BookDetailPage({ params }: Props) {
   const reports = book.reports.map(mapReport);
 
   return (
-    <SiteShell crumbs={[{ label: book.title }]}>
+    <>
+      <Breadcrumbs items={[{ label: book.title }]} />
       {/* 書籍情報 */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <div className="flex gap-5">
@@ -162,6 +163,6 @@ export default async function BookDetailPage({ params }: Props) {
       <div className="mt-6">
         <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
       </div>
-      </SiteShell>
+      </>
   );
 }

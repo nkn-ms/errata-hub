@@ -11,7 +11,7 @@ import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
-import { SiteShell } from "@/components/site-shell";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 
@@ -60,12 +60,13 @@ export default async function ReportDetailPage({ params }: Props) {
     : false;
 
   return (
-    <SiteShell
-      crumbs={[
-        { label: report.bookTitle, href: routes.book(report.isbn) },
-        { label: report.title },
-      ]}
-    >
+    <>
+      <Breadcrumbs
+        items={[
+          { label: report.bookTitle, href: routes.book(report.isbn) },
+          { label: report.title },
+        ]}
+      />
       {/* 免責バナー */}
       <div className="mb-6 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
         <span className="mt-0.5 shrink-0">⚠️</span>
@@ -273,6 +274,6 @@ export default async function ReportDetailPage({ params }: Props) {
           </Link>
         </div>
       </div>
-      </SiteShell>
+      </>
   );
 }
