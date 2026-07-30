@@ -9,7 +9,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/icons";
-import { SiteShell } from "@/components/site-shell";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
 
@@ -57,7 +57,8 @@ export default async function UserDetailPage({ params }: Props) {
   // 公開上の追跡可能性を弱めるため。email は判定にのみ使い表示はしない。
   if (isWithdrawnEmail(profile.email)) {
     return (
-      <SiteShell crumbs={[{ label: "ユーザー" }]}>
+      <>
+        <Breadcrumbs items={[{ label: "ユーザー" }]} />
       {/* 退会済みの表示だけは余白を広く取る（中身が短く、上に詰まって見えるため） */}
       <div className="py-8">
         <div className="bg-white rounded-lg border border-gray-200 px-6 py-16 text-center">
@@ -69,7 +70,7 @@ export default async function UserDetailPage({ params }: Props) {
           <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
         </div>
       </div>
-      </SiteShell>
+      </>
     );
   }
 
@@ -84,7 +85,8 @@ export default async function UserDetailPage({ params }: Props) {
   };
 
   return (
-    <SiteShell crumbs={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]}>
+    <>
+      <Breadcrumbs items={[{ label: "ユーザー" }, { label: profile.displayName ?? "匿名" }]} />
       {/* プロフィール情報 */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <div className="flex items-center gap-4">
@@ -201,6 +203,6 @@ export default async function UserDetailPage({ params }: Props) {
       <div className="mt-6">
         <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← 一覧へ戻る</Link>
       </div>
-    </SiteShell>
+    </>
   );
 }

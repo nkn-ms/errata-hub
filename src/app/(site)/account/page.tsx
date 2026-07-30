@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
-import { SiteShell } from "@/components/site-shell";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ProfileLinksForm } from "./profile-links-form";
 import { formatJstDate, shortId } from "@/utils/format";
 import { FORM_COLUMN } from "@/constants/layout";
@@ -36,7 +36,8 @@ export default async function AccountPage() {
 
   return (
     // sticky は従来から無し（設定ページは追従ヘッダー不要）。挙動を変えないため明示的に無効化
-    <SiteShell sticky={false} crumbs={[{ label: "アカウント設定" }]}>
+    <>
+      <Breadcrumbs items={[{ label: "アカウント設定" }]} />
     {/* 「ラベル—値」の行が横に伸びると対応が追いにくいので、枠の内側を絞る */}
       <div className={`${FORM_COLUMN} space-y-6`}>
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -98,6 +99,6 @@ export default async function AccountPage() {
           <Link href={routes.home} className="text-sm text-gray-500 hover:text-gray-700">← トップへ戻る</Link>
         </div>
       </div>
-    </SiteShell>
+    </>
   );
 }
