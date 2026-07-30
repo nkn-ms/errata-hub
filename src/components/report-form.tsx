@@ -75,6 +75,28 @@ const CONTENT_PLACEHOLDER = {
 どうしてほしいか（あれば）: 現在の配布先を案内してほしい`,
 };
 
+// エラー1件の表示。該当する入力欄が分かるものはリンクにして、押すとその欄へ飛ばす
+// （フォームが縦に長いので、どこを直すのか探させない）。
+// href を持たせたうえで onClick でも focus するのは、フラグメント遷移だけでは
+// ブラウザによって「スクロールはするがフォーカスは移らない」ことがあるため。
+function ErrorItem({ field, message }: { field?: string; message: string }) {
+  if (!field) return <>{message}</>;
+  return (
+    <a
+      href={`#${field}`}
+      onClick={(e) => {
+        e.preventDefault();
+        const target = document.getElementById(field);
+        target?.focus();
+        target?.scrollIntoView({ block: "center" });
+      }}
+      className="underline hover:no-underline"
+    >
+      {message}
+    </a>
+  );
+}
+
 function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
   const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
   return (
@@ -127,7 +149,15 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
   // <dialog> を使うのは ESC で閉じる挙動とフォーカス管理がネイティブで付いてくるため。
   const zoomRef = useRef<HTMLDialogElement>(null);
   const [zoomed, setZoomed] = useState<{ url: string; name: string } | null>(null);
-  const [error, setError] = useState("");
+  // エラーは配列で持ち、投稿時の検証は**全項目を見てからまとめて出す**。
+  // 1件ずつ出すと「押す→スクロールして直す→また押す」を必須項目の数だけ繰り返させることになる
+  // （このフォームは縦に長く、必須が離れて散っている）。
+  // field には該当する入力欄の id を入れ、サマリーから飛べるようにする（探させない）。
+  // 出典の型: GOV.UK Design System の Error summary
+  // https://design-system.service.gov.uk/components/error-summary/
+  const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
+  // 1件だけのとき（画像の選択エラー・サーバーからの応答）に使う糖衣
+  const setError = (message: string) => setErrors(message ? [{ message }] : []);
 
   async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -179,30 +209,63 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!book) { setError("書籍を選択してください"); return; }
-    if (!book.isbn) { setError("ISBNのある書籍を選択してください"); return; }
-    if (!title.trim()) { setError("タイトルを入力してください"); return; }
+    // 検証は最初の1件で打ち切らず全部集める。並べる順は**画面の並び順**にそろえる
+    // （上から直していけるようにする。検証の都合で順番が飛ぶと直す順序を組み立て直させる）。
+    const found: { field?: string; message: string }[] = [];
+
+    if (!book) {
+      // 書籍だけは入力欄ではなく検索・確定表示なので、飛ばす先の id を持たない
+      found.push({ message: "書籍を選択してください" });
+    } else if (!book.isbn) {
+      found.push({ message: "ISBNのある書籍を選択してください" });
+    }
     if (isPaper) {
       // 数値欄はブラウザの検証（type="number"）に頼らず自前で見る（= NumberField のコメント）。
       // 全角は入力欄の blur で半角に直るが、"42ページ" のように直しようのない入力はここで止める
-      const numberError =
-        numberFieldError("版", edition, true) ??
-        numberFieldError("刷", printing, false) ??
-        numberFieldError("ページ番号", page, true) ??
-        numberFieldError("行番号", line, false);
-      if (numberError) { setError(numberError); return; }
+      for (const [field, label, value, required] of [
+        ["edition", "版", edition, true],
+        ["printing", "刷", printing, false],
+      ] as const) {
+        const message = numberFieldError(label, value, required);
+        if (message) found.push({ field, message });
+      }
     }
-    if (medium === "EBOOK" && !ebookLocation.trim()) { setError("位置を入力してください"); return; }
-    if (medium === "OTHER" && !locationNote.trim()) { setError("位置メモを入力してください"); return; }
+    if (!title.trim()) found.push({ field: "title", message: "タイトルを入力してください" });
+    if (isPaper) {
+      for (const [field, label, value, required] of [
+        ["page", "ページ番号", page, true],
+        ["line", "行番号", line, false],
+      ] as const) {
+        const message = numberFieldError(label, value, required);
+        if (message) found.push({ field, message });
+      }
+    }
+    if (medium === "EBOOK" && !ebookLocation.trim()) {
+      found.push({ field: "ebook-location", message: "位置を入力してください" });
+    }
+    if (medium === "OTHER" && !locationNote.trim()) {
+      found.push({ field: "location-note", message: "位置メモを入力してください" });
+    }
     if (isErrataType) {
-      if (!wrong.trim()) { setError("誤（該当箇所）を入力してください"); return; }
-      if (!correct.trim()) { setError("正（正しい内容）を入力してください"); return; }
+      if (!wrong.trim()) found.push({ field: "wrong", message: "誤（該当箇所）を入力してください" });
+      if (!correct.trim()) found.push({ field: "correct", message: "正（正しい内容）を入力してください" });
       // サーバー側（ReportSchema）はトリム後に比較するので、クライアントでも揃える。
-      // 揃えないと「画面では通るのにサーバーで弾かれる」ことになる
-      if (wrong.trim() === correct.trim()) { setError(IDENTICAL_WRONG_CORRECT_MESSAGE); return; }
+      // 揃えないと「画面では通るのにサーバーで弾かれる」ことになる。
+      // 両方空のときは上の2件で足りるので、ここでは重ねて出さない
+      if (wrong.trim() && wrong.trim() === correct.trim()) {
+        found.push({ field: "correct", message: IDENTICAL_WRONG_CORRECT_MESSAGE });
+      }
     } else if (!content.trim()) {
-      setError("内容・提案を入力してください"); return;
+      found.push({ field: "content", message: "内容・提案を入力してください" });
     }
+
+    if (found.length > 0) {
+      setErrors(found);
+      return;
+    }
+    // book が null なら上で必ず found に入るのでここには来ない。
+    // 型の絞り込み（BookData | null → BookData）のために置いている
+    if (!book) return;
 
     setSubmitting(true);
     setError("");
@@ -728,9 +791,28 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         )}
       </dialog>
 
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-          {error}
+      {/* エラーの置き場所は投稿ボタンの真上（押した人の視線の先）。
+          ⚠️ role="alert" が必要。フォーカスは押したボタンに残るので、これが無いと
+             読み上げ環境では「押したのに何も知らされない」ことになる。 */}
+      {errors.length > 0 && (
+        <div
+          role="alert"
+          className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
+        >
+          {errors.length === 1 ? (
+            <ErrorItem {...errors[0]} />
+          ) : (
+            <>
+              <p className="font-medium">{errors.length}件の入力を直してください</p>
+              <ul className="mt-1.5 list-disc pl-5 space-y-1">
+                {errors.map((item) => (
+                  <li key={`${item.field}:${item.message}`}>
+                    <ErrorItem {...item} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
 
