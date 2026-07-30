@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { NavLink } from "@/components/nav-link";
 import { routes } from "@/constants/routes";
 import { logout } from "@/app/actions/auth";
 
@@ -159,15 +160,16 @@ function MobileMenu({ userName, isAdmin }: { userName: string | null; isAdmin: b
           className="absolute right-0 top-full mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 shadow-lg"
         >
           {NAV_LINKS.map((link) => (
-            <Link
+            <NavLink
               key={link.href}
               href={link.href}
               onClick={close}
               role="menuitem"
               className={dropdownItemClass}
+              activeClassName="bg-gray-100 text-gray-900"
             >
               {link.label}
-            </Link>
+            </NavLink>
           ))}
           <div className="my-1 border-t border-gray-100" />
           {userName ? (
@@ -203,15 +205,18 @@ export function HeaderNav({
 }) {
   return (
     <div className="relative flex items-center gap-3">
-      {/* デスクトップの情報ページリンク（sm 以上） */}
+      {/* デスクトップの情報ページリンク（sm 以上）。現在地は背景色＋太字＋aria-current で示す。
+          主 CTA「投稿する」は現在地表示の対象にしない（ナビ項目ではなくボタンで、
+          /submit に居ることは見出しで分かるため） */}
       {NAV_LINKS.map((link) => (
-        <Link
+        <NavLink
           key={link.href}
           href={link.href}
-          className="hidden sm:block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          className="hidden sm:block rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          activeClassName="bg-gray-100 text-gray-900"
         >
           {link.label}
-        </Link>
+        </NavLink>
       ))}
 
       {/* デスクトップの認証状態（sm 以上） */}

@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { createThrowawayAccount } from "./throwaway-user";
+import { backgroundContrast } from "./contrast";
 
 // 管理画面（書き込み）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
@@ -22,6 +23,38 @@ test.describe("認可（管理画面）", () => {
     // requireAdminPage（services/auth.ts）が ADMIN 以外を "/" に redirect する
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { name: "投稿一覧" })).toBeHidden();
+  });
+});
+
+test.describe("現在地の表示（管理画面のナビ）", () => {
+  test("見ている画面の項目が現在地になり、詳細に入っても一覧のまま", async ({ page }) => {
+    await login(page, ADMIN);
+
+    await page.goto("/admin/books");
+    const booksNav = page.getByRole("link", { name: "書籍マスタ" });
+    await expect(booksNav).toHaveAttribute("aria-current", "page");
+    // 他の項目は現在地にならない（＝どこに居るか1つに定まる）
+    await expect(page.getByRole("link", { name: "ユーザー管理" })).not.toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+
+    // 詳細ページは一覧の下位なので、入っても一覧の項目が点いたまま（前方一致）
+    await page.getByRole("row").filter({ hasText: "Web API" }).getByRole("link", { name: "編集" }).click();
+    await page.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
+    await expect(page.getByRole("link", { name: "書籍マスタ" })).toHaveAttribute("aria-current", "page");
+  });
+
+  // 属性が正しくても、面が帯と見分けられなければ「選択されている」ことは伝わらない
+  // （当初 bg-gray-800＝帯より一段明るいだけで、実機では読み取れなかった）。
+  // 実測（ローカル dev・2026-07-30）: 現行の反転ピル light 14.33:1 / dark 14.27:1、
+  // 旧 bg-gray-800 は light 1.21:1 / dark 1.26:1 でこのテストが落ちる。
+  test("現在地の面は帯とはっきり分かれている", async ({ page }) => {
+    await login(page, ADMIN);
+    await page.goto("/admin/books");
+
+    const ratio = await backgroundContrast(page, 'header nav [aria-current="page"]', "header");
+    expect(ratio).toBeGreaterThanOrEqual(3);
   });
 });
 
