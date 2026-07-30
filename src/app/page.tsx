@@ -6,6 +6,7 @@ import { ReportCard } from "@/components/report-card";
 import { CompactReportTable } from "@/components/compact-report-table";
 import { SiteHeader } from "@/components/site-header";
 import { routes } from "@/constants/routes";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 // トップの新着フィードは1ページ20件。11件目以降も ?page=N のリンクで辿れる
 // （古い投稿が導線から消えず、クローラも辿れる）。
@@ -35,7 +36,7 @@ export default async function Home({ searchParams }: Props) {
     <div className="min-h-screen bg-gray-50">
       <SiteHeader logoAsLink={false} />
 
-      <main className="max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">最新の投稿</h1>
           <p className="mt-1 text-sm text-gray-500">

@@ -5,6 +5,7 @@ import { site } from "@/constants/site";
 import { SiteHeader } from "@/components/site-header";
 import type { ReportStatus } from "@/generated/prisma/client";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 export const metadata: Metadata = {
   title: "使い方 | Errata Hub",
@@ -67,7 +68,7 @@ export default function HowToUsePage() {
     <div className="min-h-screen bg-gray-50">
       <SiteHeader />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+      <main className={`${PAGE_CONTAINER} py-8 space-y-10`}>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">使い方</h1>
           <p className="mt-1 text-sm text-gray-500">

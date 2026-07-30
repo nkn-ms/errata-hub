@@ -37,16 +37,23 @@ test.describe("公開側ヘッダーの中身", () => {
     });
   }
 
-  test("ロゴと主 CTA の位置がページ間で動かない", async ({ page }) => {
-    // 中身が同じでも、ヘッダーの内容幅がページごとに違うと（以前は 2xl / lg / md を渡していた）
-    // ロゴとナビが左右に動き、画面ごとにヘッダーが引っ越して見える。同じ x 座標に居ることを見る。
-    const positions: { path: string; logoX: number; ctaRight: number }[] = [];
+  test("ヘッダーと本文の枠がページ間で動かない", async ({ page }) => {
+    // 以前はヘッダー（2xl/lg/md）も本文（1536/1024/768/672）もページごとに幅が違い、
+    // ページを移動すると左端が左右に動いていた。枠は constants/layout.ts の PAGE_CONTAINER 1本なので、
+    // ロゴ・主 CTA・本文の左端が全ページで同じ位置に来ることを見る。
+    const positions: { path: string; logoX: number; ctaRight: number; mainX: number }[] = [];
     for (const path of STATIC_PAGES) {
       await page.goto(path);
       const header = page.getByRole("banner");
       const logo = await header.getByText("Errata Hub").boundingBox();
       const cta = await header.getByRole("link", { name: "投稿する" }).boundingBox();
-      positions.push({ path, logoX: logo!.x, ctaRight: cta!.x + cta!.width });
+      const main = await page.locator("main").boundingBox();
+      positions.push({
+        path,
+        logoX: logo!.x,
+        ctaRight: cta!.x + cta!.width,
+        mainX: main!.x,
+      });
     }
 
     const [first, ...rest] = positions;
@@ -56,7 +63,10 @@ test.describe("公開側ヘッダーの中身", () => {
         first.ctaRight,
         0
       );
+      expect(p.mainX, `${p.path} の本文の左端が ${first.path} と違う`).toBeCloseTo(first.mainX, 0);
     }
+    // ヘッダーと本文が同じ枠に乗っている（ロゴは枠の内側 padding の分だけ右）
+    expect(first.logoX).toBeGreaterThan(first.mainX);
   });
 
   test("投稿詳細・書籍詳細でも同じナビが出る（パンくずと共存する）", async ({ page }) => {

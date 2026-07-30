@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/site-header";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 // 利用規約・プライバシーポリシーの共通体裁。どちらも「戻れるヘッダー＋読みやすい本文幅」で統一する。
 //
@@ -19,7 +20,7 @@ export function LegalShell({
     <div className="min-h-screen bg-gray-50">
       <SiteHeader />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         <div className="mt-6 space-y-8 text-sm leading-relaxed text-gray-700">
           {children}

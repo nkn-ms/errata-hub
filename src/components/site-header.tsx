@@ -5,15 +5,7 @@ import { routes } from "@/constants/routes";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderNav } from "@/components/header-nav";
 import { getHeaderUser } from "@/lib/header-user";
-
-// ヘッダーの内容の幅は全ページ共通で、本文（<main>）の幅には合わせない。
-//
-// 以前はページごとに 2xl / lg / md を渡して本文の縦のラインに揃えていたが、本文幅は6種類ある
-// （screen-2xl・3xl・screen-lg・screen-md・2xl…）ので端が揃うのは一部のページだけで、
-// /tech・/terms・/submit などは元から揃っていなかった。一方でロゴとナビの位置は
-// ページを移動するたびに左右に動き、**画面ごとにヘッダーが引っ越して見える**。
-// 「全ページで揃う」方を取れるのは後者だけなので、幅は固定して本文との整列は諦める。
-const CONTENT_WIDTH_CLASS = "max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 // パンくず1項目。href があれば書籍詳細などへのリンク、なければ現在地の表示のみ。
 export type SiteHeaderCrumb = {
@@ -48,7 +40,7 @@ export async function SiteHeader({
 
   return (
     <header className={`bg-white border-b border-gray-200${sticky ? " sticky top-0 z-10" : ""}`}>
-      <div className={`${CONTENT_WIDTH_CLASS} h-14 flex items-center gap-4`}>
+      <div className={`${PAGE_CONTAINER} h-14 flex items-center gap-4`}>
         {/* ロゴとナビは縮めない（shrink-0）。詰まったときに縮む・切れるのはパンくずの側で、
             そうしないと「Errata Hub」や「投稿する」が2〜3行に折り返してヘッダーが崩れる */}
         {logoAsLink ? (

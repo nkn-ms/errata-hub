@@ -14,6 +14,7 @@ import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -68,7 +69,7 @@ export default async function ReportDetailPage({ params }: Props) {
         ]}
       />
 
-      <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         {/* 免責バナー */}
         <div className="mb-6 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           <span className="mt-0.5 shrink-0">⚠️</span>

@@ -3,6 +3,7 @@ import { findAllReports } from "@/services/report";
 import { mapReport } from "@/utils/mappers";
 import { ReportTable } from "@/components/report-table";
 import { SiteHeader } from "@/components/site-header";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 export const metadata: Metadata = {
   title: "すべての投稿 | Errata Hub",
@@ -22,7 +23,7 @@ export default async function ReportsPage({ searchParams }: Props) {
     <div className="min-h-screen bg-gray-50">
       <SiteHeader />
 
-      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">すべての投稿</h1>
           <p className="mt-1 text-sm text-gray-500">

@@ -11,6 +11,7 @@ import { toCanonicalIsbn } from "@/utils/isbn";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 type Props = {
   params: Promise<{ isbn: string }>;
@@ -60,7 +61,7 @@ export default async function BookDetailPage({ params }: Props) {
     <div className="min-h-screen bg-gray-50">
       <SiteHeader crumbs={[{ label: book.title }]} />
 
-      <main className="max-w-screen-lg mx-auto px-4 sm:px-6 py-8">
+      <main className={`${PAGE_CONTAINER} py-8`}>
         {/* 書籍情報 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex gap-5">
