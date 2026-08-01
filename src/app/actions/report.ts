@@ -274,49 +274,69 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
   }
 }
 
+// 削除対象の読み出し。監査ログの before に使う値なので、削除と同じ塊の中で読む
+// （読んでから消すまでの間に他の変更が入り込まないようにする）。
+function findReportWithImages(client: Prisma.TransactionClient, id: string) {
+  return client.report.findUnique({ where: { id }, include: { images: true } });
+}
+
 export async function deleteReport(id: string): Promise<ReportActionState> {
   const admin = await requireAdminOrThrow();
 
+  let report: Awaited<ReturnType<typeof findReportWithImages>>;
   try {
-    const report = await prisma.report.findUnique({
-      where: { id },
-      include: { images: true },
-    });
-    if (!report) {
-      return { error: "投稿が見つかりません" };
-    }
+    // 投稿の削除と監査ログは**同じ DB への書き込みなので1つの塊にする**。
+    // 分けると「投稿は消えたが記録が無い」半端な状態が残り、しかも監査ログの失敗で
+    // catch に入るため画面には「削除に失敗しました」と出る（実際は消えている）。
+    // 塊にすれば、記録が残せないときは削除ごと巻き戻るので、その文言が事実になる。
+    //
+    // ⚠️ 塊の中では tx を使うこと。グローバルの prisma を使うと別接続になり塊の外に出る。
+    report = await prisma.$transaction(async (tx) => {
+      const found = await findReportWithImages(tx, id);
+      if (!found) return null;
 
-    // DB の ReportImage 行は onDelete: Cascade で report と一緒に消えるが、
-    // Storage 上のファイル実体は別管理なのでここで削除する。
-    // DB 削除を先に行う（公開ページから参照が消えるのが先。ファイル削除が失敗しても
-    // 投稿の削除自体は成立させ、孤児ファイルはログで追えるようにする）。
-    await prisma.report.delete({ where: { id } });
-
-    const imagePaths = report.images
-      .map((image) => storagePathFromPublicUrl(image.imageUrl))
-      .filter((path): path is string => path !== null);
-    if (imagePaths.length > 0) {
-      const storageAdmin = createAdminClient();
-      const { error: removeError } = await storageAdmin.storage
-        .from(REPORT_IMAGE_BUCKET)
-        .remove(imagePaths);
-      if (removeError) {
-        // 投稿削除は完了しているためエラーにはしない。孤児ファイルの手掛かりとして記録のみ。
-        console.error("画像ファイルの削除に失敗:", imagePaths, removeError);
-      }
-    }
-
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "DELETE_REPORT",
-      targetType: TARGET_TYPE.REPORT,
-      targetId: id,
-      before: report as Record<string, unknown>,
+      await tx.report.delete({ where: { id } });
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "DELETE_REPORT",
+          targetType: TARGET_TYPE.REPORT,
+          targetId: id,
+          before: found as Record<string, unknown>,
+        },
+        tx
+      );
+      return found;
     });
   } catch (error) {
     console.error(error);
     return { error: "削除に失敗しました" };
+  }
+
+  if (!report) {
+    return { error: "投稿が見つかりません" };
+  }
+
+  // ここから先はコミット後。Storage のファイル削除は**取り消せない**ので、
+  // DB 側が確定してから触る。
+  //
+  // Storage は外部サービスでトランザクションに入れられない＝原子性は諦め、
+  // 「どちらに倒すか」を決めている: DB を先に消す＝**ファイルだけ残る（孤児）**。
+  // 逆（ファイルを先に消す）だと画像が壊れて表示されるので、利用者に見える分だけ実害が大きい。
+  // 残った孤児はパスをログに出して後から掃除できるようにする。
+  const imagePaths = report.images
+    .map((image) => storagePathFromPublicUrl(image.imageUrl))
+    .filter((path): path is string => path !== null);
+  if (imagePaths.length > 0) {
+    const storageAdmin = createAdminClient();
+    const { error: removeError } = await storageAdmin.storage
+      .from(REPORT_IMAGE_BUCKET)
+      .remove(imagePaths);
+    if (removeError) {
+      // 投稿削除は確定済みなのでエラーにはしない。孤児ファイルの手掛かりとして記録のみ。
+      console.error("画像ファイルの削除に失敗:", imagePaths, removeError);
+    }
   }
 
   // redirect は制御フロー例外を投げるため try の外で呼ぶ（catch に飲まれないように）
@@ -335,44 +355,53 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
 export async function deleteReportImage(imageId: string): Promise<ReportActionState> {
   const admin = await requireAdminOrThrow();
 
+  let image: Awaited<ReturnType<typeof prisma.reportImage.findUnique>>;
   try {
-    const image = await prisma.reportImage.findUnique({ where: { id: imageId } });
-    if (!image) {
-      return { error: "画像が見つかりません" };
-    }
+    // deleteReport と同じ形: 行の削除と監査ログを1つの塊にする。
+    // ⚠️ 権利者からの削除要請に応じた証跡なので、**記録が残せないなら削除も成立させない**方が正しい。
+    image = await prisma.$transaction(async (tx) => {
+      const found = await tx.reportImage.findUnique({ where: { id: imageId } });
+      if (!found) return null;
 
-    // deleteReport と同じ順序: DB を先に消す（公開ページから参照が消えるのが先）。
-    // Storage の削除が失敗しても行の削除は成立させ、孤児ファイルはログで追う。
-    await prisma.reportImage.delete({ where: { id: imageId } });
-
-    const path = storagePathFromPublicUrl(image.imageUrl);
-    if (path) {
-      const storageAdmin = createAdminClient();
-      const { error: removeError } = await storageAdmin.storage
-        .from(REPORT_IMAGE_BUCKET)
-        .remove([path]);
-      if (removeError) {
-        console.error("画像ファイルの削除に失敗:", path, removeError);
-      }
-    }
-
-    // 権利者からの削除要請に応じた証跡になるので、この操作は特に記録が要る。
-    // 対象は投稿（画像は投稿の一部）なので targetId は reportId にし、消した画像を before に残す。
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "DELETE_REPORT_IMAGE",
-      targetType: TARGET_TYPE.REPORT,
-      targetId: image.reportId,
-      before: image as Record<string, unknown>,
+      await tx.reportImage.delete({ where: { id: imageId } });
+      // 対象は投稿（画像は投稿の一部）なので targetId は reportId にし、消した画像を before に残す。
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "DELETE_REPORT_IMAGE",
+          targetType: TARGET_TYPE.REPORT,
+          targetId: found.reportId,
+          before: found as Record<string, unknown>,
+        },
+        tx
+      );
+      return found;
     });
-
-    refresh();
-    return {};
   } catch (error) {
     console.error(error);
     return { error: "画像の削除に失敗しました" };
   }
+
+  if (!image) {
+    return { error: "画像が見つかりません" };
+  }
+
+  // コミット後に Storage を消す（取り消せない操作なので DB の確定を待つ）。
+  // 失敗しても孤児ファイルが残るだけなのでエラーにはせず、パスを記録して掃除できるようにする。
+  const path = storagePathFromPublicUrl(image.imageUrl);
+  if (path) {
+    const storageAdmin = createAdminClient();
+    const { error: removeError } = await storageAdmin.storage
+      .from(REPORT_IMAGE_BUCKET)
+      .remove([path]);
+    if (removeError) {
+      console.error("画像ファイルの削除に失敗:", path, removeError);
+    }
+  }
+
+  refresh();
+  return {};
 }
 
 export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
