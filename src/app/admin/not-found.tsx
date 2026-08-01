@@ -12,7 +12,7 @@ export default function AdminNotFound() {
   return (
     <NotFoundContent
       message="指定された項目は見つかりませんでした。削除されたか、URL が正しくない可能性があります。"
-      actions={[{ href: routes.admin.reports, label: "投稿一覧へ" }]}
+      action={{ href: routes.admin.reports, label: "投稿一覧へ" }}
     />
   );
 }

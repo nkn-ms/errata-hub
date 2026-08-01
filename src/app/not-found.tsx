@@ -25,10 +25,9 @@ export default function NotFound() {
       <NotFoundContent
         // 原因を断定しない: 未一致 URL と「消えた投稿」の両方がここに来るため
         message="お探しのページは見つかりませんでした。URL が変わったか、投稿や書籍が削除された可能性があります。"
-        actions={[
-          { href: routes.home, label: "トップへ" },
-          { href: routes.reports, label: "投稿を検索する" },
-        ]}
+        // 戻り先はトップだけ。トップは最新の投稿一覧と検索ボックス（/reports?q= へ委譲）を
+        // 兼ねているので、投稿を探す導線もこの1つに含まれている
+        action={{ href: routes.home, label: "トップへ" }}
       />
     </SiteShell>
   );
