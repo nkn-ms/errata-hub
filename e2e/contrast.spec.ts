@@ -8,6 +8,10 @@ import { findLowContrastText, formatFindings } from "./contrast";
 // 「基準を割る文字が1つも無い」ことを検査として残す。判定の詳細は ./contrast.ts。
 
 // ゲストで開ける主要ページ（ログインが要る画面は contrast-admin.write.spec.ts 側）
+//
+// ⚠️ この検査が見るのはここに書いた画面だけで、書き漏らした画面はどんな色でも緑のままになる
+//    （過去に、ログインが要るため対象外だった /submit の必須マークが 3.82:1 のまま残っていた）。
+//    画面を足したらここにも足すこと。
 const GUEST_PAGES = [
   "/",
   "/reports",
@@ -19,6 +23,8 @@ const GUEST_PAGES = [
   "/privacy",
   // 退会完了ページ。退会後は signOut 済みなので認証は要らない（＝ゲストで測れる）
   "/account/withdrawn",
+  // 404（app/not-found.tsx）。どのルートにも一致しない URL なら何でもここに来る
+  "/no-such-page",
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {

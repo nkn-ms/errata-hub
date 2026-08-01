@@ -25,6 +25,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // OG 画像など「絶対 URL が必要なメタ情報」の基準になるホスト。
+  //
+  // 指定しないと Next.js はリクエストのホストから解決するため、OG 画像の URL が環境で変わる
+  // （実測: ローカルでは og:image が http://localhost:3100/... で出力されていた）。
+  // SNS に貼られたカードが参照する先なので、sitemap.ts / robots.ts と同じ「正規の住所」＝
+  // site.url に固定する（env にしない理由も constants/site.ts に書いてある）。
+  //
+  // ⚠️ 代償: Preview デプロイのページを共有しても、OG 画像は**本番**の URL を指す
+  //    （その Preview 限りの画像は見られない）。正規の住所を1つに保つ方を採る。
+  //   出典: node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md
+  //         「metadataBase」の項
+  metadataBase: new URL(site.url),
   title: "Errata Hub",
   description: site.description,
   // Google Search Console の所有権確認（URL プレフィックスプロパティ）。

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { SiteHeader } from "@/components/site-header";
-import { PAGE_CONTAINER } from "@/constants/layout";
+import { SiteShell } from "@/components/site-shell";
 
-// 公開側（admin でない側）の**全ページ**の枠。背景・共通ヘッダー・本文の幅をここだけが知っている。
+// 公開側（admin でない側）の**全ページ**の枠。枠の中身は components/site-shell.tsx が持つ
+// （404 = app/not-found.tsx も同じ枠を使うので、共有できるコンポーネントに出している）。
 // 配下のページは中身だけを書く（以前は全ページが min-h-screen bg-gray-50 と <main> を各々持っていた）。
 //
 // ⚠️ (site) は括弧付き＝ルートグループなので URL には出ない（/tech は /tech のまま）。
@@ -14,11 +14,5 @@ import { PAGE_CONTAINER } from "@/constants/layout";
 // パンくずは本文側（components/breadcrumbs.tsx）が持つ。ヘッダーに入れるとページごとに中身が
 // 変わってしまい、layout は子ページから値を受け取れないためここで描けなくなる。
 export default function SiteLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <SiteHeader />
-
-      <main className={`${PAGE_CONTAINER} py-8`}>{children}</main>
-    </div>
-  );
+  return <SiteShell>{children}</SiteShell>;
 }
