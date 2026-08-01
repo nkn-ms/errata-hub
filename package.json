@@ -48,7 +48,7 @@
     "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.0",
     "prisma": "^7.9.1",
     "prisma-erd-generator": "^2.4.4",
     "tailwindcss": "^4",
