@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { findReportsPage } from "@/services/report";
@@ -14,13 +15,37 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
+// ページ送りの各ページに「自分自身」を正規の URL として宣言する。
+//
+// なぜトップに集約しないか: ?page=2 に載っている投稿は ?page=1 には載っていない＝**中身が違う別のページ**で、
+// トップを正規だと宣言すると 2ページ目以降が重複扱いになり検索結果から落ちる。
+// Google も「ページ送りの1ページ目を正規にするな。各ページに自分自身の canonical を与えよ」としている
+// （旧 rel="next"/"prev" は使われなくなった）:
+//   https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading
+//
+// ⚠️ /reports の ?q= は逆に /reports へ集約する（あちらは同じ一覧の絞り込みで、検索語は無限に作れるため）。
+//
+// page=1 だけは ?page=1 を付けずに / を正規にする。同じ1ページ目が「/」と「/?page=1」の
+// 2つの URL で見えており、本文中のリンク（pageHref）は / を使うので、そちらに揃える。
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  return {
+    // 相対パスは metadataBase（app/layout.tsx）を基準に絶対 URL へ解決される
+    alternates: { canonical: pageHref(page) },
+  };
+}
+
+// 1ページ目だけ ?page= を付けない。generateMetadata と本体の両方が使う
+const pageHref = (n: number) => (n <= 1 ? routes.home : `${routes.home}?page=${n}`);
+
 export default async function Home({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
   const { reports: rows, total } = await findReportsPage(page, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageHref = (n: number) => (n <= 1 ? routes.home : `${routes.home}?page=${n}`);
 
   // 範囲外の ?page=N（古いリンク・打ち間違い）は最後の有効ページへ寄せる。
   // 投稿はあるのに空スライスを引いて「まだ投稿はありません」を誤表示するのを防ぐ。
