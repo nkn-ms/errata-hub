@@ -1,5 +1,5 @@
 // 利用規約・プライバシーポリシーに関する定数。
-// 条文そのものは src/app/terms/page.tsx・privacy/page.tsx（検討経緯は docs/legal/*-draft.md）。
+// 条文そのものは src/app/(site)/terms/page.tsx・(site)/privacy/page.tsx（検討経緯は docs/legal/*-draft.md）。
 
 /**
  * 現行の規約の版。Profile.termsVersion に記録され、「その人がどの版に同意したか」を示す。

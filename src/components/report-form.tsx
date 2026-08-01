@@ -17,7 +17,9 @@ import {
   REPORT_IMAGE_ALLOWED_TYPES,
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
+  REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_BYTES,
+  REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/constants/report-images";
 import { compressImage } from "@/utils/image-compress";
 
@@ -181,12 +183,12 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         // 後者が本来の上限。スマホの写真は素で 3〜4MB 出るので、圧縮前に 4MB で弾くと
         // 「縮めれば通るはずの写真」を投稿できなくなる（圧縮を入れる前はそうなっていた）。
         if (file.size > REPORT_IMAGE_MAX_SOURCE_BYTES) {
-          setError("画像は1枚20MB以下にしてください");
+          setError(`画像は1枚${REPORT_IMAGE_MAX_SOURCE_MB}MB以下にしてください`);
           continue;
         }
         const compressed = await compressImage(file);
         if (compressed.size > REPORT_IMAGE_MAX_BYTES) {
-          setError("縮小しても4MBを超えるため添付できません");
+          setError(`縮小しても${REPORT_IMAGE_MAX_MB}MBを超えるため添付できません`);
           continue;
         }
         next.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
@@ -725,8 +727,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
               </label>
               <p className="mt-2 text-xs text-gray-500">
                 該当箇所が分かる画像や、指摘の根拠となる資料を、指摘に必要な範囲で添付してください
-                （JPEG / PNG / WebP・1枚20MBまで）。大きい画像は自動で縮小され、縮小後に4MBを超えるものは
-                添付できません。
+                （JPEG / PNG / WebP・1枚{REPORT_IMAGE_MAX_SOURCE_MB}MBまで）。大きい画像は自動で縮小され、
+                縮小後に{REPORT_IMAGE_MAX_MB}MBを超えるものは添付できません。
               </p>
             </>
           )}

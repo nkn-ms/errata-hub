@@ -7,6 +7,7 @@ import {
   REPORT_IMAGE_BUCKET,
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
+  REPORT_IMAGE_MAX_MB,
 } from "@/constants/report-images";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
@@ -75,7 +76,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
     if (file.size > REPORT_IMAGE_MAX_BYTES) {
-      return NextResponse.json({ error: "画像は1枚4MB以下にしてください" }, { status: 400 });
+      return NextResponse.json({ error: `画像は1枚${REPORT_IMAGE_MAX_MB}MB以下にしてください` }, { status: 400 });
     }
 
     // Storage への書き込みは secret キー（サーバー専用）で行う。Storage 側のポリシーは
