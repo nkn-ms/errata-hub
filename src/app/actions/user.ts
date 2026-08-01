@@ -66,7 +66,15 @@ export async function grantPublisherAccess(
     }
 
     const access = await prisma.publisherAccess.create({
-      data: { profileId, publisherId: parsed.data },
+      // 付与の出所を行に持たせる（「なぜこの人が権限を持つのか」を出版社の画面から説明できるように）。
+      // メールも控えるのは、付与した管理者が後に退会しても記録が読めるようにするため
+      // （退会は匿名化＝ id は残るが email はスクラブされる）。
+      data: {
+        profileId,
+        publisherId: parsed.data,
+        grantedById: admin.id,
+        grantedByEmail: admin.email,
+      },
       include: { publisher: true },
     });
 

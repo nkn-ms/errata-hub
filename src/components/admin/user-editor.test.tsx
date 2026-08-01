@@ -37,6 +37,9 @@ const accessToA: PublisherAccess & { publisher: Publisher } = {
   profileId: "user-1",
   publisherId: publisherA.id,
   createdAt: now,
+  // 付与の出所。この画面は出所を表示しないので値は問わない（出版社の詳細ページが表示する）
+  grantedById: "admin-1",
+  grantedByEmail: "admin@example.com",
   publisher: publisherA,
 };
 
