@@ -119,7 +119,7 @@ jobs:
 
       # ローカル Supabase（Postgres + Auth + Storage）を CI ランナー内に Docker で立てる。
       # 使い捨て＝本番にもローカルにも触れない。
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
