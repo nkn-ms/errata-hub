@@ -25,3 +25,34 @@ const DOMAIN_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z
 export function isValidEmailDomain(normalized: string): boolean {
   return DOMAIN_PATTERN.test(normalized);
 }
+
+// フリーメールのドメイン。Publisher.emailDomain には登録させない。
+//
+// なぜ常に誤りと言い切れるか: このサイトの出版社アクセスは**2経路で完結している**。
+//   - ドメイン一括（この欄）… 企業ドメインの人をまとめて通す
+//   - 個別付与（actions/user.ts の grantPublisherAccess）… 管理画面のユーザー編集から1人ずつ
+// フリーメールの担当者は後者が正しい経路なので、この欄に入れる理由が存在しない。
+// 一方で入れてしまうと**そのサービスの利用者全員**に出版社アクセスが付く（形式としては正しいので
+// 形の検証では落ちない）＝影響が大きいわりに気づけないので、名指しで弾く。
+//
+// ⚠️ 網羅は狙わない。「一番やりがちな誤り」を止めるのが目的で、漏れたものは出版社画面の
+//    アクセス権一覧（誰が持っているか）で気づける想定。増やすときはここに足すだけ。
+const FREE_MAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.co.jp",
+  "yahoo.com",
+  "outlook.com",
+  "outlook.jp",
+  "hotmail.com",
+  "hotmail.co.jp",
+  "live.jp",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+]);
+
+/** 正規化済みの文字列がフリーメールのドメインか。 */
+export function isFreeMailDomain(normalized: string): boolean {
+  return FREE_MAIL_DOMAINS.has(normalized);
+}

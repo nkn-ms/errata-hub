@@ -6,8 +6,9 @@ export const TARGET_TYPE = {
   PROFILE: "Profile",
   PUBLISHER_ACCESS: "PublisherAccess",
   BOOK: "Book",
+  PUBLISHER: "Publisher",
 } as const;
 
 // TARGET_TYPE の値から「許される文字列」の型を派生させる。
-// → "Report" | "Profile" | "PublisherAccess" | "Book"
+// → "Report" | "Profile" | "PublisherAccess" | "Book" | "Publisher"
 export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
