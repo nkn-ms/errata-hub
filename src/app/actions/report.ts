@@ -377,7 +377,6 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
 
 export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
 
-/** 現在の賛同数を返す共通処理。 */
 function countUpvotes(reportId: string) {
   return prisma.upvote.count({ where: { reportId } });
 }
