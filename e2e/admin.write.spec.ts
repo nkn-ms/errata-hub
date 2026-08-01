@@ -106,6 +106,7 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
       .getByRole("link", { name: "編集" })
       .click();
     await page.waitForURL(/\/admin\/users\/[0-9a-f-]+$/);
+    const userEditUrl = page.url();
 
     await expect(page.getByText("付与された出版社なし")).toBeVisible();
 
@@ -114,7 +115,24 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
     await expect(page.getByText("追加しました")).toBeVisible();
     await expect(page.getByRole("listitem").filter({ hasText: SEED_PUBLISHER })).toBeVisible();
 
+    // 出版社側の画面からも「誰が持っているか」と「誰が付けたか」が分かる。
+    // 以前は件数しか出ておらず、誰かを知るにはユーザー一覧を辿る必要があった＝
+    // 「なぜこの人が権限を持つのか」を後から説明できなかった。
+    await page.goto("/admin/publishers");
+    await page
+      .getByRole("row")
+      .filter({ hasText: SEED_PUBLISHER })
+      .getByRole("link", { name: "編集" })
+      .click();
+    await page.waitForURL(/\/admin\/publishers\/[0-9a-f-]+$/);
+
+    const accessRow = page.getByRole("row").filter({ hasText: READER.email });
+    await expect(accessRow).toBeVisible();
+    // 付与者＝いま操作した管理者。付与の出所が行に残っていることを見る
+    await expect(accessRow).toContainText(ADMIN.email);
+
     // 剥奪（＝シードの初期状態に戻す）
+    await page.goto(userEditUrl);
     await page.getByRole("button", { name: "削除" }).click();
     await expect(page.getByText("削除しました")).toBeVisible();
     await expect(page.getByText("付与された出版社なし")).toBeVisible();

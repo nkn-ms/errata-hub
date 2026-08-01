@@ -26,5 +26,23 @@ for (const colorScheme of ["light", "dark"] as const) {
         expect(findings, `${path}:\n${formatFindings(findings)}`).toEqual([]);
       }
     });
+
+    // ⚠️ 上のリストは**一覧ページだけ**なので、詳細ページの文字は素通りしていた
+    //    （対象に入れていない画面の違反は緑のまま通る = /submit で踏んだ穴と同じ）。
+    //    出版社の詳細には「アクセス権を持つユーザー」の表があり、付与者の記録が無い行の
+    //    説明文など、一覧には出ない文字を持つのでここで測る。ID は固定せず一覧から辿る。
+    test("出版社の詳細（アクセス権の一覧を含む）も AA を満たす", async ({ page }) => {
+      await login(page, ADMIN);
+
+      await page.goto("/admin/publishers");
+      await page.getByRole("link", { name: "編集" }).first().click();
+      await page.waitForURL(/\/admin\/publishers\/[0-9a-f-]+$/);
+      await expect(
+        page.getByRole("heading", { name: "アクセス権を持つユーザー" })
+      ).toBeVisible();
+
+      const findings = await findLowContrastText(page);
+      expect(findings, `出版社の詳細:\n${formatFindings(findings)}`).toEqual([]);
+    });
   });
 }

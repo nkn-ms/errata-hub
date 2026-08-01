@@ -95,6 +95,18 @@ model PublisherAccess {
   publisher   Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
+  // 付与の出所。「なぜこの人がこの出版社の権限を持つのか」を後から説明するために行が自分で持つ。
+  // AuditLog にも GRANT_PUBLISHER_ACCESS として残るが、あちらは全履歴で、targetId が profileId・
+  // 出版社は after の JSON の中にあるため、現在の状態を出すには向かない（イベント列から
+  // 組み立て直すことになる）。表示はこの列、履歴は AuditLog、と役割を分ける。
+  //
+  // ⚠️ null は「記録が無い」。廃止したドメイン一致の自動付与（監査ログを書いていなかった）で
+  //    付いた行がこれに当たるので、画面では「記録なし」と示して手掛かりにする。
+  //    Profile を消さない設計（退会は匿名化）なので、付与者は関連ではなく値で持つ
+  //    ＝管理者が退会しても「誰が付けたか」の記録が消えない。
+  grantedById    String?
+  grantedByEmail String?
+
   @@unique([profileId, publisherId])
   // profileId 側は上の複合ユニーク（先頭列）で兼ねられるが、publisherId 側は先頭ではないので効かない。
   // Publisher 削除時の Cascade がここを参照する
