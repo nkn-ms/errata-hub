@@ -5,11 +5,19 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdminOrThrow } from "@/services/auth";
 import { routes } from "@/constants/routes";
+import { normalizeEmailDomain, isValidEmailDomain } from "@/utils/email-domain";
 
 const PublisherSchema = z.object({
   name: z.string().min(1, "出版社名を入力してください"),
   email: z.string().email("有効なメールアドレスを入力してください").or(z.literal("")),
-  emailDomain: z.string().or(z.literal("")),
+  // ⚠️ ただのメモではなく**アクセス権を付与する条件**（詳細は utils/email-domain.ts）。
+  //    無検証だと「大文字・空白・@付き」で無言で効かなくなるので、正規化してから形を見る。
+  emailDomain: z
+    .string()
+    .transform(normalizeEmailDomain)
+    .refine((v) => v === "" || isValidEmailDomain(v), {
+      message: "メールドメインは example.co.jp の形式で入力してください（@ や http:// は不要）",
+    }),
   note: z.string().or(z.literal("")),
 });
 

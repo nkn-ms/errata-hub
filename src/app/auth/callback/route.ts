@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { TERMS_VERSION } from "@/constants/legal";
+import { normalizeEmailDomain } from "@/utils/email-domain";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -28,7 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   const email = data.user.email ?? "";
-  const domain = email.split("@")[1] ?? "";
+  // ドメイン名は大文字小文字を区別しない（RFC 1035）。Publisher.emailDomain 側も
+  // 正規化して保存しているので、こちらも小文字に寄せてから突き合わせる（= utils/email-domain.ts）。
+  const domain = normalizeEmailDomain(email.split("@")[1] ?? "");
   // メール登録は display_name（register で設定）。OAuth（GitHub 等）には display_name が
   // 無いので、プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
   const meta = data.user.user_metadata ?? {};

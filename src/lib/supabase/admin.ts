@@ -5,7 +5,9 @@ import { createClient } from "@supabase/supabase-js";
  *
  * ⚠️ サーバー専用。secret キーは RLS を貫通する全権キーなので、
  * 絶対にクライアント（ブラウザ）へ渡してはいけない（NEXT_PUBLIC_ を付けない）。
- * 用途: 退会時に auth.users を物理削除する等、admin API の呼び出し。
+ * 用途は2系統（2026-08-01 時点の実測）:
+ *   - Storage の操作 … 投稿画像のアップロードと削除（バケットは非公開の書き込み権限）。呼び出しの大半はこちら
+ *   - auth の操作   … 退会時に auth.users を物理削除する（services/withdrawal.ts）
  * 新 API キー（sb_secret_…）は旧 service_role JWT と違い個別にローテーション・失効でき、
  * 漏洩時に該当キーだけを無効化できる（出典: Supabase – Migrating to new API keys）。
  *
