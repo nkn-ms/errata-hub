@@ -6,7 +6,7 @@ import { routes } from "@/constants/routes";
 
 // 検索エンジンに「見つけて欲しいページ」の一覧を渡す（https://www.sitemaps.org/protocol.html）。
 //
-// トップ（app/page.tsx）は ?page=N のサーバーページネーション、/reports は全投稿の一覧なので、
+// トップ（app/(site)/page.tsx）は ?page=N のサーバーページネーション、/reports は全投稿の一覧なので、
 // 投稿・書籍の各ページはリンクを辿るだけでも到達できる。それでも sitemap を置くのは、
 // lastModified（更新日）を各 URL に付けて「新しさ」を直接伝えられ、新規・更新ページの
 // 発見が早くなるため（辿れることと、早く見つけてもらえることは別）。
