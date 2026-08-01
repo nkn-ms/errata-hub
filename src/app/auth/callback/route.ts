@@ -10,7 +10,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { TERMS_VERSION } from "@/constants/legal";
-import { normalizeEmailDomain } from "@/utils/email-domain";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -29,9 +28,6 @@ export async function GET(request: NextRequest) {
   }
 
   const email = data.user.email ?? "";
-  // ドメイン名は大文字小文字を区別しない（RFC 1035）。Publisher.emailDomain 側も
-  // 正規化して保存しているので、こちらも小文字に寄せてから突き合わせる（= utils/email-domain.ts）。
-  const domain = normalizeEmailDomain(email.split("@")[1] ?? "");
   // メール登録は display_name（register で設定）。OAuth（GitHub 等）には display_name が
   // 無いので、プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
   const meta = data.user.user_metadata ?? {};
@@ -41,18 +37,18 @@ export async function GET(request: NextRequest) {
     (meta.user_name as string) ||
     null;
 
-  const matchedPublishers = domain
-    ? await prisma.publisher.findMany({ where: { emailDomain: domain } })
-    : [];
-
-  // role は identity（ADMIN/USER）のみ。出版社かどうかは PublisherAccess から導出するため
-  // ここではロールに焼き込まず、下で PublisherAccess を付与する（capability）。
+  // role は identity（ADMIN/USER）のみ。出版社かどうかは PublisherAccess から導出する（capability）。
+  //
+  // ⚠️ ここでは出版社アクセスを一切付けない。以前は Publisher.emailDomain とメールのドメイン部を
+  //    突き合わせて自動付与していたが、**人の判断を経ない常時付与**になるため廃止した
+  //    （退職者・大企業の無関係な人・後からそのドメインのアドレスを取得した人にも付いてしまう。
+  //     一般的な auto-join 機能は DNS でドメイン所有を証明させるが、ここにはその仕組みが無い）。
+  //    付与は管理画面のユーザー編集からの個別付与だけ = actions/user.ts の grantPublisherAccess。
   //
   // 規約への同意は Profile 作成時（＝このサービスを初めて使う瞬間）にだけ刻む。update:{} なのは
   // 「同意したのはこの版・この時点」という事実を後のログインで上書きしないため。
-  let profile;
   try {
-    profile = await prisma.profile.upsert({
+    await prisma.profile.upsert({
       where: { id: data.user.id },
       update: {},
       create: {
@@ -81,16 +77,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`/auth/error?reason=${isEmailConflict ? "email-conflict" : "profile"}`, origin)
     );
-  }
-
-  if (matchedPublishers.length > 0) {
-    await prisma.publisherAccess.createMany({
-      data: matchedPublishers.map((p) => ({
-        profileId: profile.id,
-        publisherId: p.id,
-      })),
-      skipDuplicates: true,
-    });
   }
 
   // パスワード再発行などで戻り先を指定したい場合に next を使う。

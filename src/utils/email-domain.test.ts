@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEmailDomain, isValidEmailDomain, isFreeMailDomain } from "./email-domain";
+import { normalizeEmailDomain, isValidEmailDomain } from "./email-domain";
 
 // この値は**アクセス権を付与する条件**（一致した出版社の PublisherAccess が自動で付く）なので、
 // 「無言で効かなくなる入力」を確実に弾けることを固定する。
@@ -34,28 +34,5 @@ describe("isValidEmailDomain", () => {
     "example .com", // 途中に空白
   ])("ドメインの形でなければ弾く: %s", (value) => {
     expect(isValidEmailDomain(value)).toBe(false);
-  });
-});
-
-describe("isFreeMailDomain", () => {
-  // これを通すと**そのサービスの利用者全員**に出版社アクセスが付く。
-  // 形としては正しいドメインなので isValidEmailDomain では落ちない＝名指しで弾く必要がある。
-  it.each(["gmail.com", "yahoo.co.jp", "outlook.com", "hotmail.co.jp", "icloud.com"])(
-    "主要なフリーメールは弾く: %s",
-    (value) => {
-      expect(isFreeMailDomain(value)).toBe(true);
-      expect(isValidEmailDomain(value)).toBe(true); // 形の検証では落ちないことも固定する
-    }
-  );
-
-  it.each(["example.co.jp", "oreilly.co.jp", "", "gmail.com.example.jp"])(
-    "企業ドメインは通す: %s",
-    (value) => {
-      expect(isFreeMailDomain(value)).toBe(false);
-    }
-  );
-
-  it("正規化を通した後の値で判定する（大文字・空白は呼び出し側で落とす前提）", () => {
-    expect(isFreeMailDomain(normalizeEmailDomain("  GMAIL.com "))).toBe(true);
   });
 });

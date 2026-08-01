@@ -7,26 +7,19 @@ import { requireAdminOrThrow } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
-import { normalizeEmailDomain, isValidEmailDomain, isFreeMailDomain } from "@/utils/email-domain";
+import { normalizeEmailDomain, isValidEmailDomain } from "@/utils/email-domain";
 import { Prisma } from "@/generated/prisma/client";
 
 const PublisherSchema = z.object({
   name: z.string().min(1, "出版社名を入力してください"),
   email: z.string().email("有効なメールアドレスを入力してください").or(z.literal("")),
-  // ⚠️ ただのメモではなく**アクセス権を付与する条件**（詳細は utils/email-domain.ts）。
-  //    auth/callback がログイン時にこの値とメールのドメイン部を完全一致で突き合わせ、
-  //    一致した出版社の PublisherAccess を自動付与する。だから2段で見る:
-  //      - 形 … @ 付き・URL・単一ラベルを通すと、無言で「権限が付かない」設定になる
-  //      - フリーメール … 通すとそのサービスの**利用者全員**に権限が付く
+  // 担当者の所属を確かめる一次資料としてのメモ（**権限は付かない** = utils/email-domain.ts）。
+  // 照合に使える形だけを通す（`@` 付き・URL・単一ラベルを弾く）。自由記述は note 欄が持つ。
   emailDomain: z
     .string()
     .transform(normalizeEmailDomain)
     .refine((v) => v === "" || isValidEmailDomain(v), {
       message: "メールドメインは example.co.jp の形式で入力してください（@ や http:// は不要）",
-    })
-    .refine((v) => !isFreeMailDomain(v), {
-      message:
-        "フリーメールのドメインは登録できません（そのサービスの利用者全員に権限が付きます）。特定の担当者に権限を渡すときは、ユーザー管理の画面から個別に付与してください",
     }),
   note: z.string().or(z.literal("")),
 });
