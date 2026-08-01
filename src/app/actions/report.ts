@@ -377,11 +377,6 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
 
 export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
 
-/** 現在の賛同数を返す共通処理。 */
-function countUpvotes(reportId: string) {
-  return prisma.upvote.count({ where: { reportId } });
-}
-
 /**
  * 賛同を付ける / 取り消す。自分の投稿には不可。
  * 付与の重複は @@unique 制約で、取り消しの空振りは deleteMany で、どちらも冪等に扱う。
@@ -422,7 +417,7 @@ export async function toggleUpvote(reportId: string, upvote: boolean): Promise<U
       await prisma.upvote.deleteMany({ where: { reportId, profileId: user.id } });
     }
 
-    return { upvoted: upvote, count: await countUpvotes(reportId) };
+    return { upvoted: upvote, count: await prisma.upvote.count({ where: { reportId } }) };
   } catch (error) {
     console.error(error);
     return { error: upvote ? "賛同に失敗しました" : "賛同の取り消しに失敗しました" };
