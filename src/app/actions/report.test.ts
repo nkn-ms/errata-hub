@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。
-const { prismaMock, getUserMock, checkRateLimitMock, PrismaClientKnownRequestError } = vi.hoisted(() => {
+const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaClientKnownRequestError } = vi.hoisted(() => {
   // アクションは Prisma.PrismaClientKnownRequestError の instanceof + code 判定に使う
   class PrismaClientKnownRequestError extends Error {
     code: string;
@@ -11,15 +11,24 @@ const { prismaMock, getUserMock, checkRateLimitMock, PrismaClientKnownRequestErr
       this.code = code;
     }
   }
+  const models = {
+    report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
+    upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
+    book: { upsert: vi.fn() },
+    publisher: { upsert: vi.fn() },
+  };
   return {
     prismaMock: {
-      report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-      upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
-      book: { upsert: vi.fn() },
-      publisher: { upsert: vi.fn() },
+      ...models,
+      // $transaction はコールバックに「塊の中で使うクライアント（tx）」を渡す。
+      // テストでは同じモックを tx として渡すので、塊の中の呼び出しも外と同じ vi.fn() に記録される。
+      // ⚠️ 巻き戻りは再現しない。ここで見るのは塊の中身の挙動であって、原子性ではない
+      //    （原子性はローカル実 DB で確認する = PR#161 と同じ）。
+      $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
     getUserMock: vi.fn(),
     checkRateLimitMock: vi.fn(),
+    createAuditLogMock: vi.fn(),
     PrismaClientKnownRequestError,
   };
 });
@@ -42,7 +51,7 @@ vi.mock("@/generated/prisma/client", () => ({
 vi.mock("@/services/auth", () => ({
   requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
-vi.mock("@/services/audit", () => ({ createAuditLog: vi.fn() }));
+vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { createReport, toggleUpvote, updateReport } from "./report";
@@ -156,6 +165,21 @@ describe("updateReport（ステータス更新のバリデーション）", () =
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.report.update).toHaveBeenCalled();
+  });
+
+  // 「操作は成立したのに記録だけが無い」状態を作らないための構造を固定する。
+  // 巻き戻り自体はモックでは再現できない（実 DB で確認する）ので、ここで見るのは
+  // ①塊を張っていること ②監査ログをグローバルの prisma でなく tx で書いていること の2点。
+  // ②を落とすと別接続で実行され、塊の外に出て静かに壊れる（services/audit.ts の警告）。
+  it("ステータス更新と監査ログは1つの塊の中で書く", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
+    prismaMock.report.update.mockResolvedValue({ id: "r1", status: "FIXED" });
+
+    await updateReport("r1", { status: "FIXED" });
+
+    expect(prismaMock.$transaction).toHaveBeenCalledOnce();
+    const [, tx] = createAuditLogMock.mock.calls[0];
+    expect(tx).toBeDefined();
   });
 });
 

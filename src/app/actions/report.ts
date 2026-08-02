@@ -239,31 +239,36 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
       return { error: parsed.error.issues[0].message };
     }
 
-    const before = await prisma.report.findUnique({ where: { id } });
-    const report = await prisma.report.update({
-      where: { id },
-      data: parsed.data,
-    });
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.report.findUnique({ where: { id } });
+      const report = await tx.report.update({
+        where: { id },
+        data: parsed.data,
+      });
 
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "UPDATE_REPORT",
-      targetType: TARGET_TYPE.REPORT,
-      targetId: id,
-      // ReportUpdateSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
-      before: {
-        status: before?.status,
-        publisherComment: before?.publisherComment,
-        fixedEdition: before?.fixedEdition,
-        fixedPrinting: before?.fixedPrinting,
-      },
-      after: {
-        status: report.status,
-        publisherComment: report.publisherComment,
-        fixedEdition: report.fixedEdition,
-        fixedPrinting: report.fixedPrinting,
-      },
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "UPDATE_REPORT",
+          targetType: TARGET_TYPE.REPORT,
+          targetId: id,
+          // ReportUpdateSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
+          before: {
+            status: before?.status,
+            publisherComment: before?.publisherComment,
+            fixedEdition: before?.fixedEdition,
+            fixedPrinting: before?.fixedPrinting,
+          },
+          after: {
+            status: report.status,
+            publisherComment: report.publisherComment,
+            fixedEdition: report.fixedEdition,
+            fixedPrinting: report.fixedPrinting,
+          },
+        },
+        tx
+      );
     });
 
     // 更新後の内容を同一レスポンスで画面に反映する（旧 router.refresh() 相当）
@@ -286,10 +291,12 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
 
   let report: Awaited<ReturnType<typeof findReportWithImages>>;
   try {
-    // 投稿の削除と監査ログは**同じ DB への書き込みなので1つの塊にする**。
+    // 塊にする理由は「操作は成立したのに記録だけが無い」状態を作らないため。
     // 分けると「投稿は消えたが記録が無い」半端な状態が残り、しかも監査ログの失敗で
     // catch に入るため画面には「削除に失敗しました」と出る（実際は消えている）。
     // 塊にすれば、記録が残せないときは削除ごと巻き戻るので、その文言が事実になる。
+    // （投稿と監査ログが同じ DB にあることは、この手段を使える条件であって理由ではない。
+    //   外部サービスをまたぐ操作は包めないので、別途「どちらに倒すか」を決める＝下の Storage）
     //
     // ⚠️ 塊の中では tx を使うこと。グローバルの prisma を使うと別接続になり塊の外に出る。
     report = await prisma.$transaction(async (tx) => {
@@ -360,6 +367,7 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
   try {
     // deleteReport と同じ形: 行の削除と監査ログを1つの塊にする。
     // ⚠️ 権利者からの削除要請に応じた証跡なので、**記録が残せないなら削除も成立させない**方が正しい。
+    // 「記録だけが無い」状態を作らないことが目的で、同じ DB であることは条件にすぎない。
     image = await prisma.$transaction(async (tx) => {
       const found = await tx.reportImage.findUnique({ where: { id: imageId } });
       if (!found) return null;

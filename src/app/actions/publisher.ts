@@ -59,23 +59,28 @@ export async function createPublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    const publisher = await prisma.publisher.create({
-      data: {
-        name,
-        email: email || null,
-        emailDomain: emailDomain || null,
-        note: note || null,
-      },
-    });
+    // 作成と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    await prisma.$transaction(async (tx) => {
+      const publisher = await tx.publisher.create({
+        data: {
+          name,
+          email: email || null,
+          emailDomain: emailDomain || null,
+          note: note || null,
+        },
+      });
 
-    // emailDomain はアクセス権の条件なので、誰がいつ設定したかを残す
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "CREATE_PUBLISHER",
-      targetType: TARGET_TYPE.PUBLISHER,
-      targetId: publisher.id,
-      after: publisher as unknown as Record<string, unknown>,
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "CREATE_PUBLISHER",
+          targetType: TARGET_TYPE.PUBLISHER,
+          targetId: publisher.id,
+          after: publisher as unknown as Record<string, unknown>,
+        },
+        tx
+      );
     });
   } catch (error) {
     return { error: toMessage(error, "出版社の登録に失敗しました") };
@@ -99,26 +104,32 @@ export async function updatePublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    const before = await prisma.publisher.findUnique({ where: { id } });
-    const publisher = await prisma.publisher.update({
-      where: { id },
-      data: {
-        name,
-        email: email || null,
-        emailDomain: emailDomain || null,
-        note: note || null,
-      },
-    });
+    // 更新と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.publisher.findUnique({ where: { id } });
+      const publisher = await tx.publisher.update({
+        where: { id },
+        data: {
+          name,
+          email: email || null,
+          emailDomain: emailDomain || null,
+          note: note || null,
+        },
+      });
 
-    // 「誰がドメインを書き換えたか」を後から説明できるよう、変更前後を残す
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "UPDATE_PUBLISHER",
-      targetType: TARGET_TYPE.PUBLISHER,
-      targetId: id,
-      before: (before ?? null) as unknown as Record<string, unknown> | null,
-      after: publisher as unknown as Record<string, unknown>,
+      // 「誰が連絡先やメモを書き換えたか」を後から説明できるよう、変更前後を残す
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "UPDATE_PUBLISHER",
+          targetType: TARGET_TYPE.PUBLISHER,
+          targetId: id,
+          before: (before ?? null) as unknown as Record<string, unknown> | null,
+          after: publisher as unknown as Record<string, unknown>,
+        },
+        tx
+      );
     });
   } catch (error) {
     return { error: toMessage(error, "出版社の更新に失敗しました") };
@@ -130,25 +141,34 @@ export async function updatePublisher(
 export async function deletePublisher(id: string): Promise<PublisherState> {
   const admin = await requireAdminOrThrow();
 
+  // 書籍が紐づく出版社は削除させない（UX側のガード）。
+  // 件数を文言に出すための早期チェックで、塊の外に置いてよい: 隙間で書籍が増えても
+  // DB の onDelete: Restrict（Book.publisherId）が最終的に削除を拒むため。
+  const bookCount = await prisma.book.count({ where: { publisherId: id } });
+  if (bookCount > 0) {
+    return {
+      error: `この出版社には${bookCount}冊の書籍が紐づいているため削除できません。先に書籍の出版社を付け替えてください。`,
+    };
+  }
+
   try {
-    // 書籍が紐づく出版社は削除させない（UX側のガード）。
-    // 最終的な整合性の保証は DB の onDelete: Restrict（Book.publisherId）が担う。
-    const bookCount = await prisma.book.count({ where: { publisherId: id } });
-    if (bookCount > 0) {
-      return {
-        error: `この出版社には${bookCount}冊の書籍が紐づいているため削除できません。先に書籍の出版社を付け替えてください。`,
-      };
-    }
+    // 削除と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
+    await prisma.$transaction(async (tx) => {
+      // 対象が無ければ delete が P2025 を投げ、toMessage が「対象の出版社が見つかりません」に訳す
+      const publisher = await tx.publisher.delete({ where: { id } });
 
-    const publisher = await prisma.publisher.delete({ where: { id } });
-
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "DELETE_PUBLISHER",
-      targetType: TARGET_TYPE.PUBLISHER,
-      targetId: id,
-      before: publisher as unknown as Record<string, unknown>,
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "DELETE_PUBLISHER",
+          targetType: TARGET_TYPE.PUBLISHER,
+          targetId: id,
+          before: publisher as unknown as Record<string, unknown>,
+        },
+        tx
+      );
     });
   } catch (error) {
     return { error: toMessage(error, "出版社の削除に失敗しました") };
