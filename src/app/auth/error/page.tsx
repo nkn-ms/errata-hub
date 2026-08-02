@@ -2,9 +2,16 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 
+type AuthErrorReason = { message: string; showContact: boolean };
+
 // エラーの中身は ?reason= で受け取る（送り元は /auth/callback）。
 // 文言を分けるのは、原因ごとに読者が取るべき行動が違うため（やり直せば直る／運営の対応が要る）。
-const REASONS = {
+//
+// ⚠️ 値の型を `| undefined` にしているのは事実だから。?reason= は URL に直接書ける任意の文字列で、
+//    知らない値なら引けない。ここを `as keyof typeof REASONS` でキャストすると、型が
+//    「必ず引ける」と嘘をつき、下の既定値へのフォールバックが**不要な分岐に見える**。
+//    実際に外すと undefined の分割代入で例外になり、エラー画面自身が 500 になる。
+const REASONS: Record<string, AuthErrorReason | undefined> = {
   "email-conflict": {
     message:
       "このメールアドレスは、以前作成されたアカウントが使用中のため、新しいアカウントに登録できませんでした。お手数ですが、下記の窓口までご連絡ください。",
@@ -17,8 +24,8 @@ const REASONS = {
   },
 } as const;
 
-// reason 無し（＝ code が無い・code の交換に失敗）のときの既定。従来からの文言
-const DEFAULT_REASON = {
+// reason 無し（＝ code が無い・code の交換に失敗）と、知らない reason のときの既定。従来からの文言
+const DEFAULT_REASON: AuthErrorReason = {
   message: "メール確認リンクが無効か期限切れです。再度登録をお試しください。",
   showContact: false,
 } as const;
@@ -29,8 +36,8 @@ type Props = {
 
 export default async function AuthErrorPage({ searchParams }: Props) {
   const { reason } = await searchParams;
-  const { message, showContact } =
-    (reason && REASONS[reason as keyof typeof REASONS]) || DEFAULT_REASON;
+  const matched = reason === undefined ? undefined : REASONS[reason];
+  const { message, showContact } = matched ?? DEFAULT_REASON;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
