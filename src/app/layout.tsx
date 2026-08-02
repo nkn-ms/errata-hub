@@ -25,17 +25,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // OG 画像など「絶対 URL が必要なメタ情報」の基準になるホスト。
+  // 絶対 URL が必要な metadata フィールドの基準になるホスト。相対パスで書いたフィールドは
+  // ここと合成される。sitemap.ts / robots.ts と同じ「正規の住所」＝ site.url に固定する
+  // （env にしない理由は constants/site.ts に書いてある）。
   //
-  // 指定しないと Next.js はリクエストのホストから解決するため、OG 画像の URL が環境で変わる
-  // （実測: ローカルでは og:image が http://localhost:3100/... で出力されていた）。
-  // SNS に貼られたカードが参照する先なので、sitemap.ts / robots.ts と同じ「正規の住所」＝
-  // site.url に固定する（env にしない理由も constants/site.ts に書いてある）。
+  // ⚠️ 必須。相対パスの metadata フィールドを metadataBase 無しで書くとビルドが落ちる。
+  //    各ページが canonical を "/..." と相対で書けているのはこれがあるため。
   //
-  // ⚠️ 代償: Preview デプロイのページを共有しても、OG 画像は**本番**の URL を指す
-  //    （その Preview 限りの画像は見られない）。正規の住所を1つに保つ方を採る。
+  // ⚠️ opengraph-image.tsx（ファイル規約）が出す og:image には効かない。そちらの URL は
+  //    常にリクエストのホストから組み立てられる（実測: dev は http://localhost:3000/...・
+  //    本番は https://errata-hub.vercel.app/... で、パスとハッシュは同一）。
+  //    ＝ Preview を共有すると、その Preview 自身の OG 画像が出る。
   //   出典: node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md
-  //         「metadataBase」の項
+  //         「metadataBase」の項（"metadata fields that require a fully qualified URL"）
   metadataBase: new URL(site.url),
   title: "Errata Hub",
   description: site.description,

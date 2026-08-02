@@ -97,7 +97,8 @@ const ReportSchema = z.object({
   if (data.medium === "OTHER" && !data.locationNote?.trim()) {
     ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
   }
-  // 正誤表 URL は任意だが、入力するなら https の正しい URL であること（外部リンクは攻撃面なので厳しめに）
+  // 正誤表 URL は任意だが、入力するなら http / https の正しい URL であること。
+  // ⚠️ https 限定ではない。何を通し何を弾くか、その理由は sanitizeExternalUrl 側に書いてある
   if (data.reportedErratumUrl?.trim() && !sanitizeExternalUrl(data.reportedErratumUrl)) {
     ctx.addIssue({
       code: "custom",
