@@ -23,20 +23,27 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
       return { error: parsed.error.issues[0].message };
     }
 
-    const before = await prisma.profile.findUnique({ where: { id: profileId } });
-    const profile = await prisma.profile.update({
-      where: { id: profileId },
-      data: { role: parsed.data },
-    });
+    // ロール変更と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.profile.findUnique({ where: { id: profileId } });
+      const profile = await tx.profile.update({
+        where: { id: profileId },
+        data: { role: parsed.data },
+      });
 
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "UPDATE_USER_ROLE",
-      targetType: TARGET_TYPE.PROFILE,
-      targetId: profileId,
-      before: { role: before?.role },
-      after: { role: profile.role },
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "UPDATE_USER_ROLE",
+          targetType: TARGET_TYPE.PROFILE,
+          targetId: profileId,
+          before: { role: before?.role },
+          after: { role: profile.role },
+        },
+        tx
+      );
     });
 
     // 更新後の内容を同一レスポンスで画面に反映する（旧 router.refresh() 相当）
@@ -65,26 +72,35 @@ export async function grantPublisherAccess(
       return { error: "出版社の指定が不正です" };
     }
 
-    const access = await prisma.publisherAccess.create({
-      // 付与の出所を行に持たせる（「なぜこの人が権限を持つのか」を出版社の画面から説明できるように）。
-      // メールも控えるのは、付与した管理者が後に退会しても記録が読めるようにするため
-      // （退会は匿名化＝ id は残るが email はスクラブされる）。
-      data: {
-        profileId,
-        publisherId: parsed.data,
-        grantedById: admin.id,
-        grantedByEmail: admin.email,
-      },
-      include: { publisher: true },
-    });
+    // 付与と監査ログを1つの塊にする。行にも出所（grantedBy*）が残るが、剥奪すると行ごと
+    // 消えるので、**権限が存在した事実の履歴は監査ログにしか残らない**（剥奪側と対称にする）。
+    const access = await prisma.$transaction(async (tx) => {
+      const created = await tx.publisherAccess.create({
+        // 付与の出所を行に持たせる（「なぜこの人が権限を持つのか」を出版社の画面から説明できるように）。
+        // メールも控えるのは、付与した管理者が後に退会しても記録が読めるようにするため
+        // （退会は匿名化＝ id は残るが email はスクラブされる）。
+        data: {
+          profileId,
+          publisherId: parsed.data,
+          grantedById: admin.id,
+          grantedByEmail: admin.email,
+        },
+        include: { publisher: true },
+      });
 
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "GRANT_PUBLISHER_ACCESS",
-      targetType: TARGET_TYPE.PUBLISHER_ACCESS,
-      targetId: profileId,
-      after: { publisherId: parsed.data, publisherName: access.publisher.name },
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "GRANT_PUBLISHER_ACCESS",
+          targetType: TARGET_TYPE.PUBLISHER_ACCESS,
+          targetId: profileId,
+          after: { publisherId: parsed.data, publisherName: created.publisher.name },
+        },
+        tx
+      );
+
+      return created;
     });
 
     return { access };
@@ -142,14 +158,22 @@ export async function withdrawUserAsAdmin(
     // 監査ログには実行した管理者を残す一方、対象の元メール・元表示名は残さない。
     // ここに残すと auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
     // 無期限で PII を保持することになってしまうため（本人退会と同じ扱い）。
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "ADMIN_WITHDRAW_USER",
-      targetType: TARGET_TYPE.PROFILE,
-      targetId: profileId,
-      after: result.scrubbed,
-    });
+    //
+    // ⚠️ 本人退会（actions/auth.ts の withdraw）と同じ理由で**塊にできない**（上の
+    //    scrubProfileForWithdrawal が Supabase の admin API を叩く）。倒す方向も揃える:
+    //    退会は既に成立して取り消せないので、記録の失敗で「失敗しました」とは返さない。
+    try {
+      await createAuditLog({
+        userId: admin.id,
+        userEmail: admin.email,
+        action: "ADMIN_WITHDRAW_USER",
+        targetType: TARGET_TYPE.PROFILE,
+        targetId: profileId,
+        after: result.scrubbed,
+      });
+    } catch (error) {
+      console.error("代行退会の監査ログを記録できませんでした:", profileId, error);
+    }
 
     refresh();
     return {};
@@ -166,19 +190,25 @@ export async function revokePublisherAccess(
   const admin = await requireAdminOrThrow();
 
   try {
-    const publisher = await prisma.publisher.findUnique({ where: { id: publisherId } });
+    // 剥奪と監査ログを1つの塊にする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
+    await prisma.$transaction(async (tx) => {
+      const publisher = await tx.publisher.findUnique({ where: { id: publisherId } });
 
-    await prisma.publisherAccess.deleteMany({
-      where: { profileId, publisherId },
-    });
+      await tx.publisherAccess.deleteMany({
+        where: { profileId, publisherId },
+      });
 
-    await createAuditLog({
-      userId: admin.id,
-      userEmail: admin.email,
-      action: "REVOKE_PUBLISHER_ACCESS",
-      targetType: TARGET_TYPE.PUBLISHER_ACCESS,
-      targetId: profileId,
-      before: { publisherId, publisherName: publisher?.name },
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: "REVOKE_PUBLISHER_ACCESS",
+          targetType: TARGET_TYPE.PUBLISHER_ACCESS,
+          targetId: profileId,
+          before: { publisherId, publisherName: publisher?.name },
+        },
+        tx
+      );
     });
 
     return {};

@@ -321,13 +321,24 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
   //    退会は本人の PII を消すことが目的なので、元メール・元表示名は監査ログにも残さない。
   //    ここに残すと、auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
   //    無期限で PII を保持することになってしまうため（プライバシーポリシー第6条参照）。
-  await createAuditLog({
-    userId: user.id,
-    action: "WITHDRAW_USER",
-    targetType: TARGET_TYPE.PROFILE,
-    targetId: user.id,
-    after: result.scrubbed,
-  });
+  //
+  // ⚠️ ここは他の管理操作と違い**塊にできない**。1) が Supabase の admin API（外部）を叩くため
+  //    トランザクションに入らないので、「記録が残らないなら操作も成立させない」形が取れない。
+  //    そこで倒す方向を決めている: **退会は成立させる**。この時点で auth.users は既に消えており
+  //    取り消せないので、記録の失敗で「失敗しました」と返すのは嘘になるうえ、3) の signOut に
+  //    到達せずセッションだけが残る（＝ログインできないのに画面はログイン中のまま）。
+  //    記録が落ちる可能性は残るが、それは 1) と 2) を原子的にできない構造の問題として別に扱う。
+  try {
+    await createAuditLog({
+      userId: user.id,
+      action: "WITHDRAW_USER",
+      targetType: TARGET_TYPE.PROFILE,
+      targetId: user.id,
+      after: result.scrubbed,
+    });
+  } catch (error) {
+    console.error("退会の監査ログを記録できませんでした:", user.id, error);
+  }
 
   // 3) セッションを破棄して退会完了ページへ。
   await supabase.auth.signOut();
