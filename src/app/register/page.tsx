@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { register } from "@/app/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { PROFILE_LIMITS } from "@/constants/profile-limits";
 import { GitHubSignInButton } from "@/components/github-sign-in-button";
 import { LegalConsentNote } from "@/components/legal";
 
@@ -37,7 +38,7 @@ export default function RegisterPage() {
               name="displayName"
               type="text"
               required
-              maxLength={50}
+              maxLength={PROFILE_LIMITS.displayName}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

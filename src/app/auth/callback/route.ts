@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { TERMS_VERSION } from "@/constants/legal";
+import { toDisplayName } from "@/utils/display-name";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -32,10 +33,9 @@ export async function GET(request: NextRequest) {
   // 無いので、プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
   const meta = data.user.user_metadata ?? {};
   const displayName =
-    (meta.display_name as string) ||
-    (meta.full_name as string) ||
-    (meta.user_name as string) ||
-    null;
+    toDisplayName(meta.display_name) ??
+    toDisplayName(meta.full_name) ??
+    toDisplayName(meta.user_name);
 
   // role は identity（ADMIN/USER）のみ。出版社かどうかは PublisherAccess から導出する（capability）。
   //
