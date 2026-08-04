@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
 import { requireAdminOrThrow } from "@/services/auth";
-import { scrubProfileForWithdrawal } from "@/services/withdrawal";
+import { scrubProfileForWithdrawal, authUserExists } from "@/services/withdrawal";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import type { Publisher, PublisherAccess } from "@/generated/prisma/client";
 
@@ -140,7 +140,10 @@ export async function withdrawUserAsAdmin(
     if (!target) {
       return { error: "ユーザーが見つかりません" };
     }
-    if (isWithdrawnEmail(target.email)) {
+    // Profile がスクラブ済みでも、auth.users が残っていれば「途中で止まった退会」なので
+    // ここから完了させられるようにする（= 取り残しを回収する管理者側の経路）。
+    // 完了しているものだけを弾く。判定の理由は services/withdrawal.ts の authUserExists。
+    if (isWithdrawnEmail(target.email) && !(await authUserExists(profileId))) {
       return { error: "このユーザーは既に退会済みです" };
     }
     if (target.role === "ADMIN") {
@@ -152,6 +155,22 @@ export async function withdrawUserAsAdmin(
 
     const result = await scrubProfileForWithdrawal(profileId);
     if (!result.ok) {
+      if (result.reason === "withdrawal-incomplete") {
+        // 書き戻しにも失敗し、スクラブ済みなのにログインできる状態が残った。
+        // 誰も気づけないまま放置されるのを防ぐために記録する（発見は /admin/logs）。
+        // 本人からも、この画面からもう一度実行しても完了させられる。
+        try {
+          await createAuditLog({
+            userId: admin.id,
+            userEmail: admin.email,
+            action: "WITHDRAWAL_INCOMPLETE",
+            targetType: TARGET_TYPE.PROFILE,
+            targetId: profileId,
+          });
+        } catch (error) {
+          console.error("未完了の退会を記録できませんでした:", profileId, error);
+        }
+      }
       return { error: "退会処理に失敗しました。時間をおいて再度お試しください。" };
     }
 

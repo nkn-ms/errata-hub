@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。
 const { prismaMock, getUserMock, signOutMock, deleteUserMock, createAuditLogMock, redirectMock } =
   vi.hoisted(() => ({
-    prismaMock: { profile: { update: vi.fn() } },
+    prismaMock: { profile: { findUnique: vi.fn(), update: vi.fn() } },
     getUserMock: vi.fn(),
     signOutMock: vi.fn(),
     deleteUserMock: vi.fn(),
@@ -29,8 +29,17 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { withdraw } from "./auth";
 
+const ORIGINAL_PII = {
+  email: "reader@local.test",
+  displayName: "reader",
+  githubUsername: "reader-gh",
+  xUsername: "reader_x",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // 退会前の値。auth.users の削除に失敗したときの書き戻しに使われる
+  prismaMock.profile.findUnique.mockResolvedValue(ORIGINAL_PII);
 });
 
 describe("withdraw（退会 = 匿名化）", () => {
@@ -66,17 +75,42 @@ describe("withdraw（退会 = 匿名化）", () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  it("auth.users の削除に失敗したら何も変更せずエラーを返す", async () => {
+  // 取り消せない auth.users の削除を最後に置いたので、失敗しても書き戻して
+  // 「何も起きていない」状態に戻せる＝文言どおり本人が再試行できる
+  it("auth.users の削除に失敗したらスクラブを書き戻し、退会は成立させない", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
-    deleteUserMock.mockResolvedValue({ error: new Error("boom") });
+    deleteUserMock.mockResolvedValue({ error: { code: "unexpected_failure", status: 500 } });
+    prismaMock.profile.update.mockResolvedValue({});
 
     const result = await withdraw(undefined);
 
     expect(result).toEqual({
       error: "退会処理に失敗しました。時間をおいて再度お試しください。",
     });
-    expect(prismaMock.profile.update).not.toHaveBeenCalled();
+    // スクラブ→書き戻しの2回。最後に元の値へ戻っている
+    expect(prismaMock.profile.update).toHaveBeenCalledTimes(2);
+    expect(prismaMock.profile.update).toHaveBeenLastCalledWith({
+      where: { id: "user-1" },
+      data: ORIGINAL_PII,
+    });
     expect(createAuditLogMock).not.toHaveBeenCalled();
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  // 書き戻しにも失敗した二重の事故。放置されないよう記録する（発見は /admin/logs）
+  it("書き戻しにも失敗したら未完了として監査ログに残す", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    deleteUserMock.mockResolvedValue({ error: { code: "unexpected_failure", status: 500 } });
+    prismaMock.profile.update
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("書き戻し失敗"));
+
+    const result = await withdraw(undefined);
+
+    expect(result?.error).toContain("退会処理に失敗しました");
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "WITHDRAWAL_INCOMPLETE", targetId: "user-1" })
+    );
     expect(signOutMock).not.toHaveBeenCalled();
   });
 });

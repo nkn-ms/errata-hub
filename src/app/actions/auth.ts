@@ -311,9 +311,25 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     redirect(routes.login);
   }
 
-  // 1) auth.users の削除と Profile のスクラブ（管理者による代行退会と共通の処理）。
+  // 1) Profile のスクラブと auth.users の削除（管理者による代行退会と共通の処理）。
+  //    失敗しても書き戻されるので、この文言（再度お試しください）は事実になる。
   const result = await scrubProfileForWithdrawal(user.id);
   if (!result.ok) {
+    if (result.reason === "withdrawal-incomplete") {
+      // 書き戻しにも失敗し、スクラブ済みなのにログインできる状態が残った。
+      // **誰も気づけないまま放置されるのを防ぐ**ために記録する（発見は /admin/logs）。
+      // 本人がもう一度退会を押せば完了するので、当初の目的にはまだ到達できる。
+      try {
+        await createAuditLog({
+          userId: user.id,
+          action: "WITHDRAWAL_INCOMPLETE",
+          targetType: TARGET_TYPE.PROFILE,
+          targetId: user.id,
+        });
+      } catch (error) {
+        console.error("未完了の退会を記録できませんでした:", user.id, error);
+      }
+    }
     return { error: "退会処理に失敗しました。時間をおいて再度お試しください。" };
   }
 
@@ -324,10 +340,9 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
   //
   // ⚠️ ここは他の管理操作と違い**塊にできない**。1) が Supabase の admin API（外部）を叩くため
   //    トランザクションに入らないので、「記録が残らないなら操作も成立させない」形が取れない。
-  //    そこで倒す方向を決めている: **退会は成立させる**。この時点で auth.users は既に消えており
-  //    取り消せないので、記録の失敗で「失敗しました」と返すのは嘘になるうえ、3) の signOut に
-  //    到達せずセッションだけが残る（＝ログインできないのに画面はログイン中のまま）。
-  //    記録が落ちる可能性は残るが、それは 1) と 2) を原子的にできない構造の問題として別に扱う。
+  //    そこで倒す方向を決めている: **退会は成立させる**。ここまで来た時点で auth.users は既に
+  //    消えていて取り消せないので、記録の失敗で「失敗しました」と返すのは嘘になるうえ、
+  //    3) の signOut に到達せずセッションだけが残る（＝ログインできないのに画面はログイン中）。
   try {
     await createAuditLog({
       userId: user.id,
