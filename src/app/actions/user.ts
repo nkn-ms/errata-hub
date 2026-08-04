@@ -23,6 +23,21 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
       return { error: parsed.error.issues[0].message };
     }
 
+    // 自分自身のロールは変えられない。**管理者が0人になる状態を構造的に防ぐ**ため。
+    // ロールを減らせる操作はこれだけなので、自己降格さえ塞げば「誰かは必ず ADMIN」が保たれる
+    // （他人を降格させても、降格させた本人が ADMIN のまま残るため）。
+    // 0人になるとアプリからは誰も戻せず、DB を直接触るしかなくなる＝取り返しがつかない。
+    //
+    // 昇格方向も一緒に塞ぐのは、規則を単純に保つため（自分を ADMIN にする意味は無い）。
+    // 代行退会の「自分自身は対象にできない」と同じ考え方 = withdrawUserAsAdmin。
+    //
+    // ⚠️ 代償として、**管理者が1人の間はその人が退会できない**（本人退会にも管理者ガードが
+    //    あるため）。2026-08-04 にユーザーが承知のうえで受け入れた仕様で、不具合ではない
+    //    ＝ actions/auth.ts の withdraw に詳細。
+    if (profileId === admin.id) {
+      return { error: "自分自身のロールは変更できません。他の管理者に依頼してください" };
+    }
+
     // ロール変更と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
     // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
     await prisma.$transaction(async (tx) => {
@@ -209,13 +224,23 @@ export async function revokePublisherAccess(
   const admin = await requireAdminOrThrow();
 
   try {
-    // 剥奪と監査ログを1つの塊にする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
-    await prisma.$transaction(async (tx) => {
-      const publisher = await tx.publisher.findUnique({ where: { id: publisherId } });
+    // 付与側と同じく形を検査する（片方だけ素通しだと、同じ値を送っても結果が割れる）
+    const parsed = z.string().uuid().safeParse(publisherId);
+    if (!parsed.success) {
+      return { error: "出版社の指定が不正です" };
+    }
 
-      await tx.publisherAccess.deleteMany({
-        where: { profileId, publisherId },
+    // 剥奪と監査ログを1つの塊にする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
+    const revoked = await prisma.$transaction(async (tx) => {
+      const publisher = await tx.publisher.findUnique({ where: { id: parsed.data } });
+
+      // deleteMany は対象が無くても成功する。**0件のまま監査ログを書くと「剥奪した」という
+      // 起きていない操作の記録が残る**ので、消えた件数で分岐する。
+      // 記録は後から説明するためのものなので、事実でない行を増やさないことが目的。
+      const { count } = await tx.publisherAccess.deleteMany({
+        where: { profileId, publisherId: parsed.data },
       });
+      if (count === 0) return false;
 
       await createAuditLog(
         {
@@ -224,11 +249,17 @@ export async function revokePublisherAccess(
           action: "REVOKE_PUBLISHER_ACCESS",
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
-          before: { publisherId, publisherName: publisher?.name },
+          before: { publisherId: parsed.data, publisherName: publisher?.name },
         },
         tx
       );
+
+      return true;
     });
+
+    if (!revoked) {
+      return { error: "このユーザーはその出版社のアクセス権を持っていません" };
+    }
 
     return {};
   } catch (error) {

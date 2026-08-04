@@ -7,6 +7,17 @@ import { authUserExists } from "@/services/withdrawal";
 import type { Profile } from "@/generated/prisma/client";
 
 /**
+ * ロールを変更できない理由を返す（変更できるなら null）。
+ * 正の砦はサーバーアクション（updateUserRole）側。ここは理由を先に見せるための画面側の判定。
+ */
+function getRoleBlockedReason(profile: Profile, adminId: string): string | null {
+  if (profile.id === adminId) {
+    return "自分自身のロールは変更できません。管理者が0人になるのを防ぐためです。";
+  }
+  return null;
+}
+
+/**
  * 代行退会させられない理由を返す（実行できるなら null）。
  * 同じ判定はサーバーアクション（withdrawUserAsAdmin）側にもあり、そちらが正の砦。
  * ここは「押せないボタンを出さない・理由を先に見せる」ための画面側の判定。
@@ -55,6 +66,7 @@ export default async function AdminUserDetailPage({
       <AdminUserEditor
         profile={profile}
         publishers={publishers}
+        roleBlockedReason={getRoleBlockedReason(profile, admin.id)}
         withdrawBlockedReason={await getWithdrawBlockedReason(profile, admin.id)}
       />
     </div>

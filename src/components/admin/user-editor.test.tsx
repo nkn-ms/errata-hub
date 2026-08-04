@@ -57,11 +57,12 @@ const profile: Profile & { publisherAccess: (PublisherAccess & { publisher: Publ
   publisherAccess: [accessToA],
 };
 
-function renderEditor(withdrawBlockedReason: string | null = null) {
+function renderEditor(withdrawBlockedReason: string | null = null, roleBlockedReason: string | null = null) {
   return render(
     <AdminUserEditor
       profile={profile}
       publishers={[publisherA, publisherB]}
+      roleBlockedReason={roleBlockedReason}
       withdrawBlockedReason={withdrawBlockedReason}
     />
   );

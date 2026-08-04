@@ -38,8 +38,12 @@ const ORIGINAL_PII = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // 退会前の値。auth.users の削除に失敗したときの書き戻しに使われる
-  prismaMock.profile.findUnique.mockResolvedValue(ORIGINAL_PII);
+  // withdraw は Profile を用途違いで2回読むので、select で返す値を振り分ける。
+  //   role → 管理者は退会できない規則の判定（既定は一般ユーザー＝規則を踏まない）
+  //   PII  → auth.users の削除に失敗したときの書き戻しに使う退会前の値
+  prismaMock.profile.findUnique.mockImplementation(async ({ select }) =>
+    select.role ? { role: "USER" } : ORIGINAL_PII
+  );
 });
 
 describe("withdraw（退会 = 匿名化）", () => {
@@ -73,6 +77,19 @@ describe("withdraw（退会 = 匿名化）", () => {
       expect.objectContaining({ action: "WITHDRAW_USER", after: scrubbed })
     );
     expect(signOutMock).toHaveBeenCalled();
+  });
+
+  // 代行退会（withdrawUserAsAdmin）には昔からある規則だが、本人退会側には無く、
+  // 最後の管理者が自分で消えられる穴になっていた（管理者0人＝アプリからは戻せない）
+  it("管理者は退会できない（先にロールを変更してもらう）", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    prismaMock.profile.findUnique.mockResolvedValue({ role: "ADMIN" });
+
+    const result = await withdraw(undefined);
+
+    expect(result?.error).toContain("管理者アカウントは退会できません");
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(prismaMock.profile.update).not.toHaveBeenCalled();
   });
 
   // 取り消せない auth.users の削除を最後に置いたので、失敗しても書き戻して

@@ -327,6 +327,26 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
     redirect(routes.login);
   }
 
+  // 管理者は退会できない（代行退会 = actions/user.ts の withdrawUserAsAdmin と同じ規則）。
+  // あちらには昔からあるが**こちらには無く**、最後の管理者が自分で消えられる穴になっていた。
+  // 消えるとアプリから管理者を戻す手段が無くなり、DB を直接触るしかなくなる＝取り返しがつかない。
+  // 退会したい管理者は、先に他の管理者にロールを「一般」へ変更してもらう（自分では変えられない）。
+  //
+  // ⚠️ **代償を承知のうえでこうしている（2026-08-04 ユーザー決定）**:
+  //    管理者が1人しかいない間、その人は退会できない（自分でロールも落とせないため）。
+  //    GitHub の「最後の Owner は組織を抜けられない」と同じ形で、**不具合ではない**。
+  //    緩めるには「管理者が2人以上いれば自己降格を許す」と数える方式にするしかないが、
+  //    数え方には競合の隙間ができるため、確実さを優先してこの形を選んでいる。
+  const profile = await prisma.profile.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  });
+  if (profile?.role === "ADMIN") {
+    return {
+      error: "管理者アカウントは退会できません。先に他の管理者にロールを変更してもらってください。",
+    };
+  }
+
   // 1) Profile のスクラブと auth.users の削除（管理者による代行退会と共通の処理）。
   //    失敗しても書き戻されるので、この文言（再度お試しください）は事実になる。
   const result = await scrubProfileForWithdrawal(user.id);

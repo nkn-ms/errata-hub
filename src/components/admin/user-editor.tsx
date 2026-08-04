@@ -24,10 +24,13 @@ const ROLES = [
 export default function AdminUserEditor({
   profile,
   publishers,
+  roleBlockedReason,
   withdrawBlockedReason,
 }: {
   profile: ProfileWithAccess;
   publishers: Publisher[];
+  /** ロールを変更できない理由（自分自身）。null なら実行できる */
+  roleBlockedReason: string | null;
   /** 代行退会させられない理由（自分自身・管理者・退会済み）。null なら実行できる */
   withdrawBlockedReason: string | null;
 }) {
@@ -116,7 +119,8 @@ export default function AdminUserEditor({
             <button
               key={r.value}
               onClick={() => setRole(r.value)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              disabled={roleBlockedReason !== null}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 role === r.value
                   ? "bg-gray-900 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -126,9 +130,10 @@ export default function AdminUserEditor({
             </button>
           ))}
         </div>
+        {roleBlockedReason && <p className="text-sm text-gray-500">{roleBlockedReason}</p>}
         <button
           onClick={handleSaveRole}
-          disabled={saving || role === profile.role}
+          disabled={saving || role === profile.role || roleBlockedReason !== null}
           className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
         >
           {saving ? "保存中..." : "ロールを保存"}
