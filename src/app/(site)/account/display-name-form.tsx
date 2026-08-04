@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateDisplayName } from "@/app/actions/auth";
+import { PROFILE_LIMITS } from "@/constants/profile-limits";
 
 // 表示名のセルフ変更フォーム。アカウント設定ページに埋め込む。
 // 表示名は投稿に紐づいて公開されるため、変更は即時に反映される。
@@ -18,12 +19,14 @@ export function DisplayNameForm({ currentDisplayName }: { currentDisplayName: st
           id="displayName"
           name="displayName"
           type="text"
-          maxLength={50}
+          maxLength={PROFILE_LIMITS.displayName}
           defaultValue={currentDisplayName ?? ""}
           placeholder="表示名を入力"
           className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-400">投稿に表示される名前です（50文字以内）。</p>
+        <p className="mt-1 text-xs text-gray-400">
+          投稿に表示される名前です（{PROFILE_LIMITS.displayName}文字以内）。
+        </p>
       </div>
 
       {state?.error && (

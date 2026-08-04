@@ -3,13 +3,14 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { TARGET_TYPE } from "@/constants/audit";
 import { scrubProfileForWithdrawal } from "@/services/withdrawal";
 import { routes } from "@/constants/routes";
+import { PROFILE_LIMITS } from "@/constants/profile-limits";
 
 const LoginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -19,7 +20,10 @@ const LoginSchema = z.object({
 const RegisterSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
-  displayName: z.string().min(1, "表示名を入力してください").max(50, "表示名は50文字以内で入力してください"),
+  displayName: z
+    .string()
+    .min(1, "表示名を入力してください")
+    .max(PROFILE_LIMITS.displayName, `表示名は${PROFILE_LIMITS.displayName}文字以内で入力してください`),
 });
 
 export type AuthState = { error?: string } | undefined;
@@ -179,7 +183,7 @@ const DisplayNameSchema = z.object({
     .string()
     .trim()
     .min(1, "表示名を入力してください")
-    .max(50, "表示名は50文字以内で入力してください"),
+    .max(PROFILE_LIMITS.displayName, `表示名は${PROFILE_LIMITS.displayName}文字以内で入力してください`),
 });
 
 export type ProfileState = { error?: string; success?: boolean } | undefined;
@@ -224,7 +228,18 @@ export async function updateDisplayName(
     return { error: "表示名の更新に失敗しました" };
   }
 
-  revalidatePath(routes.account);
+  // 変更後の値を、いま見ている画面に反映する＝クライアントルーターの更新（`refresh` の役割）。
+  //
+  // ⚠️ ここは `revalidatePath` ではない。あちらの役割は **Next のキャッシュの無効化**だが、
+  //    このプロジェクトは Next のキャッシュ機構を使っていない（`use cache` / `cacheTag` /
+  //    `unstable_cache` / `revalidateTag` いずれも 0 件・CSP の nonce で全ページ動的）ので、
+  //    無効化する対象が無い。それでも画面が更新されるのは `revalidatePath` の副次的な効果で、
+  //    公式ドキュメントはその効果を「一時的で、将来は指定パスだけに限定される」と明記している。
+  //    ⇒ 依存する契約が明文化されている方を呼ぶ。
+  //
+  // ℹ️ 実測（2026-08-04）では両者に**挙動の差は無い**。クライアントキャッシュの dynamic の
+  //    既定が 0 秒（キャッシュしない）で、遷移のたびに取り直されるため。
+  refresh();
   return { success: true };
 }
 
@@ -290,7 +305,8 @@ export async function updateProfileLinks(
     return { error: "公開リンクの更新に失敗しました" };
   }
 
-  revalidatePath(routes.account);
+  // 上の updateDisplayName と同じ理由で `revalidatePath` ではなく `refresh` を使う
+  refresh();
   return { success: true };
 }
 
