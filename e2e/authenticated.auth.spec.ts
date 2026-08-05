@@ -26,7 +26,6 @@ test.describe("ログイン済み（読み取りのみ）", () => {
     await page.goto("/");
     const header = page.locator("header");
     const email = process.env.E2E_TEST_EMAIL!;
-    // 今回の修正点: ログイン中のメールアドレスをヘッダーに出さない（表示名のみ）。
     await expect(header).not.toContainText(email);
   });
 });

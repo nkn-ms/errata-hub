@@ -53,7 +53,7 @@ export default async function UserDetailPage({ params }: Props) {
 
   if (!profile) notFound();
 
-  // 退会済みユーザーのページは「退会済みです」とだけ表示し、投稿一覧は出さない（案1）。
+  // 退会済みユーザーのページは「退会済みです」とだけ表示し、投稿一覧は出さない。
   // 公開上の追跡可能性を弱めるため。email は判定にのみ使い表示はしない。
   if (isWithdrawnEmail(profile.email)) {
     return (

@@ -32,7 +32,7 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
     // 代行退会の「自分自身は対象にできない」と同じ考え方 = withdrawUserAsAdmin。
     //
     // ⚠️ 代償として、**管理者が1人の間はその人が退会できない**（本人退会にも管理者ガードが
-    //    あるため）。2026-08-04 にユーザーが承知のうえで受け入れた仕様で、不具合ではない
+    //    あるため）。2026-08-04 に運営者が承知のうえで受け入れた仕様で、不具合ではない
     //    ＝ actions/auth.ts の withdraw に詳細。
     if (profileId === admin.id) {
       return { error: "自分自身のロールは変更できません。他の管理者に依頼してください" };

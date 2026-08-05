@@ -4,7 +4,7 @@ import { login } from "./login";
 import { openReportByTitle } from "./find-report";
 import { openBookEditor, saveErratumUrl } from "./admin-book-editor";
 
-// 出版社の正誤表URL（PR#76）の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
+// 出版社の正誤表URL の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
 //
 // このフローの肝は「読者の申告をそのまま公開しない」こと。外部リンクはフィッシング等の
@@ -120,7 +120,6 @@ test.describe("正誤表URLの申告と採用", () => {
       await adminPage.waitForURL(/\/admin\/reports$/);
 
       await openBookEditor(adminPage, BOOK_B.title);
-      // PR#96 でフォームの <label> が input と紐づいたので、ラベル名で直接指せる
       await saveErratumUrl(adminPage, originalErratumUrl);
     } finally {
       await adminContext.close();
