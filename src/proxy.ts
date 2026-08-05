@@ -83,7 +83,8 @@ export const config = {
   // 静的アセットを除く全ルートで実行する（Supabase 公式推奨の形）。
   // 以前は保護ルート（/admin・/submit）限定だったが、それだと公開ページだけを
   // 閲覧しているログインユーザーのトークン延長が cookie に保存されず、
-  // 時間経過で突然ログアウトされ得る（2026-07 監査 2-6 で発見）。
+  // 時間経過で突然ログアウトされ得る
+  // （経緯は docs/learnings.md「matcher は『静的アセット以外の全ルート』にする」）。
   // コスト面: 未ログイン訪問者は auth cookie が無く getUser() はネットワークを
   // 叩かずに即 null を返すため、匿名アクセスにはほぼ乗らない。
   // パターンの出典: https://supabase.com/docs/guides/auth/server-side/nextjs

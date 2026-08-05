@@ -79,8 +79,7 @@ describe("withdraw（退会 = 匿名化）", () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  // 代行退会（withdrawUserAsAdmin）には昔からある規則だが、本人退会側には無く、
-  // 最後の管理者が自分で消えられる穴になっていた（管理者0人＝アプリからは戻せない）
+  // 本人退会と代行退会（withdrawUserAsAdmin）で同じ規則。管理者0人＝アプリからは戻せない
   it("管理者は退会できない（先にロールを変更してもらう）", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.profile.findUnique.mockResolvedValue({ role: "ADMIN" });
