@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。
-const { prismaMock, scrubMock, createAuditLogMock } = vi.hoisted(() => {
+const { prismaMock, scrubMock, authUserExistsMock, createAuditLogMock } = vi.hoisted(() => {
   const models = {
     profile: { findUnique: vi.fn(), update: vi.fn() },
     publisher: { findUnique: vi.fn() },
@@ -16,6 +16,7 @@ const { prismaMock, scrubMock, createAuditLogMock } = vi.hoisted(() => {
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
     scrubMock: vi.fn(),
+    authUserExistsMock: vi.fn(),
     createAuditLogMock: vi.fn(),
   };
 });
@@ -25,7 +26,10 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/services/auth", () => ({
   requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
-vi.mock("@/services/withdrawal", () => ({ scrubProfileForWithdrawal: scrubMock }));
+vi.mock("@/services/withdrawal", () => ({
+  scrubProfileForWithdrawal: scrubMock,
+  authUserExists: authUserExistsMock,
+}));
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
@@ -47,6 +51,8 @@ const target = {
 beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.profile.findUnique.mockResolvedValue(target);
+  // 既定は「auth.users は残っていない」＝退会は完了している
+  authUserExistsMock.mockResolvedValue(false);
   scrubMock.mockResolvedValue({
     ok: true,
     scrubbed: {
@@ -120,6 +126,34 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
 
     expect(result.error).toBe("このユーザーは既に退会済みです");
     expect(scrubMock).not.toHaveBeenCalled();
+  });
+
+  // 補償に失敗して途中で止まった退会（Profile はスクラブ済みだが auth.users が残っている）は、
+  // ここから完了させられる必要がある＝取り残しを回収する管理者側の経路
+  it("スクラブ済みでも auth.users が残っていれば完了させられる", async () => {
+    prismaMock.profile.findUnique.mockResolvedValue({
+      ...target,
+      email: `deleted-${TARGET_ID}@deleted.local`,
+      displayName: null,
+    });
+    authUserExistsMock.mockResolvedValue(true);
+
+    const result = await withdrawUserAsAdmin(TARGET_ID, `deleted-${TARGET_ID}@deleted.local`);
+
+    expect(result).toEqual({});
+    expect(scrubMock).toHaveBeenCalledWith(TARGET_ID);
+  });
+
+  // 二重の失敗で退会が途中のまま残ったときは、誰も気づけないので記録して発見できるようにする
+  it("退会が未完了で残ったら監査ログに残す", async () => {
+    scrubMock.mockResolvedValue({ ok: false, reason: "withdrawal-incomplete" });
+
+    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+
+    expect(result.error).toContain("退会処理に失敗しました");
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "WITHDRAWAL_INCOMPLETE", targetId: TARGET_ID })
+    );
   });
 
   it("存在しないユーザーには何もしない", async () => {

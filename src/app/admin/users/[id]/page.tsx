@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import AdminUserEditor from "@/components/admin/user-editor";
 import { requireAdminPage } from "@/services/auth";
 import { isWithdrawnEmail } from "@/lib/withdrawal";
+import { authUserExists } from "@/services/withdrawal";
 import type { Profile } from "@/generated/prisma/client";
 
 /**
@@ -10,10 +11,16 @@ import type { Profile } from "@/generated/prisma/client";
  * 同じ判定はサーバーアクション（withdrawUserAsAdmin）側にもあり、そちらが正の砦。
  * ここは「押せないボタンを出さない・理由を先に見せる」ための画面側の判定。
  * 退会済みかの判定は email を見るためサーバー（ここ）だけで行う。
+ *
+ * ⚠️ 「退会済み」は Profile のスクラブだけでは決まらない。auth.users が残っていれば
+ * それは途中で止まった退会で、**ここから完了させられる必要がある**（理由は
+ * services/withdrawal.ts の authUserExists）。そのため auth 側の確認を重ねる。
  */
-function getWithdrawBlockedReason(profile: Profile, adminId: string): string | null {
+async function getWithdrawBlockedReason(profile: Profile, adminId: string): Promise<string | null> {
   if (profile.id === adminId) return "自分自身を退会させることはできません。";
-  if (isWithdrawnEmail(profile.email)) return "このユーザーは既に退会済みです。";
+  if (isWithdrawnEmail(profile.email) && !(await authUserExists(profile.id))) {
+    return "このユーザーは既に退会済みです。";
+  }
   if (profile.role === "ADMIN") {
     return "管理者は退会させられません。先にロールを「一般」に変更してください。";
   }
@@ -48,7 +55,7 @@ export default async function AdminUserDetailPage({
       <AdminUserEditor
         profile={profile}
         publishers={publishers}
-        withdrawBlockedReason={getWithdrawBlockedReason(profile, admin.id)}
+        withdrawBlockedReason={await getWithdrawBlockedReason(profile, admin.id)}
       />
     </div>
   );
