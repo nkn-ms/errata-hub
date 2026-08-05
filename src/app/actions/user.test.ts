@@ -190,6 +190,16 @@ describe("updateUserRole（ロール変更）", () => {
     expect(prismaMock.profile.update).not.toHaveBeenCalled();
   });
 
+  // ロールを減らせる操作はこれだけなので、自己降格を塞げば「誰かは必ず ADMIN」が保たれる。
+  // 管理者が0人になるとアプリからは誰も戻せず、DB を直接触るしかなくなる＝取り返しがつかない
+  it("自分自身のロールは変更できない（管理者0人を構造的に防ぐ）", async () => {
+    const result = await updateUserRole("admin-1", "USER");
+
+    expect(result.error).toContain("自分自身のロールは変更できません");
+    expect(prismaMock.profile.update).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
   it("ADMIN へ昇格できる", async () => {
     const result = await updateUserRole(TARGET_ID, "ADMIN");
 
@@ -259,8 +269,28 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
 });
 
 describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
-  it("剥奪と監査ログは1つの塊の中で書き、どの出版社かを残す", async () => {
+  it("出版社の指定が UUID でなければ弾く（付与側と揃える）", async () => {
+    const result = await revokePublisherAccess(TARGET_ID, "not-a-uuid");
+
+    expect(result.error).toBe("出版社の指定が不正です");
+    expect(prismaMock.publisherAccess.deleteMany).not.toHaveBeenCalled();
+  });
+
+  // deleteMany は対象が無くても成功する。0件のまま記録すると
+  // 「剥奪した」という起きていない操作の行が監査ログに残ってしまう
+  it("剥奪する権限が無ければ監査ログを書かずエラーを返す", async () => {
     prismaMock.publisher.findUnique.mockResolvedValue({ id: PUBLISHER_ID, name: "オーム社" });
+    prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 0 });
+
+    const result = await revokePublisherAccess(TARGET_ID, PUBLISHER_ID);
+
+    expect(result.error).toContain("アクセス権を持っていません");
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("実際に剥奪できたときだけ、監査ログを同じ塊の中でどの出版社かまで残す", async () => {
+    prismaMock.publisher.findUnique.mockResolvedValue({ id: PUBLISHER_ID, name: "オーム社" });
+    prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 1 });
 
     const result = await revokePublisherAccess(TARGET_ID, PUBLISHER_ID);
 
