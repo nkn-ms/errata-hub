@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { openReportByTitle } from "./find-report";
+import { confirmAndSubmit } from "./submit-report";
 
 // 書き込み系（投稿・賛同）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project は BASE_URL がローカルのときだけ有効）。
@@ -40,7 +41,7 @@ test.describe("投稿フォーム（書き込み）", () => {
   test("書籍未選択で投稿するとエラーが表示され、押すと検索欄へ飛ぶ", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.getByRole("button", { name: "確認する" }).click();
     await expect(page.getByText("書籍を選択してください")).toBeVisible();
 
     await page.getByRole("link", { name: "書籍を選択してください" }).click();
@@ -58,7 +59,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     // 何も入れずに投稿＝紙の必須（版・ページ）＋タイトル＋誤＋正 の5件が一度に出る
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.getByRole("button", { name: "確認する" }).click();
 
     // ⚠️ Next.js が挿入するルートアナウンサー（#__next-route-announcer__）も role="alert" なので、
     //    フォーム内に限定して指す（素の getByRole("alert") は2件に当たって strict mode 違反になる）
@@ -84,8 +85,58 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByLabel(/^版/).fill("1");
     await page.getByLabel("タイトル").fill("E2Eエラー集約の確認");
     await page.getByLabel("誤（該当箇所）").fill("誤った文");
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.getByRole("button", { name: "確認する" }).click();
     await expect(summary).toHaveText("正（正しい内容）を入力してください");
+  });
+
+  // 確認画面は「送る内容を見せる」ためのものなので、出ていることではなく
+  // **入力した値がそのまま出ていること**を測る。あわせて、この段では投稿が作られないことも見る
+  // （確認しただけで投稿されるなら、確認画面である意味が無い）。
+  test("確認画面に入力内容が出て、修正するで戻ると入力が残っている", async ({ page }) => {
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("2"); // 版
+    await page.getByPlaceholder("例: 42", { exact: true }).fill("42"); // ページ番号
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2E確認画面");
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("正字コード");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
+
+    await page.getByRole("button", { name: "確認する" }).click();
+    await expect(page.getByRole("heading", { name: "この内容で投稿します" })).toBeVisible();
+
+    // フォームは畳まれている（＝確認中に入力が変わることがない）
+    await expect(page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true })).toHaveCount(0);
+
+    // 入力した値が並ぶ。版・刷とページは組み立てて出すので、組み立てた形で見る
+    const summary = page.getByRole("definition");
+    await expect(summary.filter({ hasText: BOOK_B.title })).toBeVisible();
+    await expect(summary.filter({ hasText: "第2版" })).toBeVisible();
+    await expect(summary.filter({ hasText: "p.42" })).toBeVisible();
+    await expect(summary.filter({ hasText: "E2E確認画面" })).toBeVisible();
+    await expect(summary.filter({ hasText: "正字コード" })).toBeVisible();
+    await expect(summary.filter({ hasText: "文字コード" })).toBeVisible();
+    // 入力していない任意の欄は行ごと出さない（未入力の行が並ぶと書いた内容が埋もれる）
+    await expect(page.getByText("備考", { exact: true })).toHaveCount(0);
+
+    // 投稿ボタンはフォームの下端にある。畳んだだけだとスクロール位置が下に残り、
+    // 確認画面がヘッダーの下に潜る。先頭まで戻していること（画像の失敗パネルと同じ手当て）
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+    // 「修正する」でフォームへ戻る。打ち込んだ内容は残っている（確認のたびに書き直させない）
+    await page.getByRole("button", { name: "修正する" }).click();
+    await expect(page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true })).toHaveValue(
+      "E2E確認画面"
+    );
+    await expect(page.getByPlaceholder("例: 1", { exact: true })).toHaveValue("2");
+
+    // ここまでで投稿は作られていない（確認しただけでは送られない）
+    await page.goto(`/books/${BOOK_B.isbn}`);
+    await expect(page.getByText("E2E確認画面")).toHaveCount(0);
   });
 
   test("文字数カウンターは上限の8割に達してから出る", async ({ page }) => {
@@ -145,7 +196,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
 
     // 投稿は Server Action 経由（応答は JSON ではない）ので、成功はトップへの遷移で確認する
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
 
     // 検索一覧（/reports）に新しい投稿が出て、行クリックで詳細へ入れる。
@@ -194,7 +245,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
     await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
     await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2Eコピー確認");
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await page.getByRole("button", { name: "確認する" }).click();
     await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeVisible();
     // 投稿は成立していない（トップへ遷移しない）
     await expect(page).toHaveURL(/\/submit/);
@@ -231,7 +282,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("全角の誤");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("全角の正");
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
 
     // 半角の数値として保存されている（位置の表示が "第1版 p.141"）
@@ -269,7 +320,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った記述");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい記述");
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
 
     // 検索し直していないのに、正しい本に紐づいている

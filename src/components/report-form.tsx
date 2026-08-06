@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
 import { NumberField } from "@/components/number-field";
 import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
-import { createReport } from "@/app/actions/report";
+import { createReport, type ReportInput } from "@/app/actions/report";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
@@ -100,6 +100,67 @@ function ErrorItem({ field, message }: { field?: string; message: string }) {
   );
 }
 
+// 画面の主役が入れ替わる場面（確認画面へ進む・画像の失敗を知らせる）で、そこへ視線とフォーカスを移す。
+// 理由は2つあり、どちらも実機で確認した:
+//   - 投稿ボタンはフォームの下端にある。フォームが畳まれてもスクロール位置は下のままなので、
+//     何もしないと差し替えた中身が画面の外に出る（撮ったスクリーンショットで見出しが切れていた）
+//   - 押したボタン自体が消えるのでフォーカスが body に落ちる。読み上げ環境で迷子になる
+// ⚠️ focus() 任せにすると足りない。focus() は「見える位置まで」しかスクロールせず、
+//    ヘッダー（sticky top-0）に隠れている分は考慮しないので、実測で1行目が帯の下に潜った。
+//    差し替えた中身はページの先頭なので、素直に先頭まで戻してからフォーカスだけ移す。
+// 出典の型: GOV.UK Design System の Error summary（読み込み時にフォーカスを移す）
+// https://design-system.service.gov.uk/components/error-summary/
+function useFocusOnAppear(appeared: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!appeared) return;
+    window.scrollTo({ top: 0 });
+    ref.current?.focus({ preventScroll: true });
+  }, [appeared]);
+  return ref;
+}
+
+// エラーの置き場所は投稿ボタンの真上（押した人の視線の先）。フォーム・確認画面の両方で使う。
+// ⚠️ role="alert" が必要。フォーカスは押したボタンに残るので、これが無いと
+//    読み上げ環境では「押したのに何も知らされない」ことになる。
+function ErrorPanel({ errors }: { errors: { field?: string; message: string }[] }) {
+  if (errors.length === 0) return null;
+  return (
+    <div
+      role="alert"
+      className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
+    >
+      {errors.length === 1 ? (
+        <ErrorItem {...errors[0]} />
+      ) : (
+        <>
+          <p className="font-medium">{errors.length}件の入力を直してください</p>
+          <ul className="mt-1.5 list-disc pl-5 space-y-1">
+            {errors.map((item) => (
+              <li key={`${item.field}:${item.message}`}>
+                <ErrorItem {...item} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+// 確認画面の1行。ラベルと値を横に並べ、幅が足りないときは縦に折る。
+// 値は whitespace-pre-wrap で描く（誤・正・内容は複数行で書かれるため、入力どおりに見せる）。
+function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-t border-gray-100 py-2 first:border-t-0 first:pt-0 sm:flex-row sm:gap-4">
+      <dt className="flex-shrink-0 text-sm text-gray-500 sm:w-32">{label}</dt>
+      <dd className="min-w-0 flex-1 text-sm text-gray-900 whitespace-pre-wrap break-words tabular-nums">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
 function CharCounter({ id, value, max }: { id: string; value: string; max: number }) {
   const nearLimit = value.length >= max * COUNTER_VISIBLE_RATIO;
   return (
@@ -145,6 +206,10 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
   const [knownErratumUrl, setKnownErratumUrl] = useState<string | null>(initialErratumUrl);
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  // 検証を通った送信内容。ここに値が入るとフォームを畳んで確認画面に差し替える。
+  // 「入力中か確認中か」を別のフラグで持たず送信内容そのもので表すのは、確認画面に出すものと
+  // createReport に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
+  const [pending, setPending] = useState<ReportInput | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
   const [compressing, setCompressing] = useState(false);
@@ -167,21 +232,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     reportId: string;
     failedCount: number;
   } | null>(null);
-  // 知らせに移ったらそこへフォーカスを移す。理由は2つあり、どちらも実機で確認した:
-  //   - 投稿ボタンはフォームの下端にある。フォームが畳まれてもスクロール位置は下のままなので、
-  //     何もしないと知らせが画面の外に出る（撮ったスクリーンショットで見出しが切れていた）
-  //   - 押したボタン自体が消えるのでフォーカスが body に落ちる。読み上げ環境で迷子になる
-  // 出典の型: GOV.UK Design System の Error summary（同じく role="alert" ＋ 読み込み時にフォーカス）
-  // https://design-system.service.gov.uk/components/error-summary/
-  const failureRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!imageUploadFailure) return;
-    // ⚠️ focus() 任せにすると足りない。focus() は「見える位置まで」しかスクロールせず、
-    //    ヘッダー（sticky top-0）に隠れている分は考慮しないので、実測で1行目が帯の下に潜った。
-    //    知らせはページの先頭なので、素直に先頭まで戻してからフォーカスだけ移す。
-    window.scrollTo({ top: 0 });
-    failureRef.current?.focus({ preventScroll: true });
-  }, [imageUploadFailure]);
+  const confirmRef = useFocusOnAppear(pending !== null);
+  const failureRef = useFocusOnAppear(imageUploadFailure !== null);
 
   async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -286,37 +338,44 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     }
 
     // `|| !book` は型の絞り込みも兼ねる（book が null なら必ず found に入るので条件としては冗長だが、
-    // これを書かないと下の createReport で BookData | null のままになる。
+    // これを書かないと下の setPending で BookData | null のままになる。
     // 「実際には来ない早期 return」を別に足すよりこちらの方が死んだ分岐を作らない）
     if (found.length > 0 || !book) {
       setErrors(found);
       return;
     }
 
+    // 検証を通ってもここでは送らず、確認画面に差し替える。
+    // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
+    setError("");
+    setPending({
+      book,
+      edition: isPaper ? toIntOrNull(edition) : null,
+      printing: isPaper ? toIntOrNull(printing) : null,
+      title,
+      type: reportType,
+      medium,
+      page: isPaper ? toIntOrNull(page) : null,
+      line: isPaper ? toIntOrNull(line) : null,
+      hasMultiplePages: isPaper && hasMultiplePages,
+      locationNote: medium === "EBOOK" ? null : locationNote || null,
+      ebookLocation: medium === "EBOOK" ? ebookLocation : null,
+      wrong: isErrataType ? wrong : null,
+      correct: isErrataType ? correct : null,
+      content: isErrataType ? null : content,
+      note: note || null,
+      // 登録済みの本では入力欄を出していないので、書籍を選び直す前に入力された値も送らない
+      reportedErratumUrl: knownErratumUrl ? null : reportedErratumUrl.trim() || null,
+    });
+  }
+
+  // 確認画面の「投稿する」。サーバーへ送る経路はここだけで、渡すのは確認画面に出したものそのもの。
+  async function submitReport(input: ReportInput) {
     setSubmitting(true);
     setError("");
 
     try {
-      // 選択中の媒体・種別に関係ない欄は null で送る（切替前の入力残りを送信しない）
-      const created = await createReport({
-        book,
-        edition: isPaper ? toIntOrNull(edition) : null,
-        printing: isPaper ? toIntOrNull(printing) : null,
-        title,
-        type: reportType,
-        medium,
-        page: isPaper ? toIntOrNull(page) : null,
-        line: isPaper ? toIntOrNull(line) : null,
-        hasMultiplePages: isPaper && hasMultiplePages,
-        locationNote: medium === "EBOOK" ? null : locationNote || null,
-        ebookLocation: medium === "EBOOK" ? ebookLocation : null,
-        wrong: isErrataType ? wrong : null,
-        correct: isErrataType ? correct : null,
-        content: isErrataType ? null : content,
-        note: note || null,
-        // 登録済みの本では入力欄を出していないので、書籍を選び直す前に入力された値も送らない
-        reportedErratumUrl: knownErratumUrl ? null : reportedErratumUrl.trim() || null,
-      });
+      const created = await createReport(input);
 
       if (created.error !== undefined) {
         setError(created.error);
@@ -394,6 +453,121 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           >
             投稿を見る
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // 確認画面。フォームを畳んで「これから送るもの」だけを出す。
+  // ⚠️ imageUploadFailure より後に置く（投稿が済んだ後に出すのは確認ではなく結果）。
+  // 並びはフォームと同じ順・ラベルもフォームと同じ言葉にする。直すときに戻るのはフォームなので、
+  // 「どの欄を直せばよいか」が言葉の一致で分かる方がよい。
+  // 任意の欄は空なら行ごと出さない（「未入力」の行が並ぶと、書いた内容の方が埋もれる）。
+  if (pending) {
+    return (
+      <div className="space-y-6">
+        <div ref={confirmRef} tabIndex={-1} className="focus:outline-none">
+          <h2 className="text-lg font-semibold text-gray-900">この内容で投稿します</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            投稿後は自分で修正できません。内容をご確認ください。
+          </p>
+        </div>
+
+        <section className="bg-white rounded-lg border border-gray-200 p-6">
+          <dl>
+            <SummaryRow label="書籍">
+              <span className="font-medium">{pending.book.title}</span>
+              <span className="block text-gray-500">
+                {[pending.book.author, pending.book.publisher].filter(Boolean).join(" / ")}
+              </span>
+              <span className="block text-gray-500">
+                ISBN: <span className="font-mono">{pending.book.isbn}</span>
+              </span>
+            </SummaryRow>
+
+            <SummaryRow label="読んだ媒体">{MEDIUM_LABELS[pending.medium]}</SummaryRow>
+
+            {pending.medium === "PAPER" && (
+              <SummaryRow label="版・刷">
+                第{pending.edition}版{pending.printing && ` 第${pending.printing}刷`}
+              </SummaryRow>
+            )}
+
+            <SummaryRow label="タイトル">{pending.title}</SummaryRow>
+            <SummaryRow label="種別">{TYPE_LABELS[pending.type]}</SummaryRow>
+
+            {pending.medium === "PAPER" && (
+              <SummaryRow label="位置">
+                p.{pending.page}
+                {pending.line && ` l.${pending.line}`}
+                {pending.hasMultiplePages && " 他"}
+              </SummaryRow>
+            )}
+            {pending.medium === "EBOOK" && (
+              <SummaryRow label="位置">{pending.ebookLocation}</SummaryRow>
+            )}
+            {pending.medium === "OTHER" && (
+              <SummaryRow label="位置メモ">{pending.locationNote}</SummaryRow>
+            )}
+            {pending.medium === "PAPER" && pending.locationNote && (
+              <SummaryRow label="位置備考">{pending.locationNote}</SummaryRow>
+            )}
+
+            {pending.type === "ERRATA" ? (
+              <>
+                <SummaryRow label="誤（該当箇所）">{pending.wrong}</SummaryRow>
+                <SummaryRow label="正（正しい内容）">{pending.correct}</SummaryRow>
+              </>
+            ) : (
+              <SummaryRow label="内容・提案">{pending.content}</SummaryRow>
+            )}
+
+            {pending.note && <SummaryRow label="備考">{pending.note}</SummaryRow>}
+            {pending.reportedErratumUrl && (
+              <SummaryRow label="出版社の正誤表URL">{pending.reportedErratumUrl}</SummaryRow>
+            )}
+
+            {/* 画像だけは送信内容（pending）に無い。投稿の作成後に別リクエストで送るため
+                （下の submitReport のコメント参照）。ここは選択中のファイルをそのまま出す。
+                映しているのは圧縮後のファイルから作ったプレビューなので、**ここで見えているものが
+                実際に送られるもの**と一致する */}
+            {images.length > 0 && (
+              <SummaryRow label="画像">
+                <div className="flex flex-wrap gap-2">
+                  {images.map(({ file, previewUrl }) => (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={previewUrl}
+                      src={previewUrl}
+                      alt={file.name}
+                      className="h-20 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                    />
+                  ))}
+                </div>
+              </SummaryRow>
+            )}
+          </dl>
+        </section>
+
+        <ErrorPanel errors={errors} />
+
+        {/* 並びはフォームの footer と同じ（主要な行き先を右に置く） */}
+        <div className="flex gap-3 justify-end">
+          <button
+            type="button"
+            onClick={() => setPending(null)}
+            className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            修正する
+          </button>
+          <button
+            type="button"
+            onClick={() => submitReport(pending)}
+            disabled={submitting}
+            className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          >
+            {submitting ? "投稿中..." : "投稿する"}
+          </button>
         </div>
       </div>
     );
@@ -865,30 +1039,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         )}
       </dialog>
 
-      {/* エラーの置き場所は投稿ボタンの真上（押した人の視線の先）。
-          ⚠️ role="alert" が必要。フォーカスは押したボタンに残るので、これが無いと
-             読み上げ環境では「押したのに何も知らされない」ことになる。 */}
-      {errors.length > 0 && (
-        <div
-          role="alert"
-          className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
-        >
-          {errors.length === 1 ? (
-            <ErrorItem {...errors[0]} />
-          ) : (
-            <>
-              <p className="font-medium">{errors.length}件の入力を直してください</p>
-              <ul className="mt-1.5 list-disc pl-5 space-y-1">
-                {errors.map((item) => (
-                  <li key={`${item.field}:${item.message}`}>
-                    <ErrorItem {...item} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
+      <ErrorPanel errors={errors} />
 
       <div className="flex gap-3 justify-end">
         <button
@@ -898,12 +1049,14 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         >
           キャンセル
         </button>
+        {/* このボタンは送信しない（確認画面へ進む）。ラベルもそう名乗る。
+            「投稿する」のままだと押した瞬間に投稿されると読めてしまう */}
         <button
           type="submit"
-          disabled={submitting || compressing}
+          disabled={compressing}
           className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
         >
-          {submitting ? "投稿中..." : "投稿する"}
+          確認する
         </button>
       </div>
     </form>

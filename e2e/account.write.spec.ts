@@ -3,6 +3,7 @@ import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { createThrowawayAccount } from "./throwaway-user";
 import { openReportByTitle } from "./find-report";
+import { confirmAndSubmit } from "./submit-report";
 
 // アカウント系（退会・表示名変更・パスワード再発行）の e2e。
 // ローカル dev＋ローカル Supabase 限定（write-local project）。前提は他の書き込みテストと同じ。
@@ -46,7 +47,7 @@ async function submitReport(page: Page, title: string): Promise<string> {
   await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(title);
   await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
   await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
-  await page.getByRole("button", { name: "投稿する" }).click();
+  await confirmAndSubmit(page);
   await page.waitForURL(/\/$/);
 
   return openReportByTitle(page, title);

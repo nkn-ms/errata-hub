@@ -3,6 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { openReportByTitle } from "./find-report";
+import { confirmAndSubmit } from "./submit-report";
 
 // 画像添付つき投稿の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 //
@@ -62,7 +63,7 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     });
     await expect(page.getByAltText("errata.png")).toBeVisible();
 
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
 
     // 詳細ページで「証拠画像」として表示される（＝Storage への保存と ReportImage 行の作成が成功している）
@@ -110,7 +111,7 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await expect(page.getByAltText("keep.png")).toBeVisible();
     await expect(page.getByAltText("remove.png")).toBeVisible();
 
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
     const reportId = await openReportByTitle(page, uniqueTitle);
     await expect(page.getByAltText("証拠画像")).toHaveCount(2);
@@ -177,7 +178,7 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     });
     await expect(page.getByAltText("errata.png")).toBeVisible();
 
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
 
     // 投稿できたこと・何が欠けたかの両方を出す（片方だけだと何が起きたか分からない）。
     // ⚠️ Next.js の route announcer（#__next-route-announcer__）も role="alert" を持つので、
@@ -305,7 +306,7 @@ test.describe("画像の圧縮", () => {
     // （圧縮しなかった場合は元の名前のまま large.png になる）
     await expect(page.getByAltText("large.webp")).toBeVisible();
 
-    await page.getByRole("button", { name: "投稿する" }).click();
+    await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
 
     // 保存された画像も webp（= 縮んだファイルがアップロードされている）

@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { openReportByTitle } from "./find-report";
+import { confirmAndSubmit } from "./submit-report";
 import { openBookEditor, saveErratumUrl } from "./admin-book-editor";
 
 // 出版社の正誤表URL の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
@@ -64,7 +65,7 @@ test.describe("正誤表URLの申告と採用", () => {
       await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
       await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
       await page.getByPlaceholder("https://...").fill(reportedUrl);
-      await page.getByRole("button", { name: "投稿する" }).click();
+      await confirmAndSubmit(page);
       await page.waitForURL(/\/$/);
 
       const reportId = await openReportByTitle(page, reportTitle);
