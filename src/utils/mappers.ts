@@ -25,7 +25,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     bookTitle: f.book.title,
     bookAuthor: f.book.author ?? "",
     publisher: f.book.publisher?.name ?? "",
-    isbn: f.book.isbn ?? "",
+    isbn: f.book.isbn,
     coverImage: f.book.coverImageUrl ?? "",
     edition: f.edition ?? undefined,
     printing: f.printing ?? undefined,

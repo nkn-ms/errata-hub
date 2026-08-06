@@ -601,3 +601,95 @@ Vercel の環境変数 `DATABASE_URL` / `DIRECT_URL` には旧パスワードを
 | `P1001` Can't reach database server at `<host>` | そのホストに**到達できない**（認証以前）。ホスト名が意図と違うなら接続文字列そのものが誤り |
 
 実際この2つを順に踏んだ（1回目は env が旧パスワードのまま = P1000、2回目は貼り付けた接続文字列が壊れていて存在しないホストを見ていた = P1001）。**エラーコードが変わったら、別の病気に移ったということ**。推測で直そうとせず、毎回ログを取り直す。
+
+---
+
+## 型情報を使う linter ルールは「型を100%信じたらどう見えるか」しか教えてくれない
+
+### 用語（先に定義）
+
+- **型アサーション（`x as T`）**: 「これは T だと思え」とコンパイラに命令する構文。**検査されない・実行時には消える**。値を変換する処理ではない
+- **型注釈（`const x: T = …`）**: こちらは検査される。合わなければコンパイルエラー
+- **型情報を使うルール**: 構文だけでなく TypeScript のコンパイラを呼んで型を計算してから判断する ESLint ルール。深いことが分かるが lint が遅くなる
+
+### きっかけ
+
+`report-form.tsx` の「ISBNのある書籍を選択してください」が**最初のコミットから一度も到達しない**検査だと判明した（PR#144）。同種のデッドコードを機械的に洗うため `@typescript-eslint/no-unnecessary-condition`（型の上で必ず同じ結果になる条件を指摘するルール）を試した。
+
+### 実測: 指摘14件のうち、素直に従ってよいのは1件だけだった
+
+| 分類 | 件数 | 従うと |
+|---|---:|---|
+| キャストが型に嘘をついている | 2 | ❌ 型と実行時が食い違う（PR#166 の同型は 500 になった） |
+| Server Action の戻り値をクライアントで受ける箇所 | 6 | ❌ 壊れうる |
+| `Record<K, V>` 引きのフォールバック | 3 | ⚖️ 将来の enum 追加漏れへの保険が消える |
+| 外部サービス（Supabase）の型を信じるか | 2 | ⚖️ 型が現実と違いうる境界の防御が消える |
+| 本当に死んでいる | **1** | ✅ 正しい |
+
+⇒ **常時有効化しない**と決めた（2026-08-06）。`--max-warnings 0` 運用なので、常設すると13件に抑制コメントが並び、本物の指摘が埋もれる。
+
+### なぜ外すのか — ルールが見られる範囲の限界
+
+**このルールの判定はすべて「型の上では」という前置き付き**で、型が現実とズレていれば自信満々に間違える。ズレが生まれる経路は2つある。
+
+**1. キャストが可能性を消す**（実例2件・どちらも実バグの予備軍だった）
+
+```ts
+// ❌ 悪い例（修正前の report-table.tsx）
+columnFilters.find((f) => f.id === "type")?.value as string
+```
+
+`ColumnFilter.value` は `unknown` なので `<select>` に渡すにはキャストが要る。ここまでは正しい。問題は**キャスト先から `undefined` を落としたこと** — `find()` は見つからなければ `undefined` を返す（初期値は空配列）のに `as string` が「必ず string」と断言し、後続の `?? "all"` が不要に見えた。正しくは `as string | undefined`。
+
+⚠️ **影響の正確な大きさ**: `?? "all"` を消すと `value={undefined}` になり、React はその `<select>` を**非制御**として扱う。初期表示は先頭の option（「種別：すべて」）なので**見た目は偶然一致する**が、選択した瞬間に state 由来の値が入って**非制御→制御に切り替わり React が警告を出す**。⇒ **画面が壊れるのではなく、制御の一貫性が壊れる**。同じキャストの嘘でも PR#166 は 500 に直結した＝**嘘の代償は場所しだいで、キャストの罪の重さとは別**。
+
+```ts
+// ✅ 良い例（同じファイルの :214）
+(Object.entries(TYPE_LABELS) as [ReportType, string][]).map(…)
+```
+
+`Object.entries` の戻りは `[string, string][]`（言語仕様上キーを限定できないため）。`TYPE_LABELS` が `Record<ReportType, string>` で全キー揃っていることは書いた人が知っている＝**コンパイラが知らない事実を伝えている**。
+
+> ⭐ **判定基準: キャストは「コンパイラが知らない事実」を伝えるためのもの。「コンパイラが知っている可能性を消す」ために使うと嘘になる。**
+
+同型の実例が `auth/error/page.tsx` の `as keyof typeof REASONS`（PR#166）。`?reason=` は URL に任意の文字を書けるのに「必ず引ける」と断言していて、フォールバックを消すと**エラー画面自身が 500 になる**状態だった。**直したのは分岐ではなくキャスト。**
+
+**2. TypeScript はプロセスを跨いだ先を検査できない**
+
+Server Action はクライアント側では**サーバーへ POST する代理人**に差し替わる（`'use server'` の仕組み。出典: `node_modules/next/dist/docs/01-app/02-guides/server-actions.md:78`）。見た目は関数呼び出しでも実体はネットワーク通信。
+
+`redirect()` の戻り型は `never` なので `Promise<BookActionState>` という注釈は**サーバー側の関数としては正確**。だが redirect 時の応答は「戻り値」ではなく「画面遷移せよ」という指示であり（同 `:48`）、**クライアントの `await` が何を受け取るかは戻り型が語る範囲の外**。docs にも記述がない。
+
+⇒ `result?.error` の `?.` は**型が保証していない境界へのコストゼロの防御**として残す。これは Server Action 固有ではなく、`fetch` の結果を `as User` と書く場合とまったく同じ構図。**境界には型ではなく実行時の検査（zod・try/catch・`?.`）を置く。**
+
+### たまに回す検査としては有効
+
+デッドコード検出としては 1/14 でも、**キャストの嘘の検出としては 2/2 で当たっている**（PR#166 と上の `as string`）。棚卸しのときに手で回す価値はある。
+
+### 測り方（再現手順）
+
+**プロジェクト直下**に一時設定を置く（`/tmp` 等に置くと `eslint` を解決できず `ERR_MODULE_NOT_FOUND` になる）。
+
+```js
+// eslint.nuc.tmp.mjs — 計測後に削除する
+import { defineConfig } from "eslint/config";
+import baseConfig from "./eslint.config.mjs";
+
+export default defineConfig([
+  ...baseConfig,
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: { "@typescript-eslint/no-unnecessary-condition": "error" },
+  },
+]);
+```
+
+```sh
+npx eslint --config eslint.nuc.tmp.mjs "src/**/*.{ts,tsx}"
+rm eslint.nuc.tmp.mjs
+```
+
+`projectService: true` が型情報を読み込む指定。これが無いとルール自体が動かない。
