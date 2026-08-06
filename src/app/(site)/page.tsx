@@ -6,6 +6,7 @@ import { mapReport } from "@/utils/mappers";
 import { ReportCard } from "@/components/report-card";
 import { CompactReportTable } from "@/components/compact-report-table";
 import { routes } from "@/constants/routes";
+import { toPageNumber } from "@/utils/parse";
 
 // トップの新着フィードは1ページ20件。11件目以降も ?page=N のリンクで辿れる
 // （古い投稿が導線から消えず、クローラも辿れる）。
@@ -29,7 +30,7 @@ type Props = {
 // 2つの URL で見えており、本文中のリンク（pageHref）は / を使うので、そちらに揃える。
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
+  const page = toPageNumber(pageParam);
 
   return {
     // 相対パスは metadataBase（app/layout.tsx）を基準に絶対 URL へ解決される
@@ -42,7 +43,7 @@ const pageHref = (n: number) => (n <= 1 ? routes.home : `${routes.home}?page=${n
 
 export default async function Home({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
+  const page = toPageNumber(pageParam);
 
   const { reports: rows, total } = await findReportsPage(page, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

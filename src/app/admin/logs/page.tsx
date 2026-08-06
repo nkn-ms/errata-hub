@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { shortId } from "@/utils/format";
+import { toPageNumber } from "@/utils/parse";
 
 const ACTION_LABELS: Record<string, string> = {
   UPDATE_REPORT: "投稿更新",
@@ -29,7 +30,7 @@ type Props = {
 
 export default async function AdminLogsPage({ searchParams }: Props) {
   const { page, action, email } = await searchParams;
-  const currentPage = Math.max(1, parseInt(page ?? "1"));
+  const currentPage = toPageNumber(page);
 
   const where = {
     ...(action ? { action } : {}),
