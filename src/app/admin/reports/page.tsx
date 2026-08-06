@@ -1,24 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
 import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatJstDate } from "@/utils/format";
+import { paginate } from "@/utils/pagination";
+import { toPageNumber } from "@/utils/parse";
 
-export default async function AdminReportsPage() {
-  const reports = await prisma.report.findMany({
-    include: {
-      book: { include: { publisher: true } },
-      user: { select: { displayName: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+const pageHref = (n: number) => `${routes.admin.reports}?page=${n}`;
+
+export default async function AdminReportsPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = toPageNumber(pageParam);
+
+  const [reports, total] = await Promise.all([
+    prisma.report.findMany({
+      include: {
+        book: { include: { publisher: true } },
+        user: { select: { displayName: true } },
+      },
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.report.count(),
+  ]);
+
+  const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
+  if (isOutOfRange) redirect(pageHref(totalPages));
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">投稿一覧</h1>
-        <p className="mt-1 text-sm text-gray-500">全 {reports.length} 件</p>
+        <p className="mt-1 text-sm text-gray-500">全 {total} 件</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -80,6 +102,8 @@ export default async function AdminReportsPage() {
           </tbody>
         </table>
       </div>
+
+      <AdminPagination page={page} totalPages={totalPages} from={from} to={to} total={total} href={pageHref} />
     </div>
   );
 }

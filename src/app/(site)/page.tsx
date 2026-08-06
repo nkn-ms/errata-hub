@@ -6,6 +6,7 @@ import { mapReport } from "@/utils/mappers";
 import { ReportCard } from "@/components/report-card";
 import { CompactReportTable } from "@/components/compact-report-table";
 import { routes } from "@/constants/routes";
+import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
 
 // トップの新着フィードは1ページ20件。11件目以降も ?page=N のリンクで辿れる
@@ -46,11 +47,10 @@ export default async function Home({ searchParams }: Props) {
   const page = toPageNumber(pageParam);
 
   const { reports: rows, total } = await findReportsPage(page, PAGE_SIZE);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const { totalPages, isOutOfRange } = paginate(page, total, PAGE_SIZE);
 
-  // 範囲外の ?page=N（古いリンク・打ち間違い）は最後の有効ページへ寄せる。
-  // 投稿はあるのに空スライスを引いて「まだ投稿はありません」を誤表示するのを防ぐ。
-  if (total > 0 && page > totalPages) {
+  // 範囲外の ?page=N（古いリンク・打ち間違い）は最後の有効ページへ寄せる（判定の理由は utils/pagination.ts）
+  if (isOutOfRange) {
     redirect(pageHref(totalPages));
   }
 

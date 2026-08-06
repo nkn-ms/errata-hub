@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
 import { routes } from "@/constants/routes";
 import { shortId } from "@/utils/format";
+import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
 import { AUDIT_ACTION_LABELS, auditActionLabel } from "@/constants/audit";
-
-const PAGE_SIZE = 50;
 
 type Props = {
   searchParams: Promise<{
@@ -16,8 +17,8 @@ type Props = {
 };
 
 export default async function AdminLogsPage({ searchParams }: Props) {
-  const { page, action, email } = await searchParams;
-  const currentPage = toPageNumber(page);
+  const { page: pageParam, action, email } = await searchParams;
+  const page = toPageNumber(pageParam);
 
   const where = {
     ...(action ? { action } : {}),
@@ -27,22 +28,27 @@ export default async function AdminLogsPage({ searchParams }: Props) {
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      take: PAGE_SIZE,
-      skip: (currentPage - 1) * PAGE_SIZE,
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）。
+      // 監査ログは1トランザクションで複数行が同時刻に入りうるので、ここは特に効く
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
     }),
     prisma.auditLog.count({ where }),
   ]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
 
-  const buildUrl = (p: number) => {
+  // 絞り込み条件（action・email）はページ番号と一緒に持ち回る。落とすと「次へ」で条件が消える
+  const pageHref = (n: number) => {
     const params = new URLSearchParams();
-    params.set("page", String(p));
+    params.set("page", String(n));
     if (action) params.set("action", action);
     if (email) params.set("email", email);
-    return `/admin/logs?${params.toString()}`;
+    return `${routes.admin.logs}?${params.toString()}`;
   };
+
+  if (isOutOfRange) redirect(pageHref(totalPages));
 
   return (
     <div>
@@ -133,35 +139,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
         </table>
       </div>
 
-      {/* ページネーション */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <p className="text-gray-500">
-            {(currentPage - 1) * PAGE_SIZE + 1}〜{Math.min(currentPage * PAGE_SIZE, total)} 件目 / 全 {total} 件
-          </p>
-          <div className="flex gap-2">
-            {currentPage > 1 && (
-              <Link
-                href={buildUrl(currentPage - 1)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                前へ
-              </Link>
-            )}
-            <span className="px-3 py-1.5 text-gray-600">
-              {currentPage} / {totalPages}
-            </span>
-            {currentPage < totalPages && (
-              <Link
-                href={buildUrl(currentPage + 1)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                次へ
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      <AdminPagination page={page} totalPages={totalPages} from={from} to={to} total={total} href={pageHref} />
     </div>
   );
 }

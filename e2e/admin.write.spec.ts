@@ -163,8 +163,13 @@ test.describe("管理者による代行退会", () => {
     await expect(withdrawButton).toBeEnabled();
     await withdrawButton.click();
 
-    // 成功すると一覧へ戻り、対象は匿名メールになっている（＝ Profile はスクラブ済みで残る）
+    // 成功すると一覧へ戻る
     await page.waitForURL(/\/admin\/users$/);
+
+    // 対象は匿名メールになっている（＝ Profile はスクラブ済みで残る）。
+    // 一覧は登録日の昇順＋1ページ50件なので、いま作った使い捨てアカウントは最後のページに居る
+    // （範囲外の ?page=N は最後のページへ寄せられるので、件数を知らなくても辿り着ける）。
+    await page.goto("/admin/users?page=999");
     await expect(page.getByRole("row").filter({ hasText: account.email })).toHaveCount(0);
     await expect(
       page.getByRole("row").filter({ hasText: `deleted-${account.id}@deleted.local` })
@@ -196,5 +201,47 @@ test.describe("管理者による代行退会", () => {
     await expect(page.getByText("自分自身を退会させることはできません。")).toBeVisible();
     await expect(page.getByRole("button", { name: "退会させる" })).toHaveCount(0);
     await expect(page.getByLabel(/入力してください/)).toHaveCount(0);
+  });
+});
+
+test.describe("一覧のページ送り（管理画面）", () => {
+  // 一覧5本すべてが同じ ?page=N の作法で動くことを担保する。件数を50件超に膨らませずに
+  // 検証できるのは「範囲外のページ番号を寄せる」側で、シードが少ないほど確実に範囲外になる。
+  //
+  // /admin/logs だけ入っていないのは、シード直後の操作ログが0件だから。0件のときは寄せる先が
+  // 無いので仕様上そのまま「ログがありません」を出す（utils/pagination.ts）＝この観点では測れない。
+  // 寄せる処理自体は他4本と同じ paginate + redirect を通っている。
+  const LIST_PAGES = [
+    { path: "/admin/reports", heading: "投稿一覧" },
+    { path: "/admin/publishers", heading: "出版社マスタ" },
+    { path: "/admin/books", heading: "書籍マスタ" },
+    { path: "/admin/users", heading: "ユーザー管理" },
+  ];
+
+  for (const { path, heading } of LIST_PAGES) {
+    test(`${path} は範囲外の ?page=N を最後のページへ寄せる`, async ({ page }) => {
+      await login(page, ADMIN);
+
+      // 寄せずに素通ししていた頃は、行があるのに空スライスを引いて「ありません」を出していた
+      await page.goto(`${path}?page=999`);
+
+      // 寄せ先は「最後の有効ページ」なので、番号は決め打ちできない（ローカルの件数で変わる）。
+      // 999 のままでないこと＋そこから先が無いこと（「次へ」が出ない）で最後のページだと言える
+      await expect(page).toHaveURL(new RegExp(`\\?page=(?!999$)\\d+$`));
+      await expect(page.getByRole("link", { name: "次へ" })).toHaveCount(0);
+
+      // 見出しと行が出る＝空スライスを引いていない（これが寄せる目的）
+      await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+      expect(await page.getByRole("row").count()).toBeGreaterThan(1); // 1行目は表の見出し
+    });
+  }
+
+  // 1画面に収まっている一覧に「1 / 1」は情報を足さないので出さない（シードは50件未満）
+  test("1ページに収まる一覧ではページ送りを出さない", async ({ page }) => {
+    await login(page, ADMIN);
+
+    await page.goto("/admin/reports");
+
+    await expect(page.getByRole("navigation", { name: "ページ送り" })).toHaveCount(0);
   });
 });
