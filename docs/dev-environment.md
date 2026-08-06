@@ -97,9 +97,47 @@ npm run dev                    # http://localhost:3000
 - 手元で試すときは**シードアカウント**（`admin@local.test` / `reader@local.test`）を使う
 - テストで別のユーザーが要るときは `e2e/throwaway-user.ts` のように **管理API でユーザー作成 ＋ `Profile` 行を直接 INSERT** する（`prisma/seed.ts` と同じ方式）
 - ちなみに Profile の直接 INSERT に **PostgREST（supabase-js の `.from()`）は使えない**。service_role でも `permission denied for schema public` になる ＝ RLS 全拒否ロック（design.md §7）が効いている**正しい状態**。DB へ直接つなぐ（`pg` / Prisma）
+  - ⚠️ このエラーを出しているのは RLS ポリシーではなく**権限**（下の「ローカル DB を作り直す」を参照）。作り直したあとに出なくなったら、権限が戻っていない
 
 シード（`prisma/seed.ts`・Prisma 公式の `prisma db seed` 方式）は冪等で、`supabase status` から接続情報を取り、
-接続先がローカル(127.0.0.1)でなければ中止する安全装置付き。`supabase db reset` 後もこれ一発で復元できる。
+接続先がローカル(127.0.0.1)でなければ中止する安全装置付き。
+
+### ローカル DB を作り直す（テストデータが溜まったとき）
+
+e2e を回すたびに `Profile` が増える（使い捨てアカウント＋退会テストが残す匿名化済みの行）。溜まりすぎたら作り直す。
+
+```bash
+npx supabase db reset          # ローカルのみ。リンクしていないことは supabase/.temp/project-ref で確認できる
+docker exec supabase_db_errata-hub psql -U postgres -d postgres \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION postgres;"
+npx prisma db push
+npm run seed:local
+```
+
+⚠️ **`db reset` と seed だけでは元に戻らない。** 2段目の `DROP SCHEMA public` が要る。理由は権限で、
+`db reset` の後は Supabase の初期化が `anon` / `authenticated` / `service_role` に public スキーマの
+USAGE を付け直すため（`prisma db push` はこれを戻さない＝Prisma の管理外）。
+
+⭐ **「RLS 全拒否ロック」の実体は、ローカルでは RLS ポリシーではなく「権限を与えていないこと」**。
+2026-08-06 の実測では、public の9テーブルは `rowsecurity = f`・ポリシー0件で、PostgREST を止めているのは
+権限の側だった。だから戻し方も「ポリシーを当て直す」ではなく「スキーマを作り直す」になる。
+
+⚠️ **手で `REVOKE` して戻そうとすると失敗する**（同日にハマった記録）:
+
+- `REVOKE ALL ON SCHEMA public FROM anon, ...` では USAGE が消えない。**疑似ロール `PUBLIC` 経由**で付いているため
+- `ALTER DEFAULT PRIVILEGES ... REVOKE` は default ACL を**消すのではなく増やす**（0件 → 6件になった）
+
+作り直しの前後で、この2つを突き合わせて一致していることを確かめる（あるべき値は USAGE が3ロールとも `f`・default ACL が 0件）:
+
+```sql
+select r.rolname, has_schema_privilege(r.rolname,'public','USAGE') as schema_usage
+from pg_roles r where r.rolname in ('anon','authenticated','service_role');
+select count(*) from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace where n.nspname = 'public';
+```
+
+- Storage バケット `report-images` は **`db reset` が自動で作る**（CLI v2.108 で実測）。§9 の `supabase seed buckets` は不要だった
+- 手で入れたテスト投稿もシードの状態に戻る（消える）。消したくないものがあるか先に確かめる
+- 投稿だけを消したいなら、**DB を直接削除せず管理画面の削除経路を通す**。Storage 上の画像ファイルが孤児になるため
 
 ## 6. チートシート: 「この操作、どのDBに効く？」
 
@@ -211,7 +249,9 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 ### Storage バケット `report-images`（投稿の添付画像）
 
-ローカルは `supabase/config.toml` の `[storage.buckets.report-images]` に定義し、**`supabase seed buckets` で作成する**（⚠️ `supabase start` だけでは作られない — CLI v2.108 で実測。既存環境・`db reset` 後は明示実行が必要）。**本番はダッシュボードで手動作成**（コードのデプロイでは作られない）。
+ローカルは `supabase/config.toml` の `[storage.buckets.report-images]` に定義し、**`supabase seed buckets` で作成する**（⚠️ `supabase start` だけでは作られない — CLI v2.108 で実測。既存環境では明示実行が必要）。**本番はダッシュボードで手動作成**（コードのデプロイでは作られない）。
+
+> `db reset` の後は明示実行は要らない。リセットがバケットまで作り直すため（CLI v2.108 で実測・2026-08-06）。
 
 - Supabase ダッシュボード → Storage → New bucket
   - 名前: `report-images` / **Public bucket: ON**（公開投稿の画像のため）
