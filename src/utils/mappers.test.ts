@@ -97,14 +97,16 @@ describe("mapReport", () => {
     expect(mapReport(buildPrismaReport()).upvoteCount).toBe(0);
   });
 
+  // isbn はここで null にしない。Book.isbn は NOT NULL（本の同一性の基準）なので、
+  // null を与えると DB に存在しえない状態を検査することになる（この builder は
+  // `as unknown as` で型を通すため、書けてしまうが通らない）。
   it("publisher が無ければ空文字にする", () => {
     const r = mapReport(
       buildPrismaReport({
-        book: { title: "出版社なし書籍", author: null, isbn: null, coverImageUrl: null, publisher: null },
+        book: { title: "出版社なし書籍", author: null, isbn: "9784000000001", coverImageUrl: null, publisher: null },
       })
     );
     expect(r.publisher).toBe("");
     expect(r.bookAuthor).toBe("");
-    expect(r.isbn).toBe("");
   });
 });

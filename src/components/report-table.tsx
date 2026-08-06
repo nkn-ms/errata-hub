@@ -189,6 +189,13 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
     initialState: { pagination: { pageSize: 10 }, columnVisibility: { searchText: false } },
   });
 
+  // TanStack Table の ColumnFilter.value は unknown なので <select> にそのまま渡せず、キャストが要る。
+  // ⚠️ キャスト先から undefined を落とさないこと。フィルター未設定なら find() が undefined を返し、
+  // 呼び出し側の `?? "all"` がそれを拾っている。`as string` にすると型の上でだけ undefined が消え、
+  // 「?? は不要」に見えるが実行時には残る。外すと value={undefined} ＝ 非制御の <select> になり、
+  // 選択した瞬間に制御へ切り替わって React が警告を出す。
+  const filterValue = (id: string) => columnFilters.find((f) => f.id === id)?.value as string | undefined;
+
   return (
     <div className="space-y-4">
       {/* フィルターバー */}
@@ -201,7 +208,7 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
-          value={(columnFilters.find((f) => f.id === "type")?.value as string) ?? "all"}
+          value={filterValue("type") ?? "all"}
           onChange={(e) =>
             setColumnFilters((prev) => [
               ...prev.filter((f) => f.id !== "type"),
@@ -216,7 +223,7 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
           ))}
         </select>
         <select
-          value={(columnFilters.find((f) => f.id === "status")?.value as string) ?? "all"}
+          value={filterValue("status") ?? "all"}
           onChange={(e) =>
             setColumnFilters((prev) => [
               ...prev.filter((f) => f.id !== "status"),
