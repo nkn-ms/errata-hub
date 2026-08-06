@@ -146,6 +146,77 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     }
   });
 
+  // 投稿は作られたのに画像だけ落ちた、という中途半端な結果をどう伝えるか。
+  // 以前は alert()（コードベースで唯一）で、押すと消える＝何が起きたか残らなかった。
+  test("画像のアップロードだけ失敗したら、フォームを畳んで結果と行き先を出す", async ({ page, browser }) => {
+    const uniqueTitle = `E2E画像失敗 ${Date.now()}`;
+
+    await login(page, READER);
+    await mockBookApis(page);
+
+    // 画像の受け口だけを落とす（投稿の作成＝Server Action は通す）。
+    // 実際の失敗（Storage 障害・容量超過）と同じ形をクライアントから見せるための細工
+    await page.route("**/api/reports/*/images", (route) =>
+      route.fulfill({ status: 500, json: { error: "アップロードに失敗しました" } })
+    );
+
+    await page.goto("/submit");
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
+    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "errata.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    });
+    await expect(page.getByAltText("errata.png")).toBeVisible();
+
+    await page.getByRole("button", { name: "投稿する" }).click();
+
+    // 投稿できたこと・何が欠けたかの両方を出す（片方だけだと何が起きたか分からない）。
+    // ⚠️ Next.js の route announcer（#__next-route-announcer__）も role="alert" を持つので、
+    //    role だけで引くと2件に当たる。文言で絞る
+    const result = page.getByRole("alert").filter({ hasText: "投稿しました" });
+    await expect(result).toBeVisible();
+    await expect(result).toContainText("画像1枚は添付できませんでした");
+
+    // 投稿ボタンはフォームの下端にある。畳んだだけだとスクロール位置が下に残り、
+    // 知らせがヘッダーの下に潜る（実測）。先頭まで戻していることを測る
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    // 押したボタンごと消えるのでフォーカスが body に落ちる。知らせに移してあること
+    await expect(result).toBeFocused();
+
+    // フォームは消えている＝もう一度押して二重投稿することがない
+    await expect(page.getByRole("button", { name: "投稿する" })).toHaveCount(0);
+
+    // 行き止まりにしない: 作られた投稿へ行ける（トップへ飛ばされて迷子にならない）
+    await page.getByRole("link", { name: "投稿を見る" }).click();
+    await page.waitForURL(/\/reports\/[0-9a-f-]+$/);
+    await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
+    // 画像は付いていない（失敗したのだから、付いたことにしない）
+    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
+
+    // 後片付け: 投稿を削除してシードの前提（本Bは投稿0件）に戻す
+    const reportId = page.url().split("/").pop();
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+      await adminPage.goto(`/admin/reports/${reportId}`);
+      adminPage.once("dialog", (dialog) => dialog.accept());
+      await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+      await adminPage.waitForURL(/\/admin\/reports$/);
+    } finally {
+      await adminContext.close();
+    }
+  });
+
   test("許可外の形式（テキストファイル）は添付できずエラーになる", async ({ page }) => {
     await login(page, READER);
     await page.goto("/submit");

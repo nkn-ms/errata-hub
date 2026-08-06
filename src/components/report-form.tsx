@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { createReport } from "@/app/actions/report";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { routes } from "@/constants/routes";
+import { site } from "@/constants/site";
 import { normalizeDigits, toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -160,6 +161,27 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   // 1件だけのとき（画像の選択エラー・サーバーからの応答）に使う糖衣
   const setError = (message: string) => setErrors(message ? [{ message }] : []);
+  // 「投稿は作られたが画像の一部が付かなかった」状態。ここに値が入るとフォームごと知らせに差し替える
+  // （なぜ差し替えるかは下の setImageUploadFailure のところに書いた）
+  const [imageUploadFailure, setImageUploadFailure] = useState<{
+    reportId: string;
+    failedCount: number;
+  } | null>(null);
+  // 知らせに移ったらそこへフォーカスを移す。理由は2つあり、どちらも実機で確認した:
+  //   - 投稿ボタンはフォームの下端にある。フォームが畳まれてもスクロール位置は下のままなので、
+  //     何もしないと知らせが画面の外に出る（撮ったスクリーンショットで見出しが切れていた）
+  //   - 押したボタン自体が消えるのでフォーカスが body に落ちる。読み上げ環境で迷子になる
+  // 出典の型: GOV.UK Design System の Error summary（同じく role="alert" ＋ 読み込み時にフォーカス）
+  // https://design-system.service.gov.uk/components/error-summary/
+  const failureRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!imageUploadFailure) return;
+    // ⚠️ focus() 任せにすると足りない。focus() は「見える位置まで」しかスクロールせず、
+    //    ヘッダー（sticky top-0）に隠れている分は考慮しないので、実測で1行目が帯の下に潜った。
+    //    知らせはページの先頭なので、素直に先頭まで戻してからフォーカスだけ移す。
+    window.scrollTo({ top: 0 });
+    failureRef.current?.focus({ preventScroll: true });
+  }, [imageUploadFailure]);
 
   async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -316,8 +338,13 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           if (!upload.ok) failedCount++;
         }
         if (failedCount > 0) {
-          // 投稿自体は作成済みなのでフォームには留めない（再送信で二重投稿になるため）
-          alert(`投稿は作成されましたが、画像${failedCount}枚のアップロードに失敗しました`);
+          // 「留まる」も「進む」も使えない場面なので、フォームそのものを知らせに差し替える。
+          //   - フォームに留めると再送信＝二重投稿になる（投稿はもう作られている）
+          //   - かといって router.push した後に setError しても、その画面はもう無い
+          // 差し替えなら form が消えるので二重投稿はあり得ず、知らせは遷移と競合しない。
+          images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+          setImageUploadFailure({ reportId: created.id, failedCount });
+          return;
         }
       }
       images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
@@ -327,6 +354,49 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // 投稿は作られたが画像の一部が付かなかったとき。フォームを畳んで結果だけを出す。
+  // 色を赤（errors と同じ）にしないのは、投稿自体は成功しているため。
+  if (imageUploadFailure) {
+    return (
+      <div className="space-y-4">
+        <div
+          ref={failureRef}
+          // tabIndex={-1} は「キーボードの Tab 順には入れないが、focus() では受け取れる」の意味。
+          // これが無いと div にフォーカスを移せない
+          tabIndex={-1}
+          role="alert"
+          className="rounded-md bg-amber-50 border border-amber-200 px-4 py-4 text-amber-900 focus:outline-none"
+        >
+          <p className="font-medium">投稿しました</p>
+          <p className="mt-1 text-sm">
+            ただし、画像{imageUploadFailure.failedCount}枚は添付できませんでした。投稿の内容は保存されています。
+          </p>
+          {/* 投稿者が自分で添付し直す手段が無いので、窓口を出さないとここが行き止まりになる。
+              ⚠️ 投稿者による修正機能ができたら、この1行は不要になる（そちらへ案内する） */}
+          <p className="mt-1 text-sm">
+            添付し直すには <a href={`mailto:${site.contactEmail}`} className="underline">{site.contactEmail}</a> までご連絡ください。
+          </p>
+        </div>
+
+        {/* 並びはフォームの footer と同じ（主要な行き先を右に置く） */}
+        <div className="flex gap-3 justify-end">
+          <Link
+            href={routes.home}
+            className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            トップへ
+          </Link>
+          <Link
+            href={routes.report(imageUploadFailure.reportId)}
+            className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+          >
+            投稿を見る
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
