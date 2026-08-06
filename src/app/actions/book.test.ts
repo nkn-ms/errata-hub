@@ -24,7 +24,7 @@ const { prismaMock, createAuditLogMock, redirectMock } = vi.hoisted(() => {
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 // 管理者操作の中身だけを見たいので、認可・監査ログ・再描画・遷移は素通りさせる
 vi.mock("@/services/auth", () => ({
-  requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
+  requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));

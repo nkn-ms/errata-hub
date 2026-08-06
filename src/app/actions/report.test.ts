@@ -49,7 +49,7 @@ vi.mock("@/generated/prisma/client", () => ({
 }));
 // updateReport（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
 vi.mock("@/services/auth", () => ({
-  requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
+  requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));

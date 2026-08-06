@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAdminOrThrow } from "@/services/auth";
+import { requireAdminServerAction } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
@@ -50,7 +50,7 @@ export async function createPublisher(
   _prev: PublisherState,
   formData: FormData
 ): Promise<PublisherState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   const parsed = parsePublisherForm(formData);
   if (!parsed.success) {
@@ -95,7 +95,7 @@ export async function updatePublisher(
   _prev: PublisherState,
   formData: FormData
 ): Promise<PublisherState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   const parsed = parsePublisherForm(formData);
   if (!parsed.success) {
@@ -139,7 +139,7 @@ export async function updatePublisher(
 }
 
 export async function deletePublisher(id: string): Promise<PublisherState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   // 書籍が紐づく出版社は削除させない（UX側のガード）。
   // 件数を文言に出すための早期チェックで、塊の外に置いてよい: 隙間で書籍が増えても
