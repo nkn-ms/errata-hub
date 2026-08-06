@@ -149,7 +149,7 @@ Supabase クライアントを使う `proxy.ts` の Profile 読み取りだけ�
 
 このアプリは「ブラウザから DB を直接触らない」設計（→ 次項 BaaS vs バックエンド）。
 よって **RLS は認可の主役ではなく、公開裏口(PostgREST)を塞ぐ「ロック」として全拒否のまま維持**する。
-認可の主役はサーバー層（`services/auth.ts` の `requireAdmin` 系）。多層防御の最後の壁が RLS。
+認可の主役はサーバー層（`services/auth.ts` の `requireAdmin*` ヘルパ）。多層防御の最後の壁が RLS。
 将来 SEO 等で「公開済みレポートだけ匿名読み取り可」にしたくなったら、その**1テーブルにだけ**読み取りポリシーを足す。
 
 ---
@@ -162,7 +162,7 @@ Supabase クライアントを使う `proxy.ts` の Profile 読み取りだけ�
 |---|---|---|
 | データに触るのは | ブラウザが**直接** Supabase | ブラウザ→**サーバー(Next.js)**→Prisma→DB |
 | 誰が守るか | **RLS**（料理の周りのレール） | **サーバーのコード**（店員が判断） |
-| 認可の書き場所 | SQL（ポリシー） | TypeScript（`requireAdmin` 等） |
+| 認可の書き場所 | SQL（ポリシー） | TypeScript（`requireAdmin*` ヘルパ等） |
 | 向く用途 | 小〜中規模・バックエンド書きたくない | 複雑な認可・モデレーションがある |
 | 例 | Firebase、本来の Supabase | 従来型 Web アプリ |
 
@@ -280,9 +280,9 @@ Server Action も見た目は関数呼び出しだが、クライアント側で
 境界の決定そのものは `docs/design.md` §7「データアクセスの境界」が正。
 **読み取り（ページ表示）はどちらでもなく、サーバーコンポーネントから直接 await する。**
 
-⚠️ `services/auth.ts` の認可ヘルパは3兄弟（`requireAdmin` / `requireAdminOrThrow` / `requireAdminPage`）だが、
-**Route Handler 用の `requireAdmin`（`Response` を返す版）は 2026-08-06 時点で呼び出し元が無い**。
-内部 UI の API Route を Server Actions へ寄せた PR#66 で全呼び出し元が消えたため。
+⚠️ 上の3本の Route Handler はいずれも管理操作ではないので、`services/auth.ts` の認可ヘルパは
+**`requireAdminOrThrow`（Server Action 用）と `requireAdminPage`（サーバーコンポーネント用）の2本だけ**。
+Route Handler 用（判定結果を `Response` で返す版）が要るときは `checkAdmin` から書き足す。
 
 ---
 
@@ -343,7 +343,7 @@ Supabase では PostgREST が JWT の中身（`auth.uid()`）で RLS を判定�
 
 - `services/auth.ts` の `auth` は、このアプリでは**認証も認可も両方**扱う（`getUser()`＝認証、`role==="ADMIN"`＝認可）。
 - `admin` は「認可」という概念**ではなく**「**管理者という役割（ロール）**」の名前。認可の概念そのものは authorization。
-  `requireAdmin` =「\"管理者ロール\"を持つか認可判定する関数」。
+  `requireAdmin*` =「\"管理者ロール\"を持つか認可判定する関数」。
 
 ---
 
@@ -366,9 +366,9 @@ App Router の **部分レンダリング（partial rendering）** により、
 
 ### なぜ実害が出ないか＝多層防御の肝
 
-A が実際に「削除」等の**操作**をすると、その処理（API Route / Server Action）が
-**毎回サーバーで `requireAdmin()` を実行**する。これは**キャッシュされず最新 DB のロールを読む**ので、
-**管理UIは見えても privileged な操作は必ず弾かれる（403）**。
+A が実際に「削除」等の**操作**をすると、その Server Action が
+**毎回サーバーで `requireAdminOrThrow()` を実行**する。これは**キャッシュされず最新 DB のロールを読む**ので、
+**管理UIは見えても privileged な操作は必ず弾かれる**（「権限がありません」で throw）。
 
 ### 守りの本丸はどこか
 
@@ -376,9 +376,9 @@ A が実際に「削除」等の**操作**をすると、その処理（API Rout
 |---|---|---|---|
 | `proxy.ts`（ミドルウェア） | 未ログインの門前払い | 都度 | 粗いゲート |
 | `admin/layout.tsx` | 管理UIを**表示**してよいか | **キャッシュされ得る（古くなる）** | UX・第一防衛線 |
-| 各操作の `requireAdmin()`（API/Server Action） | **本当にその操作をしてよいか** | **都度・最新DB** | **真のセキュリティ境界** |
+| 各操作の `requireAdminOrThrow()`（Server Action） | **本当にその操作をしてよいか** | **都度・最新DB** | **真のセキュリティ境界** |
 
-**結論: layout は「表示用ガード」でありキャッシュで古くなりうる。本当の境界は各操作ごとの `requireAdmin()`（毎回フレッシュ）。**
+**結論: layout は「表示用ガード」でありキャッシュで古くなりうる。本当の境界は各操作ごとの `requireAdminOrThrow()`（毎回フレッシュ）。**
 だから proxy のロール判定を消しても安全だった——セキュリティの本丸はもともと proxy でも layout でもなく、各操作の認可判定だから。
 
 ※ Next.js 16 はキャッシュ周りに breaking change あり。正確な staleTime が要るときは `node_modules/next/dist/docs/` を参照。
