@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
 import { routes } from "@/constants/routes";
 import { formatJstDate } from "@/utils/format";
+import { paginate } from "@/utils/pagination";
+import { toPageNumber } from "@/utils/parse";
 
 const ROLE_LABELS = {
   ADMIN: "管理者",
@@ -13,19 +17,37 @@ const ROLE_COLORS = {
   USER: "bg-gray-100 text-gray-600",
 } as const;
 
-export default async function AdminUsersPage() {
-  const profiles = await prisma.profile.findMany({
-    include: {
-      publisherAccess: { include: { publisher: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+const pageHref = (n: number) => `${routes.admin.users}?page=${n}`;
+
+export default async function AdminUsersPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = toPageNumber(pageParam);
+
+  const [profiles, total] = await Promise.all([
+    prisma.profile.findMany({
+      include: {
+        publisherAccess: { include: { publisher: true } },
+      },
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      skip: (page - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.profile.count(),
+  ]);
+
+  const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
+  if (isOutOfRange) redirect(pageHref(totalPages));
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">ユーザー管理</h1>
-        <p className="mt-1 text-sm text-gray-500">全 {profiles.length} 件</p>
+        <p className="mt-1 text-sm text-gray-500">全 {total} 件</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -76,6 +98,8 @@ export default async function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+
+      <AdminPagination page={page} totalPages={totalPages} from={from} to={to} total={total} href={pageHref} />
     </div>
   );
 }

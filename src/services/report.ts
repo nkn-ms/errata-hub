@@ -29,7 +29,8 @@ export async function findReportsPage(page: number, pageSize: number) {
   const [reports, total] = await Promise.all([
     prisma.report.findMany({
       include: reportInclude,
-      orderBy: { createdAt: "desc" },
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

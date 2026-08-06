@@ -1,19 +1,41 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
 import { routes } from "@/constants/routes";
+import { paginate } from "@/utils/pagination";
+import { toPageNumber } from "@/utils/parse";
 
-export default async function AdminPublishersPage() {
-  const publishers = await prisma.publisher.findMany({
-    include: { _count: { select: { books: true, publisherAccess: true } } },
-    orderBy: { name: "asc" },
-  });
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+const pageHref = (n: number) => `${routes.admin.publishers}?page=${n}`;
+
+export default async function AdminPublishersPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = toPageNumber(pageParam);
+
+  const [publishers, total] = await Promise.all([
+    prisma.publisher.findMany({
+      include: { _count: { select: { books: true, publisherAccess: true } } },
+      // 出版社名は一意ではない（同名が入りうる）。id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      skip: (page - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.publisher.count(),
+  ]);
+
+  const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
+  if (isOutOfRange) redirect(pageHref(totalPages));
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">出版社マスタ</h1>
-          <p className="mt-1 text-sm text-gray-500">全 {publishers.length} 件</p>
+          <p className="mt-1 text-sm text-gray-500">全 {total} 件</p>
         </div>
         <Link
           href={routes.admin.publisherNew}
@@ -63,6 +85,8 @@ export default async function AdminPublishersPage() {
           </tbody>
         </table>
       </div>
+
+      <AdminPagination page={page} totalPages={totalPages} from={from} to={to} total={total} href={pageHref} />
     </div>
   );
 }
