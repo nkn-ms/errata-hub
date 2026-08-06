@@ -83,6 +83,8 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データは `services/` を直接呼ぶ（HTTP 越し自前 API は外部公開時のみ）。 — 🔶SC + `services/` 直呼びは✅・ISR は❌未導入（動的レンダリング）
 - 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。 — ✅実装済
 - **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。 — ✅実装済（全テーブル RLS 有効・ポリシー無し=全拒否ロック。認可はサーバー層で行う。→ `docs/learnings.md`）
+  - ⚠️ **「全テーブル」は放っておくと崩れる。** RLS は Prisma の管理外＝手作業で、当てたのは公開前の一括作業なので、**それより後に足したテーブルは締まらない**。実際に `RateLimit`（一括適用より後のマイグレーションで追加）と `_prisma_migrations` が漏れていた（2026-08-06 の実測で発見・同日に本番へ適用して解消）。テーブルを足したときの手順は `docs/dev-environment.md` §9
+  - ⭐ **実際に PostgREST を止めているのは RLS ではなく権限の側**。同じ実測で `anon` は public スキーマの USAGE を持たず（`has_schema_privilege = false`）、テーブルの SELECT も持たない（本番・ローカルとも）。RLS はその上に重ねる2枚目なので、上の漏れは**露出ではなく多層防御の欠け**だった
 - 検索: まず Postgres 全文検索（pg_trgm）。 — ❌未実装（現状は一覧のクライアント側フィルタのみ）
 - 画像: Supabase Storage、削除はカスケード + ファイル削除を退会・報告削除に統合。 — ❌未実装（`ReportImage` モデルのみ存在・画像投稿機能なし。書影は外部 URL 直リンク方針）
 - テスト: `utils/isbn.ts` など純粋関数から Vitest 導入。 — ✅実装済（純粋関数＋コンポーネント/API ルートのユニットテストあり。e2e は Playwright）
@@ -98,7 +100,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 | status | 8値1軸 | moderation × resolution 2軸 | 🔶resolution 側は8値で確定（§7・正誤表掲載/その他を含む）/ moderation 列は通報実装時 |
 | 賛同/通報 | なし | `Confirmation` / `Flag` | 🔶賛同✅（`Upvote`）/ 通報❌ |
 | 公開性 | 動的レンダリング | ISR + SEO + sitemap | ❌未（public 化時に着手） |
-| RLS | 未設定（露出リスク） | 全有効化で締める | ✅済（全拒否ロック） |
+| RLS | 未設定（露出リスク） | 全有効化で締める | ✅済（全拒否ロック。⚠️ テーブル追加時は手当てが要る＝§5 参照） |
 | 命名 | Feedback | Report | ✅済 |
 
 ---
@@ -108,7 +110,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 1. 認可（identity/capability 分離）— 設計力の証明 — 🔶role 縮小✅・membership/verified❌
 2. ステータス 2 軸 + モデレーション — 実プロダクト感 — 🔶ステータスはドメインに合わせ8値で確定✅（§7）・moderation 列＋Flag は❌
 3. SEO / ISR — 公開で伸びる本体 — ❌未着手（public 化時）
-4. RLS 締め — 公開前セキュリティ必須 — ✅完了
+4. RLS 締め — 公開前セキュリティ必須 — ✅完了（⚠️ テーブル追加時の手当てが要る・§5 参照）
 
 全部を一度にやる必要はない。段階移行する。
 
