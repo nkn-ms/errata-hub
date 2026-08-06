@@ -281,7 +281,7 @@ Server Action も見た目は関数呼び出しだが、クライアント側で
 **読み取り（ページ表示）はどちらでもなく、サーバーコンポーネントから直接 await する。**
 
 ⚠️ 上の3本の Route Handler はいずれも管理操作ではないので、`services/auth.ts` の認可ヘルパは
-**`requireAdminOrThrow`（Server Action 用）と `requireAdminPage`（サーバーコンポーネント用）の2本だけ**。
+**`requireAdminServerAction`（Server Action 用）と `requireAdminPage`（サーバーコンポーネント用）の2本だけ**。
 Route Handler 用（判定結果を `Response` で返す版）が要るときは `checkAdmin` から書き足す。
 
 ---
@@ -367,7 +367,7 @@ App Router の **部分レンダリング（partial rendering）** により、
 ### なぜ実害が出ないか＝多層防御の肝
 
 A が実際に「削除」等の**操作**をすると、その Server Action が
-**毎回サーバーで `requireAdminOrThrow()` を実行**する。これは**キャッシュされず最新 DB のロールを読む**ので、
+**毎回サーバーで `requireAdminServerAction()` を実行**する。これは**キャッシュされず最新 DB のロールを読む**ので、
 **管理UIは見えても privileged な操作は必ず弾かれる**（「権限がありません」で throw）。
 
 ### 守りの本丸はどこか
@@ -376,9 +376,9 @@ A が実際に「削除」等の**操作**をすると、その Server Action �
 |---|---|---|---|
 | `proxy.ts`（ミドルウェア） | 未ログインの門前払い | 都度 | 粗いゲート |
 | `admin/layout.tsx` | 管理UIを**表示**してよいか | **キャッシュされ得る（古くなる）** | UX・第一防衛線 |
-| 各操作の `requireAdminOrThrow()`（Server Action） | **本当にその操作をしてよいか** | **都度・最新DB** | **真のセキュリティ境界** |
+| 各操作の `requireAdminServerAction()`（Server Action） | **本当にその操作をしてよいか** | **都度・最新DB** | **真のセキュリティ境界** |
 
-**結論: layout は「表示用ガード」でありキャッシュで古くなりうる。本当の境界は各操作ごとの `requireAdminOrThrow()`（毎回フレッシュ）。**
+**結論: layout は「表示用ガード」でありキャッシュで古くなりうる。本当の境界は各操作ごとの `requireAdminServerAction()`（毎回フレッシュ）。**
 だから proxy のロール判定を消しても安全だった——セキュリティの本丸はもともと proxy でも layout でもなく、各操作の認可判定だから。
 
 ※ Next.js 16 はキャッシュ周りに breaking change あり。正確な staleTime が要るときは `node_modules/next/dist/docs/` を参照。

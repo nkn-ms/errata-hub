@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { requireAdminOrThrow } from "@/services/auth";
+import { requireAdminServerAction } from "@/services/auth";
 import { scrubProfileForWithdrawal, authUserExists } from "@/services/withdrawal";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import type { Publisher, PublisherAccess } from "@/generated/prisma/client";
@@ -15,7 +15,7 @@ const RoleSchema = z.enum(["ADMIN", "USER"]);
 export type UserActionState = { error?: string };
 
 export async function updateUserRole(profileId: string, role: string): Promise<UserActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   try {
     const parsed = RoleSchema.safeParse(role);
@@ -79,7 +79,7 @@ export async function grantPublisherAccess(
   profileId: string,
   publisherId: string
 ): Promise<GrantPublisherAccessResult> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   try {
     const parsed = z.string().uuid().safeParse(publisherId);
@@ -144,7 +144,7 @@ export async function withdrawUserAsAdmin(
   profileId: string,
   confirmation: string
 ): Promise<UserActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   try {
     if (profileId === admin.id) {
@@ -221,7 +221,7 @@ export async function revokePublisherAccess(
   profileId: string,
   publisherId: string
 ): Promise<UserActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   try {
     // 付与側と同じく形を検査する（片方だけ素通しだと、同じ値を送っても結果が割れる）

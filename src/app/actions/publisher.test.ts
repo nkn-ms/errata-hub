@@ -32,7 +32,7 @@ const { prismaMock, createAuditLogMock, redirectMock, PrismaClientKnownRequestEr
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/services/auth", () => ({
-  requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
+  requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));

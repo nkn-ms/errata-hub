@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { requireAdminOrThrow } from "@/services/auth";
+import { requireAdminServerAction } from "@/services/auth";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
@@ -44,7 +44,7 @@ export type BookUpdateInput = z.input<typeof BookUpdateSchema>;
 export type BookActionState = { error?: string };
 
 export async function updateBook(id: string, input: BookUpdateInput): Promise<BookActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   const parsed = BookUpdateSchema.safeParse(input);
   if (!parsed.success) {
@@ -115,7 +115,7 @@ export async function updateBook(id: string, input: BookUpdateInput): Promise<Bo
 }
 
 export async function deleteBook(id: string): Promise<BookActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   // 投稿が紐づく本は削除させない（出版社削除ガードと同じ「子があれば不可」の方針）。
   // 件数を文言に出すための早期チェックで、塊の外に置いてよい: 隙間で投稿が増えても
@@ -173,7 +173,7 @@ export async function deleteBook(id: string): Promise<BookActionState> {
 type AdoptOutcome = "adopted" | "report-not-found" | "no-url";
 
 export async function adoptReportedErratumUrl(reportId: string): Promise<BookActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   let outcome: AdoptOutcome;
   try {

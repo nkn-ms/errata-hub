@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { requireAdminOrThrow } from "@/services/auth";
+import { requireAdminServerAction } from "@/services/auth";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
@@ -231,7 +231,7 @@ export type ReportUpdateInput = z.input<typeof ReportUpdateSchema>;
 export type ReportActionState = { error?: string };
 
 export async function updateReport(id: string, input: ReportUpdateInput): Promise<ReportActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   try {
     const parsed = ReportUpdateSchema.safeParse(input);
@@ -287,7 +287,7 @@ function findReportWithImages(client: Prisma.TransactionClient, id: string) {
 }
 
 export async function deleteReport(id: string): Promise<ReportActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   let report: Awaited<ReturnType<typeof findReportWithImages>>;
   try {
@@ -361,7 +361,7 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
  * 投稿本文には触れない＝**投稿を消さずに済ませる**ための手段であることが要点。
  */
 export async function deleteReportImage(imageId: string): Promise<ReportActionState> {
-  const admin = await requireAdminOrThrow();
+  const admin = await requireAdminServerAction();
 
   let image: Awaited<ReturnType<typeof prisma.reportImage.findUnique>>;
   try {

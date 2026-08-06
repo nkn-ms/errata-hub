@@ -24,7 +24,7 @@ const { prismaMock, scrubMock, authUserExistsMock, createAuditLogMock } = vi.hoi
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 // 代行退会のガードだけを見たいので、認可・監査ログ・再描画は素通りさせる
 vi.mock("@/services/auth", () => ({
-  requireAdminOrThrow: async () => ({ id: "admin-1", email: "admin@local.test" }),
+  requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
 vi.mock("@/services/withdrawal", () => ({
   scrubProfileForWithdrawal: scrubMock,

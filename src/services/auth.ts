@@ -22,9 +22,10 @@ async function checkAdmin() {
 
 /**
  * 認証済み ADMIN ユーザーであることを検証する。
- * Server Actions 用: 失敗時は throw し、成功時は監査ログ用に user を返す。
+ * 失敗時は throw する（アクションの戻り値では返さない＝呼び出し側が握り潰せない）。
+ * 成功時は監査ログの実行者として記録するため user を返す。
  */
-export async function requireAdminOrThrow() {
+export async function requireAdminServerAction() {
   const result = await checkAdmin();
   if (!result.ok) {
     throw new Error(result.reason === "unauthenticated" ? "認証が必要です" : "権限がありません");
@@ -34,7 +35,7 @@ export async function requireAdminOrThrow() {
 
 /**
  * 認証済み ADMIN ユーザーであることを検証する。
- * サーバーコンポーネント（ページ / レイアウト）用: 失敗時はリダイレクトする。
+ * 失敗時はリダイレクトする（未認証 → /login、権限なし → /）。
  * proxy.ts と併用する多層防御として使う（レイアウトはキャッシュされ得るため単独の砦にはしない）。
  */
 export async function requireAdminPage() {
