@@ -7,7 +7,7 @@ import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
-import { TARGET_TYPE } from "@/constants/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { scrubProfileForWithdrawal } from "@/services/withdrawal";
 import { routes } from "@/constants/routes";
 import { PROFILE_LIMITS } from "@/constants/profile-limits";
@@ -357,7 +357,7 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
       try {
         await createAuditLog({
           userId: user.id,
-          action: "WITHDRAWAL_INCOMPLETE",
+          action: AUDIT_ACTION.WITHDRAWAL_INCOMPLETE,
           targetType: TARGET_TYPE.PROFILE,
           targetId: user.id,
         });
@@ -381,7 +381,7 @@ export async function withdraw(_prevState: AuthState): Promise<AuthState> {
   try {
     await createAuditLog({
       userId: user.id,
-      action: "WITHDRAW_USER",
+      action: AUDIT_ACTION.WITHDRAW_USER,
       targetType: TARGET_TYPE.PROFILE,
       targetId: user.id,
       after: result.scrubbed,

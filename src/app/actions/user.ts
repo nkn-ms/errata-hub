@@ -4,7 +4,7 @@ import { z } from "zod";
 import { refresh } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
-import { TARGET_TYPE } from "@/constants/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminOrThrow } from "@/services/auth";
 import { scrubProfileForWithdrawal, authUserExists } from "@/services/withdrawal";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/lib/withdrawal";
@@ -51,7 +51,7 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "UPDATE_USER_ROLE",
+          action: AUDIT_ACTION.UPDATE_USER_ROLE,
           targetType: TARGET_TYPE.PROFILE,
           targetId: profileId,
           before: { role: before?.role },
@@ -107,7 +107,7 @@ export async function grantPublisherAccess(
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "GRANT_PUBLISHER_ACCESS",
+          action: AUDIT_ACTION.GRANT_PUBLISHER_ACCESS,
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
           after: { publisherId: parsed.data, publisherName: created.publisher.name },
@@ -178,7 +178,7 @@ export async function withdrawUserAsAdmin(
           await createAuditLog({
             userId: admin.id,
             userEmail: admin.email,
-            action: "WITHDRAWAL_INCOMPLETE",
+            action: AUDIT_ACTION.WITHDRAWAL_INCOMPLETE,
             targetType: TARGET_TYPE.PROFILE,
             targetId: profileId,
           });
@@ -200,7 +200,7 @@ export async function withdrawUserAsAdmin(
       await createAuditLog({
         userId: admin.id,
         userEmail: admin.email,
-        action: "ADMIN_WITHDRAW_USER",
+        action: AUDIT_ACTION.ADMIN_WITHDRAW_USER,
         targetType: TARGET_TYPE.PROFILE,
         targetId: profileId,
         after: result.scrubbed,
@@ -246,7 +246,7 @@ export async function revokePublisherAccess(
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "REVOKE_PUBLISHER_ACCESS",
+          action: AUDIT_ACTION.REVOKE_PUBLISHER_ACCESS,
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
           before: { publisherId: parsed.data, publisherName: publisher?.name },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeDigits, toIntOrNull } from "./parse";
+import { normalizeDigits, toIntOrNull, toPageNumber } from "./parse";
 
 describe("toIntOrNull", () => {
   it("数字の文字列を整数にする", () => {
@@ -29,6 +29,41 @@ describe("toIntOrNull", () => {
     expect(toIntOrNull("４２")).toBe(42);
     // 全角と半角が混ざった入力（変換されかけた状態）も読める
     expect(toIntOrNull("1４1")).toBe(141);
+  });
+});
+
+describe("toPageNumber", () => {
+  it("正の整数はそのまま読む", () => {
+    expect(toPageNumber("1")).toBe(1);
+    expect(toPageNumber("42")).toBe(42);
+  });
+
+  it("未指定は1ページ目", () => {
+    expect(toPageNumber(undefined)).toBe(1);
+    expect(toPageNumber("")).toBe(1);
+  });
+
+  // ここを通さないと Prisma が「Argument `skip` is missing」で落ちてエラー画面になる（実測）
+  it("数字として読めない値は1ページ目（NaN を skip に流さない）", () => {
+    expect(toPageNumber("abc")).toBe(1);
+    expect(toPageNumber("12abc")).toBe(1);
+  });
+
+  it("0以下は1ページ目", () => {
+    expect(toPageNumber("0")).toBe(1);
+    expect(toPageNumber("-5")).toBe(1);
+  });
+
+  it("小数は1ページ目（skip が整数でなくなるため）", () => {
+    expect(toPageNumber("2.7")).toBe(1);
+  });
+
+  // skip が 64bit に収まらず Prisma が落ちるケース。指数表記は Number が読んでしまう
+  it("安全整数を超える値は1ページ目", () => {
+    expect(toPageNumber("1e21")).toBe(1);
+    expect(toPageNumber(String(Number.MAX_SAFE_INTEGER + 2))).toBe(1);
+    // 安全整数の上限ちょうどは「読める値」として通す（大きすぎるページ番号の救済は呼び出し側の仕事）
+    expect(toPageNumber(String(Number.MAX_SAFE_INTEGER))).toBe(Number.MAX_SAFE_INTEGER);
   });
 });
 

@@ -75,7 +75,9 @@ model Publisher {
   id              String           @id @default(uuid())
   name            String           @unique // 名前で upsert して名寄せする（同時投稿での重複作成を防ぐ）
   email           String?          // 連絡先（管理者が正誤の連絡に使う。表示は管理画面のみ・公開ページには出さない）
-  emailDomain     String?          // 自動権限付与用ドメイン (例: "oreilly.co.jp")
+  // 出版社のメールドメイン (例: "oreilly.co.jp")。管理者が控えておくためのメモで、アクセス権の判定には使わない
+  // （ドメイン一致での自動付与は廃止した = 下の PublisherAccess のコメント）
+  emailDomain     String?
   note            String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -83,9 +85,9 @@ model Publisher {
   publisherAccess PublisherAccess[]
 }
 
-// ユーザーと出版社の多対多。付与経路は2つ:
-//   1) 管理者が手動で付与・剥奪（/admin/users）
-//   2) ログイン時に Publisher.emailDomain とメールドメインが一致すると自動付与（auth/callback）
+// ユーザーと出版社の多対多。付与経路は**管理者による個別の付与・剥奪（/admin/users）の1つだけ**。
+// メールドメインの一致による自動付与も過去にあったが、人の判断を経ずに権限が付く形だったため廃止した
+// （docs/design.md §7・auth/callback/route.ts にも「ここでは一切付けない」と明記してある）。
 // 現状は表示のみに使い、権限は何もゲートしない（権限に使う際は検証つき付与への見直しが前提。docs/design.md §2）
 model PublisherAccess {
   id          String    @id @default(uuid())
@@ -204,7 +206,10 @@ model AuditLog {
   id         String   @id @default(uuid())
   userId     String?  // 操作者のSupabase user UUID（システム操作はnull）。ProfileへのFKは意図的に張らない（ユーザー削除後もログを保全するため）
   userEmail  String?  // 操作者のメール（ユーザー削除後も記録が残るよう非正規化）
-  action     String   // 例: "UPDATE_REPORT" "DELETE_REPORT" "UPDATE_USER_ROLE" "WITHDRAW_USER" "ADMIN_WITHDRAW_USER"（ベタ書き。網羅は grep で確認）
+  // 例: "UPDATE_REPORT" "DELETE_REPORT" "UPDATE_USER_ROLE" "WITHDRAW_USER"。
+  // 正解の文字列と表示ラベルは src/constants/audit.ts の AUDIT_ACTION / AUDIT_ACTION_LABELS に集約。
+  // ⚠️ 既存の行がこの文字列を持つので値は変えないこと（変えると古い記録が管理画面の絞り込みから外れる）
+  action     String
   targetType String   // "Report" | "Profile" | "PublisherAccess" | "Book" — 正解の文字列は src/constants/audit.ts の TARGET_TYPE に集約
   targetId   String   // 操作対象のID
   before     Json?    // 変更前の値

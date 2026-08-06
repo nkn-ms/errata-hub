@@ -225,6 +225,67 @@ Supabase のセッション維持は「短命のアクセストークンを裏�
 
 ---
 
+## Route Handler と Server Action（サーバー側の「口」の2形態）
+
+出典: `node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md`
+／`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/route.md`
+／`node_modules/next/dist/docs/01-app/02-guides/data-security.md`（CSRF の項）
+
+### 先に名前の対応（3組）
+
+| 呼び名 | 実体 | どこの言葉か |
+|---|---|---|
+| **Route Handler** | `app/**/route.ts` の `GET` / `POST` … 関数 | App Router の言葉（**現行**） |
+| **API Route** | `pages/api/*.ts` | Pages Router の言葉（**旧称。同じもの**） |
+| **Server Action** | `"use server"` を付けた async 関数（`app/actions/*.ts`） | Route Handler と**対になる**書き込み口 |
+
+公式は Route Handler を「`pages` の API Routes と equivalent」と明記している。
+`docs/design.md` §7 が「API Route（Route Handler）」と併記しているのは、この新旧2つの名前を繋ぐため。
+
+### Route Handler とは
+
+**自分で HTTP のエンドポイントを1本立てる仕組み**。Web 標準の `Request` / `Response` をそのまま扱う。
+
+- 置き場所は `app` 配下の `route.ts`。**同じ経路に `page.tsx` とは同居できない**
+  （＝1つの URL は「画面」か「API」のどちらか）
+- `GET` `POST` `PUT` `PATCH` `DELETE` `HEAD` `OPTIONS`。未対応のメソッドは Next が **405** を返す
+- **既定でキャッシュしない**（`GET` だけ `export const dynamic = 'force-static'` で乗せられる）
+
+### 対になる Server Action との違い
+
+どちらも「サーバーで処理する口」で、違うのは **HTTP という境界が表に出ているかどうか**。
+Server Action も見た目は関数呼び出しだが、クライアント側では**サーバーへ POST する代理人**に差し替わる
+（実体は通信。だから戻り型は「クライアントが何を受け取るか」までは語らない ＝ この文書の
+「`no-unnecessary-condition` を常設しない」の節）。
+
+| | Route Handler | Server Action |
+|---|---|---|
+| 呼び方 | `fetch("/api/…")` | 関数を `await` |
+| 型 | 自分で組む（JSON は実質 `any`） | 引数・戻り値をコンパイラが検査 |
+| **CSRF 対策** | **効かない**（自前で Origin 検査が要る） | **Next が自動**（POST 限定＋Origin と Host の一致） |
+| ボディ上限 | Vercel の 4.5MB | 既定 1MB |
+
+⚠️ **CSRF の非対称がいちばん事故りやすい。** `api/reports/[id]/images` が
+`utils/same-origin.ts` の `isSameOriginRequest` を自前で呼んでいるのはこのため
+（Server Action から移してきたつもりで書くと、この1行が抜ける）。
+
+### このアプリの Route Handler は3本だけ（＝例外の全部）
+
+| ルート | なぜ Server Action ではないか |
+|---|---|
+| `POST /api/reports/[id]/images` | 画像は Server Actions のボディ上限 1MB を超える。`bodySizeLimit` を緩めると**全アクション共通**に効くので、大きいバイナリの受口だけ隔離した |
+| `GET /api/books/openbd` | 外部データ源への読み取り窓口（ブラウザから直接叩かせず、IP を外部に渡さない） |
+| `GET /api/books/search` | 同上（＋ Google Books の API キーをサーバーに秘匿する） |
+
+境界の決定そのものは `docs/design.md` §7「データアクセスの境界」が正。
+**読み取り（ページ表示）はどちらでもなく、サーバーコンポーネントから直接 await する。**
+
+⚠️ `services/auth.ts` の認可ヘルパは3兄弟（`requireAdmin` / `requireAdminOrThrow` / `requireAdminPage`）だが、
+**Route Handler 用の `requireAdmin`（`Response` を返す版）は 2026-08-06 時点で呼び出し元が無い**。
+内部 UI の API Route を Server Actions へ寄せた PR#66 で全呼び出し元が消えたため。
+
+---
+
 ## なぜトークンが2本あるのか（アクセストークン=JWT と リフレッシュトークン）
 
 ### 前提: ログイン状態の維持には2方式ある

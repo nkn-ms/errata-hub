@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdminOrThrow } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
-import { TARGET_TYPE } from "@/constants/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
 import { normalizeEmailDomain, isValidEmailDomain } from "@/utils/email-domain";
 import { Prisma } from "@/generated/prisma/client";
@@ -74,7 +74,7 @@ export async function createPublisher(
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "CREATE_PUBLISHER",
+          action: AUDIT_ACTION.CREATE_PUBLISHER,
           targetType: TARGET_TYPE.PUBLISHER,
           targetId: publisher.id,
           after: publisher as unknown as Record<string, unknown>,
@@ -122,7 +122,7 @@ export async function updatePublisher(
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "UPDATE_PUBLISHER",
+          action: AUDIT_ACTION.UPDATE_PUBLISHER,
           targetType: TARGET_TYPE.PUBLISHER,
           targetId: id,
           before: (before ?? null) as unknown as Record<string, unknown> | null,
@@ -162,7 +162,7 @@ export async function deletePublisher(id: string): Promise<PublisherState> {
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "DELETE_PUBLISHER",
+          action: AUDIT_ACTION.DELETE_PUBLISHER,
           targetType: TARGET_TYPE.PUBLISHER,
           targetId: id,
           before: publisher as unknown as Record<string, unknown>,

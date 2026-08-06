@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
-import { TARGET_TYPE } from "@/constants/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminOrThrow } from "@/services/auth";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
@@ -89,7 +89,7 @@ export async function updateBook(id: string, input: BookUpdateInput): Promise<Bo
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "UPDATE_BOOK",
+          action: AUDIT_ACTION.UPDATE_BOOK,
           targetType: TARGET_TYPE.BOOK,
           targetId: id,
           before: book as Record<string, unknown>,
@@ -139,7 +139,7 @@ export async function deleteBook(id: string): Promise<BookActionState> {
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "DELETE_BOOK",
+          action: AUDIT_ACTION.DELETE_BOOK,
           targetType: TARGET_TYPE.BOOK,
           targetId: id,
           before: book as Record<string, unknown>,
@@ -199,7 +199,7 @@ export async function adoptReportedErratumUrl(reportId: string): Promise<BookAct
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "ADOPT_ERRATUM_URL",
+          action: AUDIT_ACTION.ADOPT_ERRATUM_URL,
           targetType: TARGET_TYPE.BOOK,
           targetId: report.bookId,
           before: { erratumUrl: report.book.erratumUrl },
