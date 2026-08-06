@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import type { TargetType } from "@/constants/audit";
+import type { AuditAction, TargetType } from "@/constants/audit";
 import type { Prisma } from "@/generated/prisma/client";
 
 type AuditParams = {
   userId?: string;
   userEmail?: string;
-  action: string;
+  // 文字列そのままではなく AUDIT_ACTION の値に限る。新しい操作を足したとき、
+  // 表示ラベル（AUDIT_ACTION_LABELS）の追加漏れを tsc に見つけさせるための縛り。
+  action: AuditAction;
   targetType: TargetType;
   targetId: string;
   before?: Record<string, unknown> | null;

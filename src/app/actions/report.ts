@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAuditLog } from "@/services/audit";
-import { TARGET_TYPE } from "@/constants/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminOrThrow } from "@/services/auth";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
@@ -250,7 +250,7 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "UPDATE_REPORT",
+          action: AUDIT_ACTION.UPDATE_REPORT,
           targetType: TARGET_TYPE.REPORT,
           targetId: id,
           // ReportUpdateSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
@@ -308,7 +308,7 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "DELETE_REPORT",
+          action: AUDIT_ACTION.DELETE_REPORT,
           targetType: TARGET_TYPE.REPORT,
           targetId: id,
           before: found as Record<string, unknown>,
@@ -378,7 +378,7 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
         {
           userId: admin.id,
           userEmail: admin.email,
-          action: "DELETE_REPORT_IMAGE",
+          action: AUDIT_ACTION.DELETE_REPORT_IMAGE,
           targetType: TARGET_TYPE.REPORT,
           targetId: found.reportId,
           before: found as Record<string, unknown>,

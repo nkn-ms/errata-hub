@@ -3,20 +3,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { shortId } from "@/utils/format";
 import { toPageNumber } from "@/utils/parse";
-
-const ACTION_LABELS: Record<string, string> = {
-  UPDATE_REPORT: "投稿更新",
-  DELETE_REPORT: "投稿削除",
-  DELETE_REPORT_IMAGE: "添付画像削除",
-  ADOPT_ERRATUM_URL: "正誤表URL採用",
-  UPDATE_USER_ROLE: "ロール変更",
-  GRANT_PUBLISHER_ACCESS: "出版社アクセス付与",
-  REVOKE_PUBLISHER_ACCESS: "出版社アクセス削除",
-  UPDATE_BOOK: "書籍更新",
-  DELETE_BOOK: "書籍削除",
-  WITHDRAW_USER: "退会",
-  ADMIN_WITHDRAW_USER: "退会（管理者代行）",
-};
+import { AUDIT_ACTION_LABELS, auditActionLabel } from "@/constants/audit";
 
 const PAGE_SIZE = 50;
 
@@ -72,7 +59,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
           className="text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
         >
           <option value="">操作：すべて</option>
-          {Object.entries(ACTION_LABELS).map(([value, label]) => (
+          {Object.entries(AUDIT_ACTION_LABELS).map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
@@ -128,7 +115,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                    {ACTION_LABELS[log.action] ?? log.action}
+                    {auditActionLabel(log.action)}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono">
