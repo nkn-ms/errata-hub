@@ -247,6 +247,39 @@ DIRECT_URL="<本番の direct 接続文字列>" npx prisma db push
 
 コードや schema.prisma に現れない、本番 Supabase に**直接 SQL で登録した**設定。DBを作り直す・環境を増やす際はここを見て再登録する。
 
+### RLS（全拒否ロック）— ⚠️ テーブルを足すたびに手当てが要る
+
+`schema.prisma` に model を足して本番へ反映しても、**RLS は当たらない**（Prisma の管理外）。公開前に一括で当てたきりなので、
+**それ以降に足したテーブルは締まらないまま残る**。
+
+実際に漏れた（2026-08-06 に本番で発見・同日に適用して解消）:
+
+- **`RateLimit`** … 一括適用より後の `20260726190621_add_rate_limit_counter` で足したテーブル
+- **`_prisma_migrations`** … Prisma が自分で作るテーブル（migrate 移行時に増えた）
+
+**新しいテーブルを本番へ反映したら、続けてこれを実行する**（ポリシーは足さない＝全拒否のまま）:
+
+```sql
+alter table public."<テーブル名>" enable row level security;
+```
+
+アプリへの影響は無い。Prisma は所有者ロール（`postgres`）で繋ぎ、**テーブル所有者は RLS を迂回する**ため。
+
+現状を確かめるクエリ:
+
+```sql
+select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename;
+```
+
+⭐ **PostgREST を実際に止めているのは RLS ではなく権限の側**。同じ実測で `anon` は public スキーマの USAGE も
+テーブルの SELECT も持っていなかった（本番・ローカルとも）。RLS はその上に重ねる2枚目なので、
+**今回の漏れは「露出」ではなく「多層防御の1枚が欠けていた」**。慌てる話ではないが、放置もしない。
+
+```sql
+-- 1枚目（本命）が効いているかの確認。両方 false であること
+select has_schema_privilege('anon','public','USAGE'), has_table_privilege('anon','public."Report"','SELECT');
+```
+
 ### Storage バケット `report-images`（投稿の添付画像）
 
 ローカルは `supabase/config.toml` の `[storage.buckets.report-images]` に定義し、**`supabase seed buckets` で作成する**（⚠️ `supabase start` だけでは作られない — CLI v2.108 で実測。既存環境では明示実行が必要）。**本番はダッシュボードで手動作成**（コードのデプロイでは作られない）。
