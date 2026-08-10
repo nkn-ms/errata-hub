@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { RATE_LIMITS } from "@/constants/rate-limits";
 
 // prisma 本体（pg アダプタ）は実接続するのでモックする。
 // SQL 自体が Postgres で意図どおり動くこと（原子的な加算・ウィンドウの切り替え）は
@@ -96,6 +97,32 @@ describe("checkRateLimit（1回消費して上限内かを返す）", () => {
     });
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+});
+
+describe("開発環境での無効化", () => {
+  const rule = { limit: 1, windowSec: 60 };
+  const now = new Date("2026-07-27T10:00:00Z");
+
+  // ⚠️ この検査があるので、無効化の条件を NODE_ENV !== "production" に緩めると落ちる
+  //    （vitest は NODE_ENV=test で走るため）。next dev だけを対象にしている根拠でもある
+  it("テスト環境（NODE_ENV=test）では効いたまま＝上限の検査そのものができる", async () => {
+    queryRawMock.mockResolvedValue([{ count: 2 }]);
+    const result = await checkRateLimit("k", rule, now);
+    expect(result.allowed).toBe(false);
+  });
+
+  it("外部の枠を守る制限には guardsExternalQuota が付いている（dev でも外さない）", () => {
+    expect(RATE_LIMITS.booksSearchPerDay.guardsExternalQuota).toBe(true);
+    expect(RATE_LIMITS.booksSearchPerMinute.guardsExternalQuota).toBe(true);
+    expect(RATE_LIMITS.booksOpenbd.guardsExternalQuota).toBe(true);
+  });
+
+  it("資源がローカルに閉じる制限には付いていない（dev では外す）", () => {
+    // createReport / reportImageUpload / toggleUpvote が触るのはローカル Supabase の DB・Storage
+    expect(RATE_LIMITS.createReport).not.toHaveProperty("guardsExternalQuota");
+    expect(RATE_LIMITS.reportImageUpload).not.toHaveProperty("guardsExternalQuota");
+    expect(RATE_LIMITS.toggleUpvote).not.toHaveProperty("guardsExternalQuota");
   });
 });
 

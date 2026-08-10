@@ -12,7 +12,23 @@ export type RateLimitRule = {
   limit: number;
   /** ウィンドウの長さ（秒） */
   windowSec: number;
+  /**
+   * 守っている相手が「本番と共有の外部サービスの枠」か。**開発環境で効かせ続けるかの判断に使う。**
+   *
+   * 省略（false）＝守っている資源がローカルに閉じている（ローカル Supabase の DB・Storage）。
+   * dev で使い切っても誰にも影響しないので、開発の邪魔をしないよう外す。
+   * true ＝ dev から使った分も本番の取り分を減らす（Google Books の無料枠はプロジェクト全体で
+   * 共有）。dev でも効かせないと、開発中に本番の検索を止めうる。
+   */
+  guardsExternalQuota?: boolean;
 };
+
+// 開発サーバー（next dev）でだけ true。
+// ⚠️ `NODE_ENV !== "production"` にしないこと。vitest は NODE_ENV=test で走るので、
+//    それだと単体テストでも制限が無効になり、上限の検査そのものがテストできなくなる。
+// ⚠️ 本番・Preview で真になることはない。Vercel のデプロイは常に production ビルドで、
+//    next build / next start は NODE_ENV=production になる。
+const isDevServer = process.env.NODE_ENV === "development";
 
 export type RateLimitResult = {
   allowed: boolean;
@@ -60,6 +76,16 @@ export async function checkRateLimit(
   rule: RateLimitRule,
   now: Date = new Date()
 ): Promise<RateLimitResult> {
+  // 開発環境では、資源がローカルに閉じている制限を数えずに通す。
+  // e2e を1日に何度も回すと createReport の上限（24時間で20件）に当たり、投稿系が一斉に
+  // タイムアウトする。原因が制限だと気づきにくく、無関係な変更を疑うことになるため
+  // （docs/dev-environment.md にも同じ現象を書いてある）。
+  // ⚠️ 外部サービスの枠を守る制限（guardsExternalQuota）はここでは外さない。
+  //    そちらは dev から叩いても本番と同じ実物を消費する。
+  if (isDevServer && !rule.guardsExternalQuota) {
+    return { allowed: true, retryAfterSec: 0 };
+  }
+
   const windowStart = windowStartFor(now, rule.windowSec);
 
   let count: number;

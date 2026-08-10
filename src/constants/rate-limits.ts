@@ -19,12 +19,15 @@ export const RATE_LIMITS = {
   reportImageUpload: { limit: 30, windowSec: 60 * 60 },
 
   // 書籍検索（Google Books）。分のウィンドウは 400ms デバウンスのタイプアヘッド用で、
-  // 打ちながら検索しても通常はぶつからない。日のウィンドウが無料枠（1,000/日・全体共有）の防波堤
-  booksSearchPerMinute: { limit: 30, windowSec: 60 },
-  booksSearchPerDay: { limit: 300, windowSec: 24 * 60 * 60 },
+  // 打ちながら検索しても通常はぶつからない。日のウィンドウが無料枠（1,000/日・全体共有）の防波堤。
+  // ⚠️ guardsExternalQuota: 開発環境でも効かせる。dev から使った分も同じ無料枠を減らすので、
+  //    ここを外すと「開発中に本番の検索が止まる」ことが起こりうる（実装は lib/rate-limit.ts）
+  booksSearchPerMinute: { limit: 30, windowSec: 60, guardsExternalQuota: true },
+  booksSearchPerDay: { limit: 300, windowSec: 24 * 60 * 60, guardsExternalQuota: true },
 
-  // OpenBD 照会。1回の検索で書籍検索より多く飛ぶ（結果の書誌補正で最大20件をまとめて引く）ため緩め
-  booksOpenbd: { limit: 60, windowSec: 60 },
+  // OpenBD 照会。1回の検索で書籍検索より多く飛ぶ（結果の書誌補正で最大20件をまとめて引く）ため緩め。
+  // 無料枠は公表されていないが、相手は実在の公共 API なので dev からの分も本物のアクセスになる
+  booksOpenbd: { limit: 60, windowSec: 60, guardsExternalQuota: true },
 
   // 賛同。1人1票は @@unique で担保済みなのでリスクは低いが、連打での書き込みは抑える
   toggleUpvote: { limit: 60, windowSec: 60 },
