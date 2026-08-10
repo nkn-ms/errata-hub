@@ -110,6 +110,7 @@ export default function HowToUsePage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-2">ステータスの意味</h2>
           <p className="text-sm text-gray-500 mb-4">
             投稿は管理者・出版社のやり取りに応じて、次のステータスへ移っていきます。
+            「未対応」の間は投稿者が内容を修正できます。出版社へ連絡した後は、内容を変えずに追記と画像の追加ができます。
           </p>
           <ul className="space-y-2">
             {STATUS_KEYS.map((key) => (

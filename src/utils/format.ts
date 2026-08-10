@@ -15,6 +15,12 @@ export function formatJstDate(date: Date): string {
   return new Date(date.getTime() + JST_OFFSET_MS).toISOString().split("T")[0];
 }
 
+export function formatJstDateTime(date: Date): string {
+  // toISOString は "YYYY-MM-DDTHH:mm:ss.sssZ"。ミリ秒だけ落として区切りを空白にする
+  const [day, time] = new Date(date.getTime() + JST_OFFSET_MS).toISOString().split("T");
+  return `${day} ${time.slice(0, 8)}`;
+}
+
 /**
  * 投稿日時を「たった今 / N分前 / N時間前 / 昨日 / N日前」の相対表記にする（新着フィードのカード用）。
  *

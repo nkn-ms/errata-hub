@@ -26,6 +26,7 @@ export const REPORT_LIMITS = {
   ebookLocation: 100,
   // URL。ブラウザ・サーバーが実用上扱える長さの目安
   reportedErratumUrl: 2000,
+  addendum: 1000,
   // 管理者が入れる出版社からの回答
   publisherComment: 2000,
 } as const;

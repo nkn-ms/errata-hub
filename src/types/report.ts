@@ -36,6 +36,11 @@ export type Report = {
   fixedPrinting?: number;
   // 表示用に整形済みの投稿日（JST・YYYY-MM-DD）。テーブルの投稿日列・並べ替え用。
   createdAt: string;
+  // 投稿者が本文を編集した時刻の ISO（未編集なら null）。管理者のステータス更新では付かない。
+  // 表示側で日付だけ／日付＋時刻を選べるよう整形しないまま渡す
+  editedAtIso: string | null;
+  // 出版社へ連絡した後に投稿者が足した追記（古い順）。作成後は変えられない
+  addenda: { id: string; body: string; createdAt: string }[];
   // 相対表記（「3時間前」等）を出すための生タイムスタンプ（ISO）。新着フィードのカードで使う。
   createdAtIso: string;
   upvoteCount: number;

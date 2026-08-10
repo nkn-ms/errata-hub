@@ -14,6 +14,8 @@ import { UpvoteButton, type ViewerRole } from "@/components/upvote-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
+import { ReportAddenda } from "@/components/report-addenda";
+import { formatJstDateTime } from "@/utils/format";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -78,11 +80,22 @@ export default async function ReportDetailPage({ params }: Props) {
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
         {/* タイトルとバッジ */}
         <div>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
-              {TYPE_LABELS[report.type]}
-            </span>
-            <StatusBadge status={report.status} />
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex flex-wrap gap-2">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
+                {TYPE_LABELS[report.type]}
+              </span>
+              <StatusBadge status={report.status} />
+            </div>
+            {/* 連絡後は出さない（代わりに本文の下へ追記の欄が出る） */}
+            {viewer === "owner" && report.status === "PENDING" && (
+              <Link
+                href={routes.reportEdit(report.id)}
+                className="shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                投稿を編集する
+              </Link>
+            )}
           </div>
           <h1 className="text-xl font-bold text-gray-900">{report.title}</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -93,7 +106,13 @@ export default async function ReportDetailPage({ params }: Props) {
                 {report.userName} <span className="text-gray-400">@{report.userIdShort}</span>
               </Link>
             )}
-            {" · "}{report.createdAt}
+            {/* <p> の中なので div ではなく span を block にする */}
+            <span className="block tabular-nums">
+              投稿日時: {formatJstDateTime(new Date(report.createdAtIso))}
+            </span>
+            <span className="block tabular-nums">
+              編集日時: {report.editedAtIso ? formatJstDateTime(new Date(report.editedAtIso)) : "-"}
+            </span>
           </p>
         </div>
 
@@ -200,13 +219,21 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* 投稿者メモ */}
+        {/* 備考は投稿の一部なので、事後の追記より上に置く */}
         {report.note && (
           <div>
-            <p className="text-xs text-gray-500 mb-1">投稿者メモ</p>
+            <p className="text-xs text-gray-500 mb-1">備考</p>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{report.note}</p>
           </div>
         )}
+
+        {/* 本文の直下に置く。連絡後は本文を直せず訂正もここに書かれるので、
+            「元の指摘 → 訂正」が1画面で読める並びにする */}
+        <ReportAddenda
+          reportId={report.id}
+          initialAddenda={report.addenda}
+          canAdd={viewer === "owner" && report.status !== "PENDING"}
+        />
 
         {/* 画像 */}
         {raw.images.length > 0 && (

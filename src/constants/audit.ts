@@ -22,6 +22,7 @@ export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
 //    変えると古い記録が絞り込みから外れる（キーの追加・ラベルの変更は自由）。
 export const AUDIT_ACTION = {
   UPDATE_REPORT: "UPDATE_REPORT",
+  UPDATE_OWN_REPORT: "UPDATE_OWN_REPORT",
   DELETE_REPORT: "DELETE_REPORT",
   DELETE_REPORT_IMAGE: "DELETE_REPORT_IMAGE",
   ADOPT_ERRATUM_URL: "ADOPT_ERRATUM_URL",
@@ -48,6 +49,7 @@ export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];
 // 投稿 → ユーザー → 書籍マスタ → 出版社マスタ → 退会。
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   UPDATE_REPORT: "投稿更新",
+  UPDATE_OWN_REPORT: "投稿者による編集",
   DELETE_REPORT: "投稿削除",
   DELETE_REPORT_IMAGE: "添付画像削除",
   ADOPT_ERRATUM_URL: "正誤表URL採用",

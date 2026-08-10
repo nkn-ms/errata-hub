@@ -174,15 +174,36 @@ model Report {
   // 管理者が管理画面で内容を確認し、妥当なら Book.erratumUrl に採用する（＝リンクの公開は管理者の判断を通す。
   // 外部リンクはフィッシング等の攻撃面になるため、監視の仕組み=通報機能ができるまでは開放しない）。
   reportedErratumUrl String?
+  // ⚠️ updatedAt では代用できない。あちらは管理者のステータス更新でも動くので、
+  //    投稿者が一度も触っていない投稿まで「編集済み」と表示してしまう
+  editedAt         DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   images           ReportImage[]
   upvotes          Upvote[]
+  addenda          ReportAddendum[]
 
   // Postgres は FK 列にインデックスを自動作成しない（MySQL とはここが違う）。
   // bookId = 書籍ページ（books/[isbn]）の投稿一覧、userId = ユーザーページ（findReportsByUser）が毎回参照する
   @@index([bookId])
   @@index([userId])
+}
+
+// 出版社へ連絡した後、投稿者が本文の代わりに足せる記録。
+//
+// ⭐ **列1本ではなくテーブルなのは、追記そのものを不変にするため。** 列だと2回目の追記が
+// 1回目を書き換え、「出版社が見た追記が後から変わる」＝この設計が避けたい問題が追記側で再発する。
+// 不変条件: **本文は PENDING の間だけ可変・追記は作った時点で不変。**
+// Report.note（備考・投稿の一部で可変）とは別物。
+model ReportAddendum {
+  id        String   @id @default(uuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  // Postgres は FK 列にインデックスを自動作成しない。投稿詳細が毎回この列で引く
+  @@index([reportId])
 }
 
 // 賛同 — 「自分も同じ誤りを見つけた」の意思表示。1ユーザー1投稿につき1回（@@unique で担保）

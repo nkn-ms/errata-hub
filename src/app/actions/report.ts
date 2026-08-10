@@ -19,6 +19,7 @@ import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
 import { routes } from "@/constants/routes";
+import { formatJstDateTime } from "@/utils/format";
 import { ReportType, Medium, Prisma } from "@/generated/prisma/client";
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。
@@ -47,8 +48,9 @@ const BookSchema = z.object({
 const limited = (max: number, label: string) =>
   z.string().trim().max(max, `${label}は${max}文字以内で入力してください`);
 
-const ReportSchema = z.object({
-  book: BookSchema,
+// 新規投稿と編集で共有する（分けると上限や必須条件が片方だけ変わる）。
+// クライアント側の同じ役目は components/report-fields.tsx
+const reportBodyShape = {
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
   title: limited(REPORT_LIMITS.title, "タイトル").min(1, "タイトルは必須です"),
@@ -63,10 +65,12 @@ const ReportSchema = z.object({
   correct: limited(REPORT_LIMITS.correct, "正（正しい内容）").nullable().optional(),
   content: limited(REPORT_LIMITS.content, "内容・提案").nullable().optional(),
   note: limited(REPORT_LIMITS.note, "備考").nullable().optional(),
-  // 投稿者が見つけた出版社の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する
-  reportedErratumUrl: limited(REPORT_LIMITS.reportedErratumUrl, "正誤表のURL").nullable().optional(),
-}).superRefine((data, ctx) => {
-  // 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（アクション直叩き対策）。
+} as const;
+
+const ReportBodyBase = z.object(reportBodyShape);
+
+// 種別・媒体ごとの条件付き必須。UI と同じ条件をサーバーでも強制する（アクション直叩き対策）。
+function refineReportBody(data: z.infer<typeof ReportBodyBase>, ctx: z.RefinementCtx) {
   if (data.type === "ERRATA") {
     if (!data.wrong?.trim()) {
       ctx.addIssue({ code: "custom", path: ["wrong"], message: "誤（該当箇所）は必須です" });
@@ -97,6 +101,16 @@ const ReportSchema = z.object({
   if (data.medium === "OTHER" && !data.locationNote?.trim()) {
     ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
   }
+}
+
+const ReportSchema = z.object({
+  book: BookSchema,
+  ...reportBodyShape,
+  // 投稿者が見つけた出版社の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する。
+  // 投稿の中身ではなく本に関する情報なので、編集（ReportBodySchema）の対象には入れない
+  reportedErratumUrl: limited(REPORT_LIMITS.reportedErratumUrl, "正誤表のURL").nullable().optional(),
+}).superRefine((data, ctx) => {
+  refineReportBody(data, ctx);
   // 正誤表 URL は任意だが、入力するなら http / https の正しい URL であること。
   // ⚠️ https 限定ではない。何を通し何を弾くか、その理由は sanitizeExternalUrl 側に書いてある
   if (data.reportedErratumUrl?.trim() && !sanitizeExternalUrl(data.reportedErratumUrl)) {
@@ -107,6 +121,9 @@ const ReportSchema = z.object({
     });
   }
 });
+
+const ReportBodySchema = ReportBodyBase.superRefine(refineReportBody);
+export type ReportBodyInput = z.input<typeof ReportBodySchema>;
 
 export type ReportInput = z.input<typeof ReportSchema>;
 export type CreateReportResult = { id: string; error?: undefined } | { id?: undefined; error: string };
@@ -277,6 +294,132 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
   } catch (error) {
     console.error(error);
     return { error: "更新に失敗しました" };
+  }
+}
+
+// 認可の3つ目の形態（「ログイン済み かつ その投稿の投稿者」）なので services/auth は使わない。
+// ステータスは一本道なので「FORWARDED 未満」は PENDING で足りる。DISMISSED も弾く。
+//
+// ⚠️ ステータスの確認はトランザクションの**中**で行う。編集画面を開いている間に管理者が
+//    連絡済みにする競合は現実にあり、画面を出した時点の判定では送信済みの投稿を書き換えられる。
+export async function updateOwnReport(id: string, input: ReportBodyInput): Promise<ReportActionState> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
+  try {
+    const parsed = ReportBodySchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0].message };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const before = await tx.report.findUnique({ where: { id } });
+      if (!before) return { error: "投稿が見つかりません" };
+      if (before.userId !== user.id) return { error: "この投稿を編集する権限がありません" };
+      if (before.status !== "PENDING") {
+        return { error: "出版社へ連絡した後の投稿は編集できません。追記でご対応ください。" };
+      }
+
+      // editedAt は投稿者が本文を触ったときだけ動かす（updatedAt は管理者の操作でも動くため）
+      const after = await tx.report.update({
+        where: { id },
+        data: { ...parsed.data, editedAt: new Date() },
+      });
+
+      // 上書きなので他に痕跡が残らない。賛同が付いた後の書き換えを辿れる唯一の手段
+      // （本人の操作を載せる前例は withdraw にもある）
+      await createAuditLog(
+        {
+          userId: user.id,
+          userEmail: user.email,
+          action: AUDIT_ACTION.UPDATE_OWN_REPORT,
+          targetType: TARGET_TYPE.REPORT,
+          targetId: id,
+          before: toAuditBody(before),
+          after: toAuditBody(after),
+        },
+        tx
+      );
+      return {};
+    });
+    if (result.error !== undefined) return result;
+
+    refresh();
+    return {};
+  } catch (error) {
+    console.error(error);
+    return { error: "更新に失敗しました" };
+  }
+}
+
+function toAuditBody(report: Prisma.ReportGetPayload<object>) {
+  return {
+    title: report.title,
+    type: report.type,
+    medium: report.medium,
+    edition: report.edition,
+    printing: report.printing,
+    page: report.page,
+    line: report.line,
+    hasMultiplePages: report.hasMultiplePages,
+    locationNote: report.locationNote,
+    ebookLocation: report.ebookLocation,
+    wrong: report.wrong,
+    correct: report.correct,
+    content: report.content,
+    note: report.note,
+  };
+}
+
+const AddendumSchema = z.object({
+  body: limited(REPORT_LIMITS.addendum, "追記").min(1, "追記を入力してください"),
+});
+export type AddendumInput = z.input<typeof AddendumSchema>;
+export type Addendum = { id: string; body: string; createdAt: string };
+type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: undefined; error: string };
+
+// ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
+//    理由は components/report-addenda.tsx のコメント。
+export async function addReportAddendum(id: string, input: AddendumInput): Promise<AddendumResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
+  try {
+    const parsed = AddendumSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0].message };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const report = await tx.report.findUnique({ where: { id } });
+      if (!report) return { error: "投稿が見つかりません" };
+      if (report.userId !== user.id) return { error: "この投稿に追記する権限がありません" };
+      // PENDING のうちは本文を直せるので追記させない（同じことを2つの経路で言えるようにしない）
+      if (report.status === "PENDING") {
+        return { error: "この投稿はまだ編集できます。本文を直してください。" };
+      }
+
+      const created = await tx.reportAddendum.create({
+        data: { reportId: id, body: parsed.data.body },
+      });
+      return {
+        addendum: {
+          id: created.id,
+          body: created.body,
+          createdAt: formatJstDateTime(created.createdAt),
+        },
+      };
+    });
+    return result;
+  } catch (error) {
+    console.error(error);
+    return { error: "追記に失敗しました" };
   }
 }
 

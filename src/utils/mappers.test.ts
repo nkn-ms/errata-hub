@@ -28,6 +28,11 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
     fixedEdition: null,
     fixedPrinting: null,
     createdAt: new Date("2026-06-18T09:30:00.000Z"),
+    // 未編集・追記なしの投稿。⚠️ 省略してはいけない — DB からは必ず値が来る
+    // （editedAt は nullable なので Date か null、addenda は reportInclude で必ず入る）。
+    // 省くとマッパー側に現実には要らない undefined の手当てを足すことになる（#178 と同じ型の罠）
+    editedAt: null,
+    addenda: [],
     book: {
       title: "テスト書籍",
       author: "著者名",
