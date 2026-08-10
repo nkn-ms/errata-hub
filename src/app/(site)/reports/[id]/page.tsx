@@ -232,6 +232,16 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* 備考は**投稿の一部**なので、事後の追記より上に置く（元の投稿がひと塊 → 後から足したもの）。
+            ⚠️ ラベルは「備考」。入力フォームも管理画面も「備考」で、ここだけ「投稿者メモ」と
+               別名になっていた（同じ列に3つの名前が付いている状態だった） */}
+        {report.note && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">備考</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{report.note}</p>
+          </div>
+        )}
+
         {/* 追記は**本文の直下に置く**（案D）。連絡後は本文を直せないので、打ち間違いの訂正も
             ここに書かれる。「元の指摘 → 訂正」が1画面で読める並びにする。
             一覧と入力欄が1つの部品なのは、書きかけを再描画で失わないため（部品側のコメント参照） */}
@@ -240,14 +250,6 @@ export default async function ReportDetailPage({ params }: Props) {
           initialAddenda={report.addenda}
           canAdd={viewer === "owner" && report.status !== "PENDING"}
         />
-
-        {/* 投稿者メモ */}
-        {report.note && (
-          <div>
-            <p className="text-xs text-gray-500 mb-1">投稿者メモ</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{report.note}</p>
-          </div>
-        )}
 
         {/* 画像 */}
         {raw.images.length > 0 && (

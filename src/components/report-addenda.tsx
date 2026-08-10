@@ -92,7 +92,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
               maxLength={REPORT_LIMITS.addendum}
               aria-describedby="addendum-count"
               rows={3}
-              placeholder="例: 第3刷では直っていました。初刷のみの誤りのようです。"
+              placeholder="例: ページ番号は p.141 ではなく p.142 の誤りでした"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <CharCounter id="addendum-count" value={body} max={REPORT_LIMITS.addendum} />
