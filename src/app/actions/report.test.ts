@@ -13,6 +13,7 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
   }
   const models = {
     report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
+    reportImage: { findUnique: vi.fn(), delete: vi.fn() },
     upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
     book: { upsert: vi.fn() },
     publisher: { upsert: vi.fn() },
@@ -54,7 +55,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport, toggleUpvote, updateReport } from "./report";
+import { createReport, deleteOwnReportImage, toggleUpvote, updateReport } from "./report";
+import { AUDIT_ACTION } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
@@ -351,5 +353,96 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
     const result = await createReport({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
     expect(result.error).toBeUndefined();
     expect(result.id).toBe("report-2");
+  });
+});
+
+describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
+  // 実在しないバケットの URL にしておくと storagePathFromPublicUrl が null を返し、
+  // Storage への削除要求そのものが起きない（ここで見たいのは DB 側の判断なので都合がよい）
+  const image = {
+    id: "image-1",
+    reportId: "report-1",
+    imageUrl: "https://example.test/not-a-storage-url.png",
+    report: { userId: "user-1", status: "PENDING" },
+  };
+
+  beforeEach(() => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", email: "reader@local.test" } } });
+    prismaMock.reportImage.findUnique.mockResolvedValue(image);
+  });
+
+  it("未認証はエラー", async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toBe("認証が必要です");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+  });
+
+  it("他人の投稿の画像は削除できない", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue({
+      ...image,
+      report: { userId: "user-2", status: "PENDING" },
+    });
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toContain("権限がありません");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+  });
+
+  // この機能の肝。出版社へ連絡した後に根拠を消せると、本文を凍結していても
+  // 「出版社が見た内容」は結局変わってしまう
+  it("出版社へ連絡した後は削除できない", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue({
+      ...image,
+      report: { userId: "user-1", status: "FORWARDED" },
+    });
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toContain("出版社へ連絡した後");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+  });
+
+  it("却下された投稿でも削除できない（PENDING だけが可変）", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue({
+      ...image,
+      report: { userId: "user-1", status: "DISMISSED" },
+    });
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toContain("出版社へ連絡した後");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+  });
+
+  it("未対応の間は自分の画像を削除でき、操作ログに残る", async () => {
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toBeUndefined();
+    expect(prismaMock.reportImage.delete).toHaveBeenCalledWith({ where: { id: "image-1" } });
+    // 消した後に画像があったことを辿れる唯一の手段なので、記録の中身まで見る
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        action: AUDIT_ACTION.DELETE_OWN_REPORT_IMAGE,
+        // 画像は投稿の一部なので、対象は投稿（画像 ID ではない）
+        targetId: "report-1",
+        before: expect.objectContaining({ imageUrl: image.imageUrl }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it("画像が見つからないときは削除もログもしない", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue(null);
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toBe("画像が見つかりません");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
   });
 });

@@ -125,6 +125,13 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
 - **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `app/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`services/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
 
+### 投稿を後から直せる範囲（投稿者本人）
+- 境界は `ReportStatus`。**未対応（PENDING）の間は本文を編集でき、出版社へ連絡した後（PENDING 以外）は追記だけ**。理由は、出版社が見た内容と後から書き換えられた内容が食い違うと出版社側の対応が宙に浮くため。外に出す前は自由に直せて、外に出した後は上書きせず足す。実装は `app/actions/report.ts` の `updateOwnReport` / `addReportAddendum`。
+- **追記は列1本ではなく別テーブル（`ReportAddendum`）**。列だと2回目の追記が1回目を書き換えられ、避けたい問題が追記の側で再発する。不変条件を1行で言える形にした＝**本文は PENDING の間だけ可変・追記は作った時点で不変**。`Report.note`（備考）は投稿の一部で別物。
+- **画像は追加＝いつでも可・削除＝PENDING の間だけ**。追加は追記と同じ「足すだけ」の操作だが、削除を認めると本文を凍結しても出版社が見た内容が結局変わるため。追加は `POST /api/reports/[id]/images`、削除は `deleteOwnReportImage`（権利者対応のための管理者削除 `deleteReportImage` はステータスに関わらず可＝別物）。UI は投稿の詳細ページに置く（編集画面は PENDING の間しか開かず、追加を連絡後も認める以上そこには置けない）。
+- 認可は**3つ目の形態**（管理者でも「ログイン済み」でもなく「ログイン済み かつ その投稿の投稿者」）なので `services/auth.ts` のヘルパは使わずアクション内で組む。**ステータスの確認はトランザクションの中**で行う（画面を開いている間に管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）。
+- 本文の編集と画像の削除は AuditLog に載せる（`UPDATE_OWN_REPORT` / `DELETE_OWN_REPORT_IMAGE`）。上書き・削除で痕跡が消えるため、賛同が付いた後の書き換えを辿る唯一の手段になる。**追記は載せない**（行そのものが記録）。
+
 ### 参照整合性は DB 外部キーで担保（＝画面操作で参照不整合は起きない）
 - onDelete マップ: `Report.userId`/`Report.bookId` = **Restrict**（投稿を持つ User/Book は削除不可）、`ReportImage→Report` = Cascade、`PublisherAccess→Profile/Publisher` = Cascade、`Book.publisherId` = 任意だが **Restrict**（出版社削除ガード。optional の既定 SetNull から意図的に変更）。
 - 「記事ゼロの Book / Publisher（孤児行）」は**放置で許容**。Book は ISBN で upsert、Publisher は名前照合で、再投稿時に**再利用**される（重複も不整合も作らない）。連動削除は入れない（複雑化＝バグの温床を避ける）。「出版社不明の本」は元データ不完全ゆえの**正規の状態**（publisherId は optional のまま）。

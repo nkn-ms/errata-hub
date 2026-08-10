@@ -8,8 +8,8 @@ import { confirmAndSubmit } from "./submit-report";
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
 //
 // この spec が守っている線引き:
-//   未対応（PENDING）の間 = 本文を修正できる
-//   出版社へ連絡した後     = 本文は直せず、追記だけできる
+//   未対応（PENDING）の間 = 本文を修正できる／画像を追加も削除もできる
+//   出版社へ連絡した後     = 本文は直せず、追記だけできる／画像は追加だけできる
 
 const BOOK_B = {
   isbn: "9784274224478",
@@ -52,6 +52,21 @@ async function forwardAsAdmin(page: Page, reportId: string) {
   await page.getByRole("button", { name: "出版社へ連絡済み", exact: true }).click();
   await page.getByRole("button", { name: "保存する" }).click();
   await expect(page.getByText("保存しました")).toBeVisible();
+}
+
+// 1x1 の PNG（テスト用の最小画像）。中身は report-images.write.spec.ts と同じで、
+// あちらが「添付そのもの」を、ここは「いつ足せて・いつ消せるか」を見る
+const PNG_1X1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64"
+);
+
+async function attachImage(page: Page) {
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "errata.png",
+    mimeType: "image/png",
+    buffer: PNG_1X1,
+  });
 }
 
 async function deleteReportAsAdmin(page: Page, reportId: string) {
@@ -118,6 +133,81 @@ test.describe("投稿者による編集（未対応の間）", () => {
       await adminPage.goto(`/reports/${reportId}/edit`);
       await adminPage.waitForURL(`**/reports/${reportId}`);
       await expect(adminPage.getByRole("button", { name: "更新する" })).toHaveCount(0);
+
+      await deleteReportAsAdmin(adminPage, reportId);
+    } finally {
+      await adminContext.close();
+    }
+  });
+});
+
+test.describe("投稿者による画像の追加・削除", () => {
+  test("未対応の間は自分で足せて、自分で消せる", async ({ page, browser }) => {
+    const title = `E2E画像追加 ${Date.now()}`;
+    await login(page, READER);
+    const reportId = await createReport(page, title);
+
+    // 投稿時に付けなかった画像を、詳細ページから後で足せる
+    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
+    await attachImage(page);
+    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+
+    // 読み込み直しても残っている＝画面の state だけでなく Storage と DB に入っている
+    await page.reload();
+    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+    await expect(page.getByAltText("証拠画像")).toHaveAttribute("src", /report-images/);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "この画像を削除" }).click();
+    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
+    // 画像を消しても投稿そのものは残る
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+
+      // 他人の投稿には追加の導線を出さない（管理者でも同じ。公開ページは閲覧のまま）。
+      // ボタンに見えているのは input のラベルなので、入力欄そのものが無いことまで見る
+      await adminPage.goto(`/reports/${reportId}`);
+      await expect(adminPage.getByText("画像を追加")).toHaveCount(0);
+      await expect(adminPage.locator('input[type="file"]')).toHaveCount(0);
+
+      await deleteReportAsAdmin(adminPage, reportId);
+    } finally {
+      await adminContext.close();
+    }
+  });
+
+  // 追加は「足すだけ」なので連絡後も認める。削除は認めない＝消せるなら、本文を凍結しても
+  // 出版社が見た内容は結局変えられてしまう
+  test("連絡後は足せるが、消せない", async ({ page, browser }) => {
+    const title = `E2E画像連絡後 ${Date.now()}`;
+    await login(page, READER);
+    const reportId = await createReport(page, title);
+
+    await attachImage(page);
+    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+      await forwardAsAdmin(adminPage, reportId);
+
+      await page.goto(`/reports/${reportId}`);
+      // 連絡前に付けた画像の削除ボタンが消えている
+      await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
+
+      // 追加はできる
+      await attachImage(page);
+      await expect(page.getByAltText("証拠画像")).toHaveCount(2);
+      await page.reload();
+      await expect(page.getByAltText("証拠画像")).toHaveCount(2);
+      await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
 
       await deleteReportAsAdmin(adminPage, reportId);
     } finally {

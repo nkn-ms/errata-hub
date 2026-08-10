@@ -429,6 +429,28 @@ function findReportWithImages(client: Prisma.TransactionClient, id: string) {
   return client.report.findUnique({ where: { id }, include: { images: true } });
 }
 
+/**
+ * Storage 上のファイルを消す。**必ずコミット後に呼ぶ**（取り消せない操作なので DB の確定を待つ）。
+ *
+ * Storage は外部サービスでトランザクションに入れられない＝原子性は諦め、「どちらに倒すか」を
+ * 決めている: DB を先に消す＝**ファイルだけ残る（孤児）**。逆（ファイルを先に消す）だと
+ * 画像が壊れて表示されるので、利用者に見える分だけ実害が大きい。
+ * 残った孤児はパスをログに出して後から掃除できるようにする。
+ */
+async function removeImageFiles(imageUrls: string[]) {
+  const paths = imageUrls
+    .map((imageUrl) => storagePathFromPublicUrl(imageUrl))
+    .filter((path): path is string => path !== null);
+  if (paths.length === 0) return;
+
+  const storageAdmin = createAdminClient();
+  const { error } = await storageAdmin.storage.from(REPORT_IMAGE_BUCKET).remove(paths);
+  if (error) {
+    // DB 側は確定済みなのでエラーにはしない。孤児ファイルの手掛かりとして記録のみ。
+    console.error("画像ファイルの削除に失敗:", paths, error);
+  }
+}
+
 export async function deleteReport(id: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
@@ -469,26 +491,7 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
     return { error: "投稿が見つかりません" };
   }
 
-  // ここから先はコミット後。Storage のファイル削除は**取り消せない**ので、
-  // DB 側が確定してから触る。
-  //
-  // Storage は外部サービスでトランザクションに入れられない＝原子性は諦め、
-  // 「どちらに倒すか」を決めている: DB を先に消す＝**ファイルだけ残る（孤児）**。
-  // 逆（ファイルを先に消す）だと画像が壊れて表示されるので、利用者に見える分だけ実害が大きい。
-  // 残った孤児はパスをログに出して後から掃除できるようにする。
-  const imagePaths = report.images
-    .map((image) => storagePathFromPublicUrl(image.imageUrl))
-    .filter((path): path is string => path !== null);
-  if (imagePaths.length > 0) {
-    const storageAdmin = createAdminClient();
-    const { error: removeError } = await storageAdmin.storage
-      .from(REPORT_IMAGE_BUCKET)
-      .remove(imagePaths);
-    if (removeError) {
-      // 投稿削除は確定済みなのでエラーにはしない。孤児ファイルの手掛かりとして記録のみ。
-      console.error("画像ファイルの削除に失敗:", imagePaths, removeError);
-    }
-  }
+  await removeImageFiles(report.images.map((image) => image.imageUrl));
 
   // redirect は制御フロー例外を投げるため try の外で呼ぶ（catch に飲まれないように）
   redirect(routes.admin.reports);
@@ -539,20 +542,77 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
     return { error: "画像が見つかりません" };
   }
 
-  // コミット後に Storage を消す（取り消せない操作なので DB の確定を待つ）。
-  // 失敗しても孤児ファイルが残るだけなのでエラーにはせず、パスを記録して掃除できるようにする。
-  const path = storagePathFromPublicUrl(image.imageUrl);
-  if (path) {
-    const storageAdmin = createAdminClient();
-    const { error: removeError } = await storageAdmin.storage
-      .from(REPORT_IMAGE_BUCKET)
-      .remove([path]);
-    if (removeError) {
-      console.error("画像ファイルの削除に失敗:", path, removeError);
-    }
-  }
+  await removeImageFiles([image.imageUrl]);
 
   refresh();
+  return {};
+}
+
+type OwnImageDeletion =
+  | { error: string; imageUrl?: undefined }
+  | { error?: undefined; imageUrl: string };
+
+/**
+ * 添付画像を1枚だけ削除する（投稿者本人・出版社へ連絡する前だけ）。
+ *
+ * 削除を PENDING に限るのは、本文を凍結しても画像を消せるなら**出版社が見た内容は結局変わる**ため。
+ * 追加の方は追記と同じ「足すだけ」の操作なので、連絡後も開いている（api/reports/[id]/images）。
+ *
+ * ⚠️ 管理者用の deleteReportImage とは別に置く。あちらは権利者からの削除要請に応える措置で、
+ *    ステータスに関わらず消せる必要があり、条件を共有すると両方の意図が濁る。
+ */
+export async function deleteOwnReportImage(imageId: string): Promise<ReportActionState> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
+  let result: OwnImageDeletion;
+  try {
+    result = await prisma.$transaction(async (tx): Promise<OwnImageDeletion> => {
+      // 認可もステータスの確認も塊の中で行う（updateOwnReport と同じ理由。詳細ページを開いて
+      // いる間に管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
+      const found = await tx.reportImage.findUnique({
+        where: { id: imageId },
+        include: { report: { select: { userId: true, status: true } } },
+      });
+      if (!found) return { error: "画像が見つかりません" };
+      if (found.report.userId !== user.id) {
+        return { error: "この画像を削除する権限がありません" };
+      }
+      if (found.report.status !== "PENDING") {
+        return { error: "出版社へ連絡した後は画像を削除できません。" };
+      }
+
+      await tx.reportImage.delete({ where: { id: imageId } });
+      // 消せる期間でも記録は残す。上書きと同じで、消した後は画像があったことを辿る手段が
+      // これしかない（賛同が付いた後に根拠だけ消える形を検知できるようにしておく）。
+      // 対象は投稿（画像は投稿の一部）なので targetId は reportId にする。
+      await createAuditLog(
+        {
+          userId: user.id,
+          userEmail: user.email,
+          action: AUDIT_ACTION.DELETE_OWN_REPORT_IMAGE,
+          targetType: TARGET_TYPE.REPORT,
+          targetId: found.reportId,
+          before: { id: found.id, imageUrl: found.imageUrl },
+        },
+        tx
+      );
+      return { imageUrl: found.imageUrl };
+    });
+  } catch (error) {
+    console.error(error);
+    return { error: "画像の削除に失敗しました" };
+  }
+
+  if (result.error !== undefined) return { error: result.error };
+
+  await removeImageFiles([result.imageUrl]);
+
+  // ⚠️ refresh() しない。呼び出し側（report-images.tsx）は追加も削除も自分の state で持っており、
+  //    サーバーを描き直しても初期値としては読まれない＝往復が増えるだけになる。
   return {};
 }
 

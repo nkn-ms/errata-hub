@@ -5,7 +5,6 @@ import { mapReport } from "@/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +14,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 import { ReportAddenda } from "@/components/report-addenda";
+import { ReportImages } from "@/components/report-images";
 import { formatJstDateTime } from "@/utils/format";
 
 type Props = {
@@ -235,26 +235,13 @@ export default async function ReportDetailPage({ params }: Props) {
           canAdd={viewer === "owner" && report.status !== "PENDING"}
         />
 
-        {/* 画像 */}
-        {raw.images.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-500 mb-2">証拠画像</p>
-            <div className="flex flex-wrap gap-3">
-              {raw.images.map((img) => (
-                <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
-                  <Image
-                    src={img.imageUrl}
-                    alt="証拠画像"
-                    width={128}
-                    height={180}
-                    unoptimized
-                    className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
-                  />
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 画像。投稿者本人には追加（連絡後も可）と削除（連絡前だけ）の手段も出る */}
+        <ReportImages
+          reportId={report.id}
+          initialImages={raw.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
+          canAdd={viewer === "owner"}
+          canDelete={viewer === "owner" && report.status === "PENDING"}
+        />
 
         {/* 修正済み情報 */}
         {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
