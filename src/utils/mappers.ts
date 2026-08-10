@@ -1,11 +1,14 @@
-import type { Report as PrismaReport, Book, Publisher, ReportImage, Profile } from "@/generated/prisma/client";
+import type { Report as PrismaReport, Book, Publisher, ReportImage, ReportAddendum, Profile } from "@/generated/prisma/client";
 import type { Report } from "@/types/report";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
-import { formatJstDate, shortId } from "@/utils/format";
+import { formatJstDate, formatJstDateTime, shortId } from "@/utils/format";
 
 type PrismaReportWithRelations = PrismaReport & {
   book: Book & { publisher: Publisher | null };
   images: ReportImage[];
+  // 必須。mapReport の呼び出し元はすべて reportInclude 経由なので必ず入る
+  // （省略可にすると `?? []` という死んだ既定値を書くことになる）
+  addenda: ReportAddendum[];
   user?: Pick<Profile, "displayName" | "email"> | null;
   _count?: { upvotes: number };
 };
@@ -45,6 +48,13 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     fixedEdition: f.fixedEdition ?? undefined,
     fixedPrinting: f.fixedPrinting ?? undefined,
     createdAt: formatJstDate(f.createdAt),
+    // 整形せず ISO のまま渡すのは、詳細ページが日付＋時刻で出すため（createdAtIso と同じ理由）
+    editedAtIso: f.editedAt === null ? null : f.editedAt.toISOString(),
+    addenda: f.addenda.map((a) => ({
+      id: a.id,
+      body: a.body,
+      createdAt: formatJstDateTime(a.createdAt),
+    })),
     createdAtIso: f.createdAt.toISOString(),
     upvoteCount: f._count?.upvotes ?? 0,
     imageUrls: f.images.map((image) => image.imageUrl),

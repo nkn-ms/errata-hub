@@ -25,6 +25,8 @@ export const routes = {
   // 投稿の検索・一覧ページ（種別/ステータス絞り込み付きテーブル）。トップの検索ボックスの遷移先。
   reports: "/reports",
   report: (id: string) => `/reports/${id}`,
+  // 投稿者が自分の投稿を直す画面（他人が開くと投稿の詳細へ戻される）
+  reportEdit: (id: string) => `/reports/${id}/edit`,
   // 書籍だけ UUID でなく ISBN を URL に使う。ISBN は「本の同一性の基準」（Book.isbn は @unique）で
   // 外部から参照・共有される値なので、公開後に変えられない URL は自然キー側に寄せる。
   book: (isbn: string) => `/books/${isbn}`,

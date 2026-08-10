@@ -26,6 +26,10 @@ export const REPORT_LIMITS = {
   ebookLocation: 100,
   // URL。ブラウザ・サーバーが実用上扱える長さの目安
   reportedErratumUrl: 2000,
+  // 出版社へ連絡した後に投稿者が足す追記。1件ごとの上限で、件数は制限していない。
+  // 本文（content）と同じ 1000 字にするのは、追記が「本文の続き」だから
+  // （追記でしか書けなくなった内容を、追記だからという理由で短くする根拠が無い）
+  addendum: 1000,
   // 管理者が入れる出版社からの回答
   publisherComment: 2000,
 } as const;

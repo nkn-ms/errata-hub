@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatJstDate, formatRelativeJst, shortId } from "@/utils/format";
+import { formatJstDate, formatJstDateTime, formatRelativeJst, shortId } from "@/utils/format";
 
 describe("formatJstDate", () => {
   it("JST 基準の YYYY-MM-DD にする", () => {
@@ -12,6 +12,26 @@ describe("formatJstDate", () => {
 
   it("JST 日付の境界直前は当日のまま（UTC 14:59 = JST 23:59）", () => {
     expect(formatJstDate(new Date("2026-07-12T14:59:59Z"))).toBe("2026-07-12");
+  });
+});
+
+describe("formatJstDateTime", () => {
+  it("JST 基準の YYYY-MM-DD HH:mm:ss にする", () => {
+    expect(formatJstDateTime(new Date("2026-07-12T01:23:45Z"))).toBe("2026-07-12 10:23:45");
+  });
+
+  it("UTC では前日でも JST の日付・時刻になる（UTC 15:00 = JST 翌日 00:00）", () => {
+    expect(formatJstDateTime(new Date("2026-07-12T15:00:00Z"))).toBe("2026-07-13 00:00:00");
+  });
+
+  it("同じ日の別時刻を区別できる（この関数を足した理由）", () => {
+    expect(formatJstDateTime(new Date("2026-07-12T00:10:00Z"))).toBe("2026-07-12 09:10:00");
+    expect(formatJstDateTime(new Date("2026-07-12T09:10:00Z"))).toBe("2026-07-12 18:10:00");
+  });
+
+  it("同じ分の中でも秒で前後が分かる（投稿してすぐ直した場合）", () => {
+    expect(formatJstDateTime(new Date("2026-07-12T01:23:05Z"))).toBe("2026-07-12 10:23:05");
+    expect(formatJstDateTime(new Date("2026-07-12T01:23:40Z"))).toBe("2026-07-12 10:23:40");
   });
 });
 

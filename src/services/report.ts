@@ -11,6 +11,8 @@ import { Prisma } from "@/generated/prisma/client";
 export const reportInclude = {
   book: { include: { publisher: true } },
   images: true,
+  // 追記は古い順（読む順が 投稿 → 追記1 → 追記2 と時系列になる）
+  addenda: { orderBy: { createdAt: "asc" } },
   // email は退会判定（匿名化メールか）にのみ使い、クライアントへは渡さない（mapReport で破棄）。
   user: { select: { displayName: true, email: true } },
   _count: { select: { upvotes: true } },

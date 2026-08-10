@@ -16,6 +16,21 @@ export function formatJstDate(date: Date): string {
 }
 
 /**
+ * Date を日本時間（JST）基準の YYYY-MM-DD HH:mm:ss にする。
+ *
+ * 日付だけで足りる一覧では formatJstDate を使い、こちらは**同じ日に複数回起きうる出来事**を
+ * 見分ける必要がある場所に使う（投稿日時と編集日時、出版社への連絡と投稿者の編集など。
+ * 同日だと日付だけでは前後関係が読めない）。
+ * 秒まで出すのは、投稿してすぐ直す・連絡した直後に直すといった**分をまたがない操作**が
+ * 現実にあり、分止まりだと同じ表示になって前後が読めなくなるため。
+ */
+export function formatJstDateTime(date: Date): string {
+  // toISOString は "YYYY-MM-DDTHH:mm:ss.sssZ"。ミリ秒だけ落として区切りを空白にする
+  const [day, time] = new Date(date.getTime() + JST_OFFSET_MS).toISOString().split("T");
+  return `${day} ${time.slice(0, 8)}`;
+}
+
+/**
  * 投稿日時を「たった今 / N分前 / N時間前 / 昨日 / N日前」の相対表記にする（新着フィードのカード用）。
  *
  * 「最新の投稿」を名乗るトップでは、絶対日付より相対表記の方が鮮度が直感的に伝わる。

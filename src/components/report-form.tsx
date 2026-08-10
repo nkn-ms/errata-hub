@@ -302,7 +302,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
         <div ref={confirmRef} tabIndex={-1} className="focus:outline-none">
           <h2 className="text-lg font-semibold text-gray-900">この内容で投稿します</h2>
           <p className="mt-1 text-sm text-gray-500">
-            投稿後は自分で修正できません。内容をご確認ください。
+            出版社へ連絡するまでは、投稿の内容を修正できます。
           </p>
         </div>
 
