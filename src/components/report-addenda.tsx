@@ -292,7 +292,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
               onClick={() => confirmRef.current?.close()}
               className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
-              やめる
+              キャンセル
             </button>
             <button
               type="button"

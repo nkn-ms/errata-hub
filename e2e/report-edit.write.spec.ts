@@ -276,6 +276,13 @@ test.describe("追記（出版社へ連絡した後）", () => {
       const second = "正誤表にも掲載された（追記2）";
 
       await page.getByLabel("追記する").fill(first);
+
+      // キャンセルしたら何も起きず、書いた内容は残る（確認は「引き返せる」ことに意味がある）
+      await page.getByRole("button", { name: "確認する" }).click();
+      await page.locator("dialog[open]").getByRole("button", { name: "キャンセル" }).click();
+      await expect(page.locator("dialog[open]")).toHaveCount(0);
+      await expect(page.getByLabel("追記する")).toHaveValue(first);
+
       await confirmAddendum(page);
       await expect(page.getByText(first)).toBeVisible();
       // 本文は元のまま（追記は足すだけで上書きしない）
@@ -318,6 +325,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await attachImage(page);
       // 追記も画像も確認のダイアログを通してから確定する（押すまでは送らない）
       await expect(page.getByAltText("追記の画像")).toHaveCount(0);
+
       await confirmAddendum(page);
 
       await expect(page.getByAltText("追記の画像")).toHaveCount(1);
