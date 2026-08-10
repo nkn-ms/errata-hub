@@ -191,7 +191,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
         </div>
 
         {error && <p className="text-sm text-red-700">{error}</p>}
-        {saved && <p className="text-sm text-green-700">保存しました</p>}
+        {saved && <p className="text-sm text-green-700">更新しました</p>}
 
         <div className="flex gap-3 justify-between pt-2">
           <div className="flex gap-3">
@@ -201,7 +201,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
               disabled={saving}
               className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
-              {saving ? "保存中..." : "保存する"}
+              {saving ? "更新中..." : "更新する"}
             </button>
             <button
               type="button"
@@ -297,7 +297,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
               差分をすべて反映
             </button>
             <p className="text-xs text-gray-400">
-              反映してもまだ保存はされません。内容を確認して「保存する」を押してください。
+              反映してもまだ更新はされません。内容を確認して「更新する」を押してください。
             </p>
           </div>
         )}

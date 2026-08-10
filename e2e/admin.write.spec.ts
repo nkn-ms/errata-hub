@@ -59,7 +59,7 @@ test.describe("現在地の表示（管理画面のナビ）", () => {
 });
 
 test.describe("投稿のステータス更新（管理者）", () => {
-  test("ステータスと出版社コメントを保存すると、公開ページに反映される", async ({ page }) => {
+  test("ステータスと出版社コメントを更新すると、公開ページに反映される", async ({ page }) => {
     const comment = `E2E 出版社コメント ${Date.now()}`;
     await login(page, ADMIN);
 
@@ -74,8 +74,8 @@ test.describe("投稿のステータス更新（管理者）", () => {
 
     await page.getByRole("button", { name: "修正済み", exact: true }).click();
     await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill(comment);
-    await page.getByRole("button", { name: "保存する" }).click();
-    await expect(page.getByText("保存しました")).toBeVisible();
+    await page.getByRole("button", { name: "更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
 
     // 公開側の投稿詳細に反映されている（更新系が Server Action 経由でも読み取りに載ること）
     await page.goto(`/reports/${reportId}`);
@@ -86,8 +86,8 @@ test.describe("投稿のステータス更新（管理者）", () => {
     await page.goto(`/admin/reports/${reportId}`);
     await page.getByRole("button", { name: "未対応", exact: true }).click();
     await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill("");
-    await page.getByRole("button", { name: "保存する" }).click();
-    await expect(page.getByText("保存しました")).toBeVisible();
+    await page.getByRole("button", { name: "更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
 
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByText("未対応")).toBeVisible();

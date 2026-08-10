@@ -43,6 +43,11 @@ export default async function ReportEditPage({ params }: Props) {
           coverImageUrl: report.book.coverImageUrl ?? "",
         }}
         initialFields={toReportFieldsValue(report)}
+        // 追記の画像は別枠で、この画面では扱わない（連絡前なので本来まだ存在しないが、
+        // 「本体の画像」を渡す意図を条件で示しておく）
+        initialImages={report.images
+          .filter((image) => image.addendumId === null)
+          .map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
       />
     </div>
   );

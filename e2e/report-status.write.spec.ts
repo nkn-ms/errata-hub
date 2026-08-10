@@ -35,8 +35,8 @@ async function setStatus(page: Page, label: string) {
 }
 
 async function save(page: Page) {
-  await page.getByRole("button", { name: "保存する" }).click();
-  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.getByRole("button", { name: "更新する" }).click();
+  await expect(page.getByText("更新しました")).toBeVisible();
 }
 
 // シードの初期状態（未対応・コメント無し）へ戻す。テストを繰り返し実行できるようにするため
@@ -57,11 +57,11 @@ test.describe("ステータス運用（管理者）", () => {
     // 「迷ったときの掃きだめ」にしないためのガードなので、UI ではなくサーバーで効くことに意味がある
     await setStatus(page, "その他");
     await page.getByLabel("出版社コメント").fill("");
-    await page.getByRole("button", { name: "保存する" }).click();
+    await page.getByRole("button", { name: "更新する" }).click();
     await expect(
       page.getByText("「その他」を選んだときは、出版社コメント欄に事情を記載してください")
     ).toBeVisible();
-    await expect(page.getByText("保存しました")).toHaveCount(0);
+    await expect(page.getByText("更新しました")).toHaveCount(0);
 
     // 公開側はまだ変わっていない（弾かれたので未対応のまま）
     await page.goto(`/reports/${reportId}`);

@@ -8,7 +8,7 @@ type PrismaReportWithRelations = PrismaReport & {
   images: ReportImage[];
   // 必須。mapReport の呼び出し元はすべて reportInclude 経由なので必ず入る
   // （省略可にすると `?? []` という死んだ既定値を書くことになる）
-  addenda: ReportAddendum[];
+  addenda: (ReportAddendum & { images: ReportImage[] })[];
   user?: Pick<Profile, "displayName" | "email"> | null;
   _count?: { upvotes: number };
 };
@@ -54,6 +54,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
       id: a.id,
       body: a.body,
       createdAt: formatJstDateTime(a.createdAt),
+      images: a.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
     })),
     createdAtIso: f.createdAt.toISOString(),
     upvoteCount: f._count?.upvotes ?? 0,

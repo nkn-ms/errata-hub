@@ -8,7 +8,6 @@ import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
 import { createReport, type ReportInput } from "@/app/actions/report";
 import { routes } from "@/constants/routes";
-import { site } from "@/constants/site";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import {
@@ -21,14 +20,11 @@ import {
   type ReportFieldsValue,
 } from "@/components/report-fields";
 import {
-  REPORT_IMAGE_ALLOWED_TYPES,
-  REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
-  REPORT_IMAGE_MAX_SOURCE_BYTES,
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/constants/report-images";
-import { compressImage } from "@/utils/image-compress";
+import { selectReportImages } from "@/utils/report-image-select";
 
 type BookData = {
   googleBooksId: string;
@@ -128,34 +124,16 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
     e.target.value = ""; // 同じファイルの再選択でも change を発火させる
     setError("");
     setCompressing(true);
-    const next = [...images];
     try {
-      for (const file of files) {
-        // push する前の空き確認（上限ちょうど＝満杯、なのでこれ以上は追加しない）
-        const isFull = next.length >= REPORT_IMAGE_MAX_COUNT;
-        if (isFull) {
-          setError(`画像は${REPORT_IMAGE_MAX_COUNT}枚までです`);
-          break;
-        }
-        if (!REPORT_IMAGE_ALLOWED_TYPES[file.type]) {
-          setError("画像は JPEG / PNG / WebP のみ添付できます");
-          continue;
-        }
-        // 上限の検査は「圧縮前」と「圧縮後」の2段。前者はデコードでブラウザが固まるのを防ぐ枠で、
-        // 後者が本来の上限。スマホの写真は素で 3〜4MB 出るので、圧縮前に 4MB で弾くと
-        // 「縮めれば通るはずの写真」を投稿できなくなる（圧縮を入れる前はそうなっていた）。
-        if (file.size > REPORT_IMAGE_MAX_SOURCE_BYTES) {
-          setError(`画像は1枚${REPORT_IMAGE_MAX_SOURCE_MB}MB以下にしてください`);
-          continue;
-        }
-        const compressed = await compressImage(file);
-        if (compressed.size > REPORT_IMAGE_MAX_BYTES) {
-          setError(`縮小しても${REPORT_IMAGE_MAX_MB}MBを超えるため添付できません`);
-          continue;
-        }
-        next.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
-      }
-      setImages(next);
+      const { accepted, error } = await selectReportImages(
+        files,
+        REPORT_IMAGE_MAX_COUNT - images.length
+      );
+      setError(error);
+      setImages([
+        ...images,
+        ...accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+      ]);
     } finally {
       setCompressing(false);
     }
@@ -265,11 +243,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <p className="mt-1 text-sm">
             ただし、画像{imageUploadFailure.failedCount}枚は添付できませんでした。投稿の内容は保存されています。
           </p>
-          {/* 投稿者が自分で添付し直す手段が無いので、窓口を出さないとここが行き止まりになる。
-              ⚠️ 投稿者による修正機能ができたら、この1行は不要になる（そちらへ案内する） */}
-          <p className="mt-1 text-sm">
-            添付し直すには <a href={`mailto:${site.contactEmail}`} className="underline">{site.contactEmail}</a> までご連絡ください。
-          </p>
+          {/* ここで終わらせず、直せる場所を教える（下の「投稿を見る」から編集画面へ行ける） */}
+          <p className="mt-1 text-sm">投稿の編集画面から添付し直せます。</p>
         </div>
 
         {/* 並びはフォームの footer と同じ（主要な行き先を右に置く） */}

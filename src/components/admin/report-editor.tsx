@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-import { deleteReport, updateReport } from "@/app/actions/report";
+import { deleteReport, deleteReportImage, updateReport } from "@/app/actions/report";
 import { NumberField } from "@/components/number-field";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -19,9 +20,10 @@ type Props = {
   currentComment: string;
   currentFixedEdition?: number | null;
   currentFixedPrinting?: number | null;
+  images: { id: string; imageUrl: string }[];
 };
 
-export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting }: Props) {
+export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>(currentStatus);
   const [comment, setComment] = useState(currentComment);
@@ -30,6 +32,11 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  // 画像の削除も「更新する」で確定する（投稿者の編集画面と同じ扱い）。
+  // ⚠️ 消す印を付けた画像を**一覧から外さない**。外すと「消えた」のか「壊れた」のか区別が付かず、
+  //    全部に印を付けると節ごと消えてしまう（実機で指摘された）。薄く表示して元に戻せるようにする。
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const isRemoved = (imageId: string) => removedIds.includes(imageId);
 
   // 修正版・刷の入力欄は「修正済み」のときだけ表示する（保存値を消す判断はサーバーが担う）
   const isFixed = status === "FIXED";
@@ -47,6 +54,14 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   }
 
   async function handleSave() {
+    // 画像の削除だけは取り消せないので、更新の直前に確かめる（投稿削除と同じ扱い）
+    if (
+      removedIds.length > 0 &&
+      !confirm(`画像${removedIds.length}枚を削除します。取り消せません。よろしいですか？`)
+    ) {
+      return;
+    }
+
     setSaving(true);
     setSaved(false);
     setError("");
@@ -62,9 +77,27 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     });
     if (result?.error) {
       setError(result.error);
-    } else {
-      setSaved(true);
+      setSaving(false);
+      return;
     }
+
+    // 途中で落ちたら、やり残した分だけを残してから知らせる
+    // ＝もう一度「更新する」を押せば続きからやり直せる（成功した分を二重に消さない）
+    const pendingRemovals = [...removedIds];
+    for (const imageId of removedIds) {
+      const deleted = await deleteReportImage(imageId);
+      if (deleted.error !== undefined) {
+        setRemovedIds(pendingRemovals);
+        setError(deleted.error);
+        setSaving(false);
+        return;
+      }
+      pendingRemovals.shift();
+    }
+    // 一覧そのものは持たない: 消えた分は deleteReportImage の refresh() でサーバー側が描き直す
+    setRemovedIds([]);
+
+    setSaved(true);
     setSaving(false);
   }
 
@@ -130,8 +163,61 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         />
       </div>
 
+      {/* 添付画像。**閲覧だけでなく操作できるものなので、上の投稿内容ではなくこのフォームの中に置く**
+          （権利者から「この画像だけ消してほしい」と言われたときに投稿ごと消さずに応えるための手段
+          = docs/moderation-policy.md）。1枚も無ければ節ごと出さない */}
+      {images.length > 0 && (
+        <div>
+          <span className="block text-sm font-medium text-gray-700 mb-2">添付画像</span>
+          <div className="flex flex-wrap gap-3">
+            {images.map((image) => (
+              <div key={image.id} className="relative">
+                <a href={image.imageUrl} target="_blank" rel="noopener noreferrer">
+                  {/* 自前 Storage 由来だが書影と同じ unoptimized 恒久運用に合わせる */}
+                  <Image
+                    src={image.imageUrl}
+                    alt="添付画像"
+                    width={128}
+                    height={180}
+                    unoptimized
+                    className={`w-32 h-auto rounded border border-gray-200 transition-opacity cursor-zoom-in ${
+                      isRemoved(image.id) ? "opacity-30" : "hover:opacity-80"
+                    }`}
+                  />
+                </a>
+                {isRemoved(image.id) && (
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-gray-900/80 py-1 text-center text-xs text-white">
+                    削除予定
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRemovedIds((prev) =>
+                      isRemoved(image.id)
+                        ? prev.filter((id) => id !== image.id)
+                        : [...prev, image.id]
+                    );
+                    setSaved(false);
+                  }}
+                  aria-label={isRemoved(image.id) ? "この画像の削除をやめる" : "この画像を削除"}
+                  className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
+                >
+                  {isRemoved(image.id) ? "↩" : "×"}
+                </button>
+              </div>
+            ))}
+          </div>
+          {removedIds.length > 0 && (
+            <p className="mt-2 text-xs text-gray-500">
+              画像{removedIds.length}枚を「更新する」で削除します。
+            </p>
+          )}
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-700">{error}</p>}
-      {saved && <p className="text-sm text-green-700">保存しました</p>}
+      {saved && <p className="text-sm text-green-700">更新しました</p>}
 
       <div className="flex gap-3 justify-between">
         <div className="flex gap-3">
@@ -141,7 +227,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
             disabled={saving}
             className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
           >
-            {saving ? "保存中..." : "保存する"}
+            {saving ? "更新中..." : "更新する"}
           </button>
           <button
             type="button"

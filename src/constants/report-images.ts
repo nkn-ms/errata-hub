@@ -4,7 +4,17 @@
 
 export const REPORT_IMAGE_BUCKET = "report-images";
 
-export const REPORT_IMAGE_MAX_COUNT = 3;
+// 枚数の上限は**投稿本体と追記で別の枠**にしてある。
+//
+// 本体の枠は出版社へ連絡した時点で凍結する（画像を消せるのは PENDING の間だけ）。
+// 1つの枠にすると、その凍結済みの枠が「連絡後に出版社から求められた証拠」の分まで
+// 食ってしまい、本体で使い切った投稿は追記に画像を1枚も足せなくなる。
+//
+// ⚠️ 枠の単位は**投稿**であって追記ではない。「追記1件につきN枚」にすると、
+//    追記の作成回数に上限が無いため1投稿あたりの総量に歯止めが無くなり、しかも
+//    「短い追記を3回書けば9枚・1回にまとめれば3枚」と書き方で許容枚数が変わる。
+export const REPORT_IMAGE_MAX_COUNT = 5;
+export const ADDENDUM_IMAGE_MAX_COUNT = 5;
 
 // Vercel サーバーレス関数のリクエストボディ上限（4.5MB）に収めるため 4MB。
 // 出典: https://vercel.com/docs/functions/limitations

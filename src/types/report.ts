@@ -40,7 +40,7 @@ export type Report = {
   // 表示側で日付だけ／日付＋時刻を選べるよう整形しないまま渡す
   editedAtIso: string | null;
   // 出版社へ連絡した後に投稿者が足した追記（古い順）。作成後は変えられない
-  addenda: { id: string; body: string; createdAt: string }[];
+  addenda: { id: string; body: string; createdAt: string; images: { id: string; imageUrl: string }[] }[];
   // 相対表記（「3時間前」等）を出すための生タイムスタンプ（ISO）。新着フィードのカードで使う。
   createdAtIso: string;
   upvoteCount: number;
