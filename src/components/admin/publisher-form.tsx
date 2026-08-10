@@ -102,7 +102,7 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
               disabled={pending}
               className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
-              {pending ? "保存中..." : submitLabel}
+              {pending ? "送信中..." : submitLabel}
             </button>
             <button
               type="button"

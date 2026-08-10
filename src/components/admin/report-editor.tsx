@@ -32,7 +32,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-  // 画像の削除も「保存する」で確定する（投稿者の編集画面と同じ扱い）。
+  // 画像の削除も「更新する」で確定する（投稿者の編集画面と同じ扱い）。
   // ⚠️ 消す印を付けた画像を**一覧から外さない**。外すと「消えた」のか「壊れた」のか区別が付かず、
   //    全部に印を付けると節ごと消えてしまう（実機で指摘された）。薄く表示して元に戻せるようにする。
   const [removedIds, setRemovedIds] = useState<string[]>([]);
@@ -54,7 +54,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   }
 
   async function handleSave() {
-    // 画像の削除だけは取り消せないので、保存の直前に確かめる（投稿削除と同じ扱い）
+    // 画像の削除だけは取り消せないので、更新の直前に確かめる（投稿削除と同じ扱い）
     if (
       removedIds.length > 0 &&
       !confirm(`画像${removedIds.length}枚を削除します。取り消せません。よろしいですか？`)
@@ -82,7 +82,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     }
 
     // 途中で落ちたら、やり残した分だけを残してから知らせる
-    // ＝もう一度「保存する」を押せば続きからやり直せる（成功した分を二重に消さない）
+    // ＝もう一度「更新する」を押せば続きからやり直せる（成功した分を二重に消さない）
     const pendingRemovals = [...removedIds];
     for (const imageId of removedIds) {
       const deleted = await deleteReportImage(imageId);
@@ -210,14 +210,14 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
           </div>
           {removedIds.length > 0 && (
             <p className="mt-2 text-xs text-gray-500">
-              画像{removedIds.length}枚を「保存する」で削除します。
+              画像{removedIds.length}枚を「更新する」で削除します。
             </p>
           )}
         </div>
       )}
 
       {error && <p className="text-sm text-red-700">{error}</p>}
-      {saved && <p className="text-sm text-green-700">保存しました</p>}
+      {saved && <p className="text-sm text-green-700">更新しました</p>}
 
       <div className="flex gap-3 justify-between">
         <div className="flex gap-3">
@@ -227,7 +227,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
             disabled={saving}
             className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
           >
-            {saving ? "保存中..." : "保存する"}
+            {saving ? "更新中..." : "更新する"}
           </button>
           <button
             type="button"

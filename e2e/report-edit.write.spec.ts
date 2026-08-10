@@ -50,8 +50,8 @@ async function createReport(page: Page, title: string): Promise<string> {
 async function forwardAsAdmin(page: Page, reportId: string) {
   await page.goto(`/admin/reports/${reportId}`);
   await page.getByRole("button", { name: "出版社へ連絡済み", exact: true }).click();
-  await page.getByRole("button", { name: "保存する" }).click();
-  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.getByRole("button", { name: "更新する" }).click();
+  await expect(page.getByText("更新しました")).toBeVisible();
 }
 
 // 1x1 の PNG（テスト用の最小画像）。中身は report-images.write.spec.ts と同じで、

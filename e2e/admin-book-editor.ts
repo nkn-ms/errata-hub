@@ -14,9 +14,9 @@ export async function openBookEditor(page: Page, title: string) {
   await page.waitForURL(/\/admin\/books\/[0-9a-f-]+$/);
 }
 
-/** 書籍編集画面で正誤表URLを保存する（空文字なら登録を外す） */
+/** 書籍編集画面で正誤表URLを更新する（空文字なら登録を外す） */
 export async function saveErratumUrl(page: Page, url: string) {
   await page.getByLabel("正誤表URL").fill(url);
-  await page.getByRole("button", { name: "保存する" }).click();
-  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.getByRole("button", { name: "更新する" }).click();
+  await expect(page.getByText("更新しました")).toBeVisible();
 }

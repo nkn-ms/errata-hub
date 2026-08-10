@@ -123,22 +123,22 @@ test.describe("画像添付つき投稿（書き込み）", () => {
       await adminPage.goto(`/admin/reports/${reportId}`);
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(2);
 
-      // × は消す印を付けるだけ。実際に消えるのは「保存する」を押したとき
+      // × は消す印を付けるだけ。実際に消えるのは「更新する」を押したとき
       // （取り消せない操作なので、離脱すれば無かったことにできる形にしてある）
       await adminPage.getByRole("button", { name: "この画像を削除" }).first().click();
-      await expect(adminPage.getByText('画像1枚を「保存する」で削除します。')).toBeVisible();
+      await expect(adminPage.getByText('画像1枚を「更新する」で削除します。')).toBeVisible();
 
       // ⚠️ 全部に印を付けても添付画像の節ごと消えたりしない（実機で指摘された不具合）。
       //    印は表示の上に出し、元に戻せる
       await adminPage.getByRole("button", { name: "この画像を削除" }).click();
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(2);
-      await expect(adminPage.getByText('画像2枚を「保存する」で削除します。')).toBeVisible();
+      await expect(adminPage.getByText('画像2枚を「更新する」で削除します。')).toBeVisible();
       await adminPage.getByRole("button", { name: "この画像の削除をやめる" }).last().click();
-      await expect(adminPage.getByText('画像1枚を「保存する」で削除します。')).toBeVisible();
+      await expect(adminPage.getByText('画像1枚を「更新する」で削除します。')).toBeVisible();
 
       adminPage.once("dialog", (dialog) => dialog.accept());
-      await adminPage.getByRole("button", { name: "保存する" }).click();
-      await expect(adminPage.getByText("保存しました")).toBeVisible();
+      await adminPage.getByRole("button", { name: "更新する" }).click();
+      await expect(adminPage.getByText("更新しました")).toBeVisible();
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(1);
 
       // 操作ログに残る（権利者対応の証跡）

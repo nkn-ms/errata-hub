@@ -9,7 +9,7 @@ import { openBookEditor } from "./admin-book-editor";
 // 担保したいのは編集そのものより **書籍マスタの不変条件**:
 //   - ISBN は編集不可（本の同一性の基準 = decision-isbn-required / schema.prisma）
 //   - 投稿が紐づく書籍は削除できない（UI の件数チェックと DB の Restrict で二重ガード）
-//   - OpenBD の差分取り込みは「反映」しても保存はされない（管理者が確認して保存する2段構え）
+//   - OpenBD の差分取り込みは「反映」しても更新はされない（管理者が確認して更新する2段構え）
 // 編集した値はテストの最後に必ず元へ戻す（繰り返し実行できるようにするため）。
 
 const BOOK_WITH_REPORT = "Web API:The Good Parts"; // シード投稿が紐づく本（削除できない側）
@@ -19,7 +19,7 @@ const BOOK_EDITABLE = {
 };
 
 test.describe("書籍マスタの編集（管理者）", () => {
-  test("書籍名と正誤表URLを保存すると公開ページに反映される", async ({ page }) => {
+  test("書籍名と正誤表URLを更新すると公開ページに反映される", async ({ page }) => {
     const newTitle = `${BOOK_EDITABLE.title}（E2E編集 ${Date.now()}）`;
     const newErratumUrl = `https://example.com/errata/book-${Date.now()}`;
 
@@ -32,8 +32,8 @@ test.describe("書籍マスタの編集（管理者）", () => {
 
     await page.getByLabel("書籍名").fill(newTitle);
     await page.getByLabel("正誤表URL").fill(newErratumUrl);
-    await page.getByRole("button", { name: "保存する" }).click();
-    await expect(page.getByText("保存しました")).toBeVisible();
+    await page.getByRole("button", { name: "更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
 
     // 公開側の書籍ページに反映される
     await page.goto(`/books/${BOOK_EDITABLE.isbn}`);
@@ -45,8 +45,8 @@ test.describe("書籍マスタの編集（管理者）", () => {
     await openBookEditor(page, newTitle);
     await page.getByLabel("書籍名").fill(originalTitle);
     await page.getByLabel("正誤表URL").fill(originalErratumUrl);
-    await page.getByRole("button", { name: "保存する" }).click();
-    await expect(page.getByText("保存しました")).toBeVisible();
+    await page.getByRole("button", { name: "更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
 
     await page.goto(`/books/${BOOK_EDITABLE.isbn}`);
     await expect(page.getByRole("heading", { name: originalTitle })).toBeVisible();
@@ -74,7 +74,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
 });
 
 test.describe("OpenBD の差分取り込み（管理者）", () => {
-  test("差分を反映しても保存するまでは書籍マスタは変わらない", async ({ page }) => {
+  test("差分を反映しても更新するまでは書籍マスタは変わらない", async ({ page }) => {
     const openBdTitle = `${BOOK_EDITABLE.title}（OpenBD版）`;
 
     // 外部 API は叩かない（ネットワークとレスポンス内容に依存させないため差し替える）
@@ -105,11 +105,11 @@ test.describe("OpenBD の差分取り込み（管理者）", () => {
     await expect(titleRow).toContainText(openBdTitle);
     await titleRow.getByRole("button", { name: "反映" }).click();
 
-    // 入力欄は置き換わるが、まだ保存はされていない
+    // 入力欄は置き換わるが、まだ更新はされていない
     await expect(page.getByLabel("書籍名")).toHaveValue(openBdTitle);
-    await expect(page.getByText("反映してもまだ保存はされません")).toBeVisible();
+    await expect(page.getByText("反映してもまだ更新はされません")).toBeVisible();
 
-    // 保存せずに読み込み直すと元の値のまま＝ DB は変わっていない
+    // 更新せずに読み込み直すと元の値のまま＝ DB は変わっていない
     await page.reload();
     await expect(page.getByLabel("書籍名")).toHaveValue(originalTitle);
   });

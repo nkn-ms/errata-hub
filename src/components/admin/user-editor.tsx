@@ -136,10 +136,10 @@ export default function AdminUserEditor({
           disabled={saving || role === profile.role || roleBlockedReason !== null}
           className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
         >
-          {saving ? "保存中..." : "ロールを保存"}
+          {saving ? "更新中..." : "ロールを更新"}
         </button>
         {roleError && <p className="text-sm text-red-700">{roleError}</p>}
-        {roleSaved && <p className="text-sm text-green-700">保存しました</p>}
+        {roleSaved && <p className="text-sm text-green-700">更新しました</p>}
       </div>
 
       {/* 出版社アクセス */}

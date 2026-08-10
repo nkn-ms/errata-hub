@@ -135,26 +135,26 @@ describe("AdminUserEditor", () => {
     });
   });
 
-  describe("ロールの保存", () => {
-    it("サーバーが失敗を返したらエラーを表示し、「保存しました」は出さない", async () => {
+  describe("ロールの更新", () => {
+    it("サーバーが失敗を返したらエラーを表示し、「更新しました」は出さない", async () => {
       updateUserRoleMock.mockResolvedValue({ error: "更新に失敗しました" });
       renderEditor();
 
       fireEvent.click(screen.getByRole("button", { name: "管理者" }));
-      fireEvent.click(screen.getByRole("button", { name: "ロールを保存" }));
+      fireEvent.click(screen.getByRole("button", { name: "ロールを更新" }));
 
       await waitFor(() => expect(screen.getByText("更新に失敗しました")).toBeTruthy());
-      expect(screen.queryByText("保存しました")).toBeNull();
+      expect(screen.queryByText("更新しました")).toBeNull();
     });
 
-    it("成功したら「保存しました」を出す", async () => {
+    it("成功したら「更新しました」を出す", async () => {
       updateUserRoleMock.mockResolvedValue({});
       renderEditor();
 
       fireEvent.click(screen.getByRole("button", { name: "管理者" }));
-      fireEvent.click(screen.getByRole("button", { name: "ロールを保存" }));
+      fireEvent.click(screen.getByRole("button", { name: "ロールを更新" }));
 
-      await waitFor(() => expect(screen.getByText("保存しました")).toBeTruthy());
+      await waitFor(() => expect(screen.getByText("更新しました")).toBeTruthy());
       expect(updateUserRoleMock).toHaveBeenCalledWith(profile.id, "ADMIN");
     });
   });
