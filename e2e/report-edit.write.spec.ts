@@ -213,10 +213,13 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
       await expect(page.getByAltText("証拠画像")).toHaveCount(1);
       await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
 
-      // 編集画面を直接開いても詳細へ戻される＝画像の削除経路もここで閉じる
+      // 編集画面を直接開いても詳細へ戻される＝画像の削除経路もここで閉じる。
+      // ⚠️ 「ファイル入力が無い」では測れない。戻った先の追記フォームは画像を**足せる**ので
+      //    入力欄自体は在る。消せないことを見るなら削除の操作の有無で測る
       await page.goto(`/reports/${reportId}/edit`);
       await page.waitForURL(`**/reports/${reportId}`);
-      await expect(page.locator('input[type="file"]')).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "更新する" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
 
       await deleteReportAsAdmin(adminPage, reportId);
     } finally {
