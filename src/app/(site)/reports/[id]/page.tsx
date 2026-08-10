@@ -80,7 +80,6 @@ export default async function ReportDetailPage({ params }: Props) {
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
         {/* タイトルとバッジ */}
         <div>
-          {/* 連絡後は出さない（代わりに本文の下へ追記の欄が出る） */}
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex flex-wrap gap-2">
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
@@ -88,6 +87,7 @@ export default async function ReportDetailPage({ params }: Props) {
               </span>
               <StatusBadge status={report.status} />
             </div>
+            {/* 連絡後は出さない（代わりに本文の下へ追記の欄が出る） */}
             {viewer === "owner" && report.status === "PENDING" && (
               <Link
                 href={routes.reportEdit(report.id)}
