@@ -403,6 +403,15 @@ export async function addReportAddendum(id: string, input: AddendumInput): Promi
       return { error: parsed.error.issues[0].message };
     }
 
+    // 追記そのものは軽いが、1件ごとに画像の枠を消費できるので回数を抑える
+    const limit = await checkRateLimit(
+      rateLimitKey("addReportAddendum", user.id),
+      RATE_LIMITS.addReportAddendum
+    );
+    if (!limit.allowed) {
+      return { error: rateLimitMessage(limit.retryAfterSec) };
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const report = await tx.report.findUnique({ where: { id } });
       if (!report) return { error: "投稿が見つかりません" };

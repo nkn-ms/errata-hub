@@ -312,13 +312,13 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await confirmAddendum(page);
 
       await expect(page.getByAltText("追記の画像")).toHaveCount(1);
-      // 残り枚数はその場で減る。⚠️ 以前は「残り何枚」をサーバーから受け取っていたため、
-      //    追記で足した分が数に入らず**リロードするまで3枚のまま**だった（実機で発覚）
-      await expect(page.getByText("あと1枚まで。")).toBeVisible();
+      // 残り枚数はその場で減る（枠は追記側で5枚）。⚠️ 以前は「残り何枚」をサーバーから
+      //    受け取っていたため、追記で足した分が数に入らずリロードするまで減らなかった（実機で発覚）
+      await expect(page.getByText("あと4枚まで。")).toBeVisible();
 
       await page.reload();
       await expect(page.getByAltText("追記の画像")).toHaveCount(1);
-      await expect(page.getByText("あと1枚まで。")).toBeVisible();
+      await expect(page.getByText("あと4枚まで。")).toBeVisible();
       // 本体の証拠画像は1枚のまま＝追記の画像が混ざっていない
       await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 

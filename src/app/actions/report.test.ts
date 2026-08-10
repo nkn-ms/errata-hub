@@ -14,6 +14,7 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
   const models = {
     report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
     reportImage: { findUnique: vi.fn(), delete: vi.fn() },
+    reportAddendum: { create: vi.fn() },
     upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
     book: { upsert: vi.fn() },
     publisher: { upsert: vi.fn() },
@@ -55,7 +56,7 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport, deleteOwnReportImage, toggleUpvote, updateReport } from "./report";
+import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport } from "./report";
 import { AUDIT_ACTION } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -298,6 +299,40 @@ describe("レート制限", () => {
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.upvote.deleteMany).not.toHaveBeenCalled();
+  });
+
+  // 追記そのものは軽いが、1件ごとに画像の枠を消費できる＝投稿を増やさずに
+  // 追記だけ量産する経路を塞ぐのがこの制限
+  it("上限に達したら追記を保存しない", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 3600 });
+
+    const result = await addReportAddendum("report-1", { body: "追記します" });
+
+    expect(result.error).toContain("操作が多すぎます");
+    expect(prismaMock.reportAddendum.create).not.toHaveBeenCalled();
+  });
+
+  it("追記の上限はユーザーごとに数える", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    prismaMock.report.findUnique.mockResolvedValue({
+      id: "report-1",
+      userId: "user-1",
+      status: "FORWARDED",
+    });
+    prismaMock.reportAddendum.create.mockResolvedValue({
+      id: "addendum-1",
+      body: "追記します",
+      createdAt: new Date("2026-08-10T00:00:00.000Z"),
+    });
+
+    await addReportAddendum("report-1", { body: "追記します" });
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith(
+      "addReportAddendum:user-1",
+      RATE_LIMITS.addReportAddendum
+    );
+    expect(prismaMock.reportAddendum.create).toHaveBeenCalled();
   });
 });
 

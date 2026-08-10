@@ -7,7 +7,7 @@ import { REPORT_LIMITS } from "@/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/components/report-fields";
 import { routes } from "@/constants/routes";
 import {
-  REPORT_IMAGE_MAX_COUNT,
+  ADDENDUM_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/constants/report-images";
@@ -21,14 +21,9 @@ type Props = {
   reportId: string;
   initialAddenda: Addendum[];
   canAdd: boolean;
-  // 投稿本体（追記に紐づかない）の画像の枚数。上限は投稿単位なので、残り枚数はこれと
-  // **この部品が持っている追記の画像**を足して出す。
-  // ⚠️ 「残り何枚」を受け取る形にしてはいけない。追記で足した分がサーバーから渡された値に
-  //    反映されず、リロードするまで残り枚数が減らない（実際にそう出た）。
-  bodyImageCount: number;
 };
 
-export function ReportAddenda({ reportId, initialAddenda, canAdd, bodyImageCount }: Props) {
+export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
   const [addenda, setAddenda] = useState<Addendum[]>(initialAddenda);
   const [body, setBody] = useState("");
   // 追記と一緒に送る画像。本文と同じで「追記する」を押すまでは送らない
@@ -36,12 +31,12 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, bodyImageCount
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [compressing, setCompressing] = useState(false);
-  // 選択中（まだ送っていない分）も数に入れる
+  // 枠は投稿本体とは別で、**投稿単位**（追記1件ごとではない = constants/report-images.ts）。
+  // ⚠️ 残り枚数はこの部品が持っている追記から数える。「残り何枚」をサーバーから受け取る形に
+  //    すると、追記で足した分が反映されずリロードするまで減らない（実機で実際にそうなった）。
   const used =
-    bodyImageCount +
-    addenda.reduce((count, addendum) => count + addendum.images.length, 0) +
-    images.length;
-  const remaining = REPORT_IMAGE_MAX_COUNT - used;
+    addenda.reduce((count, addendum) => count + addendum.images.length, 0) + images.length;
+  const remaining = ADDENDUM_IMAGE_MAX_COUNT - used;
   // 追記は取り消せないので、送る前に何を送るかを見せて確かめる
   // （新規投稿の「確認する → 投稿する」と同じ形。<dialog> は ESC とフォーカス管理が付いてくる）
   const confirmRef = useRef<HTMLDialogElement>(null);
@@ -97,8 +92,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, bodyImageCount
       for (const { file, previewUrl } of images) {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("addendumId", result.addendum.id);
-        const response = await fetch(routes.api.reportImages(reportId), {
+        const response = await fetch(routes.api.reportImages(reportId, result.addendum.id), {
           method: "POST",
           body: formData,
         });
@@ -243,9 +237,8 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, bodyImageCount
                 </p>
               </>
             ) : (
-              // 上限は投稿単位。連絡後は本体の画像を消せないので、ここで打ち止めになることがある
               <p className="text-xs text-gray-500">
-                画像は1件の投稿につき{REPORT_IMAGE_MAX_COUNT}枚までです。
+                追記に添付できる画像は1件の投稿につき{ADDENDUM_IMAGE_MAX_COUNT}枚までです。
               </p>
             )}
             {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}

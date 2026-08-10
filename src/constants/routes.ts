@@ -60,7 +60,13 @@ export const routes = {
   //   - 画像アップロード（Server Actions のボディ上限 1MB を超えるバイナリの受口）
   //   - 外部書誌 API（OpenBD / Google Books）のプロキシ（読み取り）
   api: {
-    reportImages: (id: string) => `/api/reports/${id}/images`,
+    // addendumId を渡すとその追記に紐づく画像として保存する（省略＝投稿本体の画像）。
+    // ボディではなくクエリで受けるのは、枚数の上限判定を**本文を読む前**に行うため
+    // （どちらの枠で数えるかが addendumId で決まる = api/reports/[id]/images）
+    reportImages: (id: string, addendumId?: string) =>
+      addendumId === undefined
+        ? `/api/reports/${id}/images`
+        : `/api/reports/${id}/images?addendumId=${encodeURIComponent(addendumId)}`,
     booksSearch: "/api/books/search",
     booksOpenbd: "/api/books/openbd",
   },
