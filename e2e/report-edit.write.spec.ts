@@ -179,6 +179,15 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
     // 削除も同じで、× を押しただけでは消えない
     await page.goto(`/reports/${reportId}/edit`);
     await page.getByRole("button", { name: "この画像を削除" }).click();
+    // ⚠️ 印を付けた画像を一覧から外さない（外すと「消えた」のか「壊れた」のか区別が付かない）
+    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+    await expect(page.getByText("削除予定")).toBeVisible();
+
+    // 気が変わったら戻せる（確定していないのだから戻せるべき）
+    await page.getByRole("button", { name: "この画像の削除をやめる" }).click();
+    await expect(page.getByText("削除予定")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "この画像を削除" }).click();
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 

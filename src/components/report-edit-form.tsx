@@ -53,15 +53,17 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
 
   // 画像も**「更新する」で確定する**（この画面で押すボタンは1つ、が守るべき形）。
   // 選んだ瞬間に送ってしまうと、押していないのに反映済み・キャンセルしても戻らない、という
-  // フォームとして筋の通らない状態になる。そのため3つに分けて持つ:
-  //   images       … 今サーバーにある画像から「消す」と決めたものを除いたもの＝画面に見えている分
-  //   removedIds   … 「更新する」で消す既存の画像
-  //   added        … 「更新する」で送る新しい画像（送るまではローカルの blob URL）
+  // フォームとして筋の通らない状態になる。そのため2つに分けて持つ:
+  //   removedIds … 「更新する」で消す既存の画像（⚠️ 一覧からは外さない。外すと「消えた」のか
+  //                「壊れた」のか区別が付かず、押し間違いも戻せない。薄く出して元に戻せるようにする）
+  //   added      … 「更新する」で送る新しい画像（送るまではローカルの blob URL）
   const [images, setImages] = useState<ReportImageItem[]>(initialImages);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [added, setAdded] = useState<{ file: File; previewUrl: string }[]>([]);
   const [compressing, setCompressing] = useState(false);
-  const imageCount = images.length + added.length;
+  const isRemoved = (imageId: string) => removedIds.includes(imageId);
+  // 枠を数えるのは「残す画像＋これから足す画像」（消す印を付けた分は空きとして扱う）
+  const imageCount = images.length - removedIds.length + added.length;
 
   async function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -111,6 +113,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
         }
         pendingRemovals.shift();
       }
+      setImages((prev) => prev.filter((image) => !removedIds.includes(image.id)));
       setRemovedIds([]);
 
       const pendingUploads = [...added];
@@ -183,7 +186,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
             追加・削除はどちらも「更新する」で確定します。
           </p>
 
-          {imageCount > 0 && (
+          {(images.length > 0 || added.length > 0) && (
             <div className="mb-3 flex flex-wrap gap-3">
               {images.map((image) => (
                 <div key={image.id} className="relative">
@@ -194,19 +197,29 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
                       width={96}
                       height={128}
                       unoptimized
-                      className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50 cursor-zoom-in"
+                      className={`h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50 cursor-zoom-in ${
+                        isRemoved(image.id) ? "opacity-30" : ""
+                      }`}
                     />
                   </a>
+                  {isRemoved(image.id) && (
+                    <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-gray-900/80 py-1 text-center text-xs text-white">
+                      削除予定
+                    </span>
+                  )}
                   <button
                     type="button"
-                    onClick={() => {
-                      setImages((prev) => prev.filter((item) => item.id !== image.id));
-                      setRemovedIds((prev) => [...prev, image.id]);
-                    }}
-                    aria-label="この画像を削除"
+                    onClick={() =>
+                      setRemovedIds((prev) =>
+                        isRemoved(image.id)
+                          ? prev.filter((id) => id !== image.id)
+                          : [...prev, image.id]
+                      )
+                    }
+                    aria-label={isRemoved(image.id) ? "この画像の削除をやめる" : "この画像を削除"}
                     className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
                   >
-                    ×
+                    {isRemoved(image.id) ? "↩" : "×"}
                   </button>
                 </div>
               ))}

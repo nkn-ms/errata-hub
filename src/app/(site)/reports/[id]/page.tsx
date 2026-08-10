@@ -229,16 +229,9 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* 本文の直下に置く。連絡後は本文を直せず訂正もここに書かれるので、
-            「元の指摘 → 訂正」が1画面で読める並びにする */}
-        <ReportAddenda
-          reportId={report.id}
-          initialAddenda={report.addenda}
-          canAdd={viewer === "owner" && report.status !== "PENDING"}
-        />
-
         {/* 画像は閲覧のみ。本人の追加・削除は編集画面（PENDING の間）に置いてある。
-            ⚠️ 追記に添えて足された画像はここに混ぜない（上の追記の中に出る）。
+            **投稿の一部なので追記より上**（間に追記の入力欄が挟まると、本文と証拠が離れる）。
+            ⚠️ 追記に添えて足された画像はここに混ぜない（下の追記の中に出る）。
                混ぜると、出版社が見た時点で何があったのかが読めなくなる */}
         {bodyImages.length > 0 && (
           <div>
@@ -259,6 +252,14 @@ export default async function ReportDetailPage({ params }: Props) {
             </div>
           </div>
         )}
+
+        {/* 本文（証拠画像まで）の直下に置く。連絡後は本文を直せず訂正もここに書かれるので、
+            「元の指摘 → 訂正」が1画面で読める並びにする */}
+        <ReportAddenda
+          reportId={report.id}
+          initialAddenda={report.addenda}
+          canAdd={viewer === "owner" && report.status !== "PENDING"}
+        />
 
         {/* 修正済み情報 */}
         {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (

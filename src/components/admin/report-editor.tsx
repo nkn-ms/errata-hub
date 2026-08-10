@@ -23,7 +23,7 @@ type Props = {
   images: { id: string; imageUrl: string }[];
 };
 
-export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images: initialImages }: Props) {
+export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>(currentStatus);
   const [comment, setComment] = useState(currentComment);
@@ -33,9 +33,10 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   // 画像の削除も「保存する」で確定する（投稿者の編集画面と同じ扱い）。
-  // × は画面から外すだけで、実際に消えるのは保存を押したとき＝押し間違いは離脱で取り消せる
-  const [images, setImages] = useState(initialImages);
+  // ⚠️ 消す印を付けた画像を**一覧から外さない**。外すと「消えた」のか「壊れた」のか区別が付かず、
+  //    全部に印を付けると節ごと消えてしまう（実機で指摘された）。薄く表示して元に戻せるようにする。
   const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const isRemoved = (imageId: string) => removedIds.includes(imageId);
 
   // 修正版・刷の入力欄は「修正済み」のときだけ表示する（保存値を消す判断はサーバーが担う）
   const isFixed = status === "FIXED";
@@ -93,6 +94,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
       }
       pendingRemovals.shift();
     }
+    // 一覧そのものは持たない: 消えた分は deleteReportImage の refresh() でサーバー側が描き直す
     setRemovedIds([]);
 
     setSaved(true);
@@ -178,20 +180,30 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
                     width={128}
                     height={180}
                     unoptimized
-                    className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
+                    className={`w-32 h-auto rounded border border-gray-200 transition-opacity cursor-zoom-in ${
+                      isRemoved(image.id) ? "opacity-30" : "hover:opacity-80"
+                    }`}
                   />
                 </a>
+                {isRemoved(image.id) && (
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-gray-900/80 py-1 text-center text-xs text-white">
+                    削除予定
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => {
-                    setImages((prev) => prev.filter((item) => item.id !== image.id));
-                    setRemovedIds((prev) => [...prev, image.id]);
+                    setRemovedIds((prev) =>
+                      isRemoved(image.id)
+                        ? prev.filter((id) => id !== image.id)
+                        : [...prev, image.id]
+                    );
                     setSaved(false);
                   }}
-                  aria-label="この画像を削除"
+                  aria-label={isRemoved(image.id) ? "この画像の削除をやめる" : "この画像を削除"}
                   className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
                 >
-                  ×
+                  {isRemoved(image.id) ? "↩" : "×"}
                 </button>
               </div>
             ))}
