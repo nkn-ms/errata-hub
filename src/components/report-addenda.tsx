@@ -12,7 +12,6 @@ import { CharCounter, ErrorPanel } from "@/components/report-fields";
 type Props = {
   reportId: string;
   initialAddenda: Addendum[];
-  /** 投稿者本人 かつ 出版社へ連絡した後だけ入力欄を出す（未対応の間は本文を直せるので出さない） */
   canAdd: boolean;
 };
 

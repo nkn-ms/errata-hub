@@ -48,8 +48,8 @@ const BookSchema = z.object({
 const limited = (max: number, label: string) =>
   z.string().trim().max(max, `${label}は${max}文字以内で入力してください`);
 
-// 新規投稿と編集で共有する。分けて書くと上限や必須条件が片方だけ変わる
-// （クライアント側の同じ役目は components/report-fields.tsx）。
+// 新規投稿と編集で共有する（分けると上限や必須条件が片方だけ変わる）。
+// クライアント側の同じ役目は components/report-fields.tsx
 const reportBodyShape = {
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
@@ -122,7 +122,6 @@ const ReportSchema = z.object({
   }
 });
 
-// 編集で送る値。必須条件は新規投稿とまったく同じものを通す
 const ReportBodySchema = ReportBodyBase.superRefine(refineReportBody);
 export type ReportBodyInput = z.input<typeof ReportBodySchema>;
 
@@ -298,12 +297,8 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
   }
 }
 
-// **認可の3つ目の形態**（管理者でも「ログイン済み」でもなく「ログイン済み かつ その投稿の投稿者」）
-// なので、services/auth のヘルパは使わずここで組み立てる。
-//
-// 編集できるのは PENDING の間だけ。出版社が見た内容と後から書き換えられた内容が食い違うと、
-// 出版社側の対応が宙に浮くため。ステータスは一本道なので「FORWARDED 未満」は PENDING で足り、
-// DISMISSED も含めて弾く（何を却下したのか分からなくなる）。
+// 認可の3つ目の形態（「ログイン済み かつ その投稿の投稿者」）なので services/auth は使わない。
+// ステータスは一本道なので「FORWARDED 未満」は PENDING で足りる。DISMISSED も弾く。
 //
 // ⚠️ ステータスの確認はトランザクションの**中**で行う。編集画面を開いている間に管理者が
 //    連絡済みにする競合は現実にあり、画面を出した時点の判定では送信済みの投稿を書き換えられる。
@@ -334,9 +329,8 @@ export async function updateOwnReport(id: string, input: ReportBodyInput): Promi
         data: { ...parsed.data, editedAt: new Date() },
       });
 
-      // 記録を残す理由は「上書きなので痕跡がどこにも残らない」から。とくに賛同が付いた後に
-      // 本文が変わると、賛同した人が同意した対象と現在の内容が食い違う。それを後から辿れる唯一の手段。
-      // 本人の操作を監査ログに載せる前例は withdraw（本人の退会）にもある = actions/auth.ts
+      // 上書きなので他に痕跡が残らない。賛同が付いた後の書き換えを辿れる唯一の手段
+      // （本人の操作を載せる前例は withdraw にもある）
       await createAuditLog(
         {
           userId: user.id,
@@ -361,7 +355,6 @@ export async function updateOwnReport(id: string, input: ReportBodyInput): Promi
   }
 }
 
-// 投稿者が編集できる項目だけを写す（他の列が変わっても、この操作が変えたものではない）
 function toAuditBody(report: Prisma.ReportGetPayload<object>) {
   return {
     title: report.title,
@@ -385,12 +378,9 @@ const AddendumSchema = z.object({
   body: limited(REPORT_LIMITS.addendum, "追記").min(1, "追記を入力してください"),
 });
 export type AddendumInput = z.input<typeof AddendumSchema>;
-/** 画面に出す追記1件。日時は JST に整形済み（表示専用なので生の Date は返さない） */
 export type Addendum = { id: string; body: string; createdAt: string };
 type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: undefined; error: string };
 
-// 追記は監査ログに載せない（行そのものが消えない記録で、二重に持つ意味がない）。
-//
 // ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
 //    理由は components/report-addenda.tsx のコメント。
 export async function addReportAddendum(id: string, input: AddendumInput): Promise<AddendumResult> {
