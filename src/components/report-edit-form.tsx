@@ -33,8 +33,8 @@ type Props = {
 //
 // 新規投稿にあって、ここに**意図的に無いもの**（コードからは読み取れないので残す）:
 //   - 書籍の選び直し … 本が変わるなら別の投稿
-//   - 確認画面 … 直しに来た人は自分が何を書いたか既に知っている
-//   - 画像 … 追加は本人に開いているが削除が管理者専用で、片方だけ出すと中途半端になる
+//   - 確認画面 … 直しに来た人は自分が何を書いたか既に知っている（編集は何度でもやり直せる）
+//   - 画像 … **別 PR で足す**（未対応の間は追加・削除とも可／連絡後は追加のみ、で決着済み）
 export function ReportEditForm({ reportId, book, initialFields }: Props) {
   const router = useRouter();
   const [fields, setFields] = useState<ReportFieldsValue>(initialFields);
