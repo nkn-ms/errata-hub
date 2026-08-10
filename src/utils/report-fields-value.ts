@@ -2,10 +2,8 @@ import type { ReportFieldsValue } from "@/components/report-fields";
 
 // DB の1行を編集フォームの初期値に落とす。
 //
-// ⚠️ **数値と null の扱いがここの肝**。フォームは数値欄を文字列で持つ（全角のまま一時的に
-//    保持され、blur で半角に直る = NumberField）ので、null は "" に、数値は文字列にする。
-//    `String(null)` は "null" になるため、素直に書ける形に見えても ?? で先に潰しておく。
-//    同じ理由で、テキスト欄の null も "" にする（value={null} は非制御の input になる）。
+// ⚠️ null を "" にするのは、`String(null)` が "null" になるのと、value={null} が
+//    非制御の input になるため。数値欄が文字列なのは NumberField の都合（全角を一時保持する）。
 type ReportRow = {
   edition: number | null;
   printing: number | null;

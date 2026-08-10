@@ -29,14 +29,12 @@ type Props = {
   initialFields: ReportFieldsValue;
 };
 
-// 投稿者が自分の投稿を直す画面。入力欄は新規投稿と同じものを共有している = report-fields.tsx
+// 入力欄は新規投稿と共有している = report-fields.tsx
 //
-// 新規投稿と違うところ:
-//   - **書籍は変えられない**（別の本の話になったら、それは別の投稿）
-//   - **確認画面を挟まない**。直しに来た人は既に自分が何を書いたか知っていて、
-//     もう1段置いても読み直す材料が増えない（新規投稿では初めて全体を見る場になる）
-//   - **画像は触らない**。追加の口は既に本人に開いている（api/reports/[id]/images）が、
-//     削除する手段が管理者にしか無いため、片方だけ出すと中途半端になる
+// 新規投稿にあって、ここに**意図的に無いもの**（コードからは読み取れないので残す）:
+//   - 書籍の選び直し … 本が変わるなら別の投稿
+//   - 確認画面 … 直しに来た人は自分が何を書いたか既に知っている
+//   - 画像 … 追加は本人に開いているが削除が管理者専用で、片方だけ出すと中途半端になる
 export function ReportEditForm({ reportId, book, initialFields }: Props) {
   const router = useRouter();
   const [fields, setFields] = useState<ReportFieldsValue>(initialFields);
@@ -76,9 +74,7 @@ export function ReportEditForm({ reportId, book, initialFields }: Props) {
 
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1">書籍名</span>
-          {/* 見た目は投稿フォームの「確定済みの書籍」と同じカードに揃える。
-              ここには「別の本を選ぶ」を置かない（本を変えるのは別の投稿を作ることなので、
-              逃げ道ではなく間違った操作になる） */}
+          {/* 「別の本を選ぶ」は置かない（本を変えるのは別の投稿を作ること） */}
           <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
             {book.coverImageUrl ? (
               <Image src={book.coverImageUrl} alt="" width={48} height={64} unoptimized className="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" />

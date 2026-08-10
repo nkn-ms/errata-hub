@@ -5,16 +5,10 @@ import { addReportAddendum, type Addendum } from "@/app/actions/report";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/components/report-fields";
 
-// 追記の一覧と、投稿者向けの入力欄。
-//
 // ⚠️ **一覧と入力欄を1つのクライアント部品にまとめてあるのは、書きかけを失わないため。**
-// サーバー側で一覧を描き、成功後に Server Action の refresh() で描き直す形にすると、
-// 再描画が**入力欄の DOM ノードごと差し替える**（実測: textarea に付けた目印が再描画後に
-// 消えることを確認した）。差し替わる瞬間に打っていた文字は失われる。
-// なので追記の成功時は refresh() せず、返ってきた行を**この部品の中で足す**。
-// 他の閲覧者には次に開いたときに見えれば十分な種類の情報なので、即時反映は要らない。
-//
-// 初期表示はサーバーから受け取る（クライアント部品も SSR されるので、最初の描画に間に合う）。
+// 成功後に refresh() で描き直すと、再描画が**入力欄の DOM ノードごと差し替える**
+// （実測: textarea に付けた目印が消える）。そのとき打っていた文字は失われる。
+// なので refresh() せず、返ってきた行をこの部品の中で足す。
 type Props = {
   reportId: string;
   initialAddenda: Addendum[];
@@ -101,7 +95,6 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
           <ErrorPanel errors={errors} />
 
           <div className="flex items-center justify-between gap-3">
-            {/* 取り消せないことは押す前に伝える（追記の行は作った時点で不変） */}
             <p className="text-xs text-gray-500">追記した内容は取り消せません。</p>
             <button
               type="submit"

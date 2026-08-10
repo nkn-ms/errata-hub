@@ -48,9 +48,8 @@ const BookSchema = z.object({
 const limited = (max: number, label: string) =>
   z.string().trim().max(max, `${label}は${max}文字以内で入力してください`);
 
-// 投稿の「中身」の項目。**新規投稿（ReportSchema）と投稿者による編集（ReportBodySchema）で共有する。**
-// 分けて書くと上限や必須条件が片方だけ変わる。クライアント側の同じ役目は components/report-fields.tsx で、
-// 「サーバー1か所・クライアント1か所」に保つのが方針（サーバー側は直叩き対策として省略できない）。
+// 新規投稿と編集で共有する。分けて書くと上限や必須条件が片方だけ変わる
+// （クライアント側の同じ役目は components/report-fields.tsx）。
 const reportBodyShape = {
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
@@ -123,8 +122,7 @@ const ReportSchema = z.object({
   }
 });
 
-// 投稿者が自分の投稿を編集するときに送る値。書籍・正誤表URLは対象外（＝本に関する情報で、
-// 投稿の中身ではない）。必須条件は新規投稿とまったく同じものを通す
+// 編集で送る値。必須条件は新規投稿とまったく同じものを通す
 const ReportBodySchema = ReportBodyBase.superRefine(refineReportBody);
 export type ReportBodyInput = z.input<typeof ReportBodySchema>;
 
@@ -300,19 +298,15 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
   }
 }
 
-// 投稿者が自分の投稿を編集する。**認可の3つ目の形態**（管理者でも「ログイン済み」でもなく、
-// 「ログイン済み かつ その投稿の投稿者」）なので、services/auth のヘルパは使わずここで組み立てる。
+// **認可の3つ目の形態**（管理者でも「ログイン済み」でもなく「ログイン済み かつ その投稿の投稿者」）
+// なので、services/auth のヘルパは使わずここで組み立てる。
 //
-// ⭐ **編集できるのは PENDING の間だけ。** 出版社が見た内容と、後から書き換えられた内容が
-// 食い違うと出版社側の対応が宙に浮くため、外に出す前は自由に直せて、外に出した後は
-// 上書きせず足す（＝追記 = addReportAddendum）という線引きにしている。
-// ステータスは一本道で後戻りしないので、「FORWARDED 未満」は PENDING と書けば足りる。
-// DISMISSED（却下）も編集不可に含む — 管理者が判断を下した後なので、後から中身が変わると
-// 何を却下したのか分からなくなる。
+// 編集できるのは PENDING の間だけ。出版社が見た内容と後から書き換えられた内容が食い違うと、
+// 出版社側の対応が宙に浮くため。ステータスは一本道なので「FORWARDED 未満」は PENDING で足り、
+// DISMISSED も含めて弾く（何を却下したのか分からなくなる）。
 //
-// ⚠️ ステータスの確認はトランザクションの**中**で行う。投稿者が編集画面を開いている間に
-//    管理者が「出版社へ連絡済み」にする競合は現実にあり、画面を出した時点の判定だけだと
-//    送信済みの投稿を書き換えられる（画像アップロードの TOCTOU 対策と同じ考え方）。
+// ⚠️ ステータスの確認はトランザクションの**中**で行う。編集画面を開いている間に管理者が
+//    連絡済みにする競合は現実にあり、画面を出した時点の判定では送信済みの投稿を書き換えられる。
 export async function updateOwnReport(id: string, input: ReportBodyInput): Promise<ReportActionState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -367,8 +361,7 @@ export async function updateOwnReport(id: string, input: ReportBodyInput): Promi
   }
 }
 
-// 監査ログに載せる本文。Report の全列ではなく、投稿者が編集できる項目だけを写す
-// （載せない列＝ステータス等は、変わったとしてもこの操作が変えたものではない）。
+// 投稿者が編集できる項目だけを写す（他の列が変わっても、この操作が変えたものではない）
 function toAuditBody(report: Prisma.ReportGetPayload<object>) {
   return {
     title: report.title,
@@ -396,15 +389,10 @@ export type AddendumInput = z.input<typeof AddendumSchema>;
 export type Addendum = { id: string; body: string; createdAt: string };
 type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: undefined; error: string };
 
-// 投稿者が自分の投稿に追記する。**出版社へ連絡した後（PENDING 以外）だけ**使える。
-// PENDING の間は本文を直せるので、追記と編集は重ならない（どちらか一方だけが出る）。
-//
-// 追記は監査ログに載せない。行そのものが消えない記録で、二重に持つ意味がないため
-// （本文の編集を載せるのは、上書きで痕跡が消えるからだった）。
+// 追記は監査ログに載せない（行そのものが消えない記録で、二重に持つ意味がない）。
 //
 // ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
-//    refresh() すると再描画が入力欄の DOM ごと差し替え、そのとき打っていた文字が消える
-//    （実測。理由と経緯は components/report-addenda.tsx のコメント）。
+//    理由は components/report-addenda.tsx のコメント。
 export async function addReportAddendum(id: string, input: AddendumInput): Promise<AddendumResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

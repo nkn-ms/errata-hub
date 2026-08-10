@@ -80,13 +80,8 @@ export default async function ReportDetailPage({ params }: Props) {
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
         {/* タイトルとバッジ */}
         <div>
-          {/* 編集の導線はカードの右上に置く。投稿者名と日時の塊の中に挟むと、本文を読む流れを切る
-              （バッジ → 見出し → 誰がいつ、と続く並びの途中に自分だけに見える操作が割り込む）。
-              記事に対する編集を右上に置くのは広く使われている置き場所でもある。
-              ⚠️ 出せるのは PENDING の間だけ。連絡後は本文を直せないので、代わりに本文の下に
-                 追記の欄が出る（同じことを2か所から言えるようにしない）。
-              ⚠️ justify-between で右端に寄せる。バッジ側は伸ばさないので、
-                 幅が足りないときはバッジが折り返ってボタンは潰れない */}
+          {/* 編集の導線は右上。投稿者名と日時の塊に挟むと本文を読む流れを切る。
+              連絡後は出さない（代わりに本文の下へ追記の欄が出る） */}
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex flex-wrap gap-2">
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[report.type]}`}>
@@ -112,14 +107,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 {report.userName} <span className="text-gray-400">@{report.userIdShort}</span>
               </Link>
             )}
-            {/* 日時は投稿者名とは別の行に、ラベル付きで置く。値だけを並べると
-                どちらが何の日時か読み手が推測することになるため。
-                span を block にするのは、<p> の中に <p> や <div> を置けないから。
-                未編集でも行ごと消さずに「-」を出す。行が増減すると投稿を見比べたときに
-                下の要素の位置がずれるうえ、「編集されていない」ことも読み手には情報になる。
-                ⚠️ 一覧と違い**時刻まで出す**。同じ日に投稿して直すことがあり、日付だけでは前後関係が読めない。
-                ⚠️ tabular-nums（等幅数字）が要る。本文の Geist は既定が proportional figures で
-                   1 が 6/8 より細く、上下に並べた日時の桁が揃わない（report-card.tsx と同じ理由） */}
+            {/* <p> の中なので div ではなく span を block にする */}
             <span className="block tabular-nums">
               投稿日時: {formatJstDateTime(new Date(report.createdAtIso))}
             </span>
@@ -232,9 +220,7 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* 備考は**投稿の一部**なので、事後の追記より上に置く（元の投稿がひと塊 → 後から足したもの）。
-            ⚠️ ラベルは「備考」。入力フォームも管理画面も「備考」で、ここだけ「投稿者メモ」と
-               別名になっていた（同じ列に3つの名前が付いている状態だった） */}
+        {/* 備考は投稿の一部なので、事後の追記より上に置く */}
         {report.note && (
           <div>
             <p className="text-xs text-gray-500 mb-1">備考</p>
@@ -242,9 +228,8 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* 追記は**本文の直下に置く**（案D）。連絡後は本文を直せないので、打ち間違いの訂正も
-            ここに書かれる。「元の指摘 → 訂正」が1画面で読める並びにする。
-            一覧と入力欄が1つの部品なのは、書きかけを再描画で失わないため（部品側のコメント参照） */}
+        {/* 本文の直下に置く。連絡後は本文を直せず訂正もここに書かれるので、
+            「元の指摘 → 訂正」が1画面で読める並びにする */}
         <ReportAddenda
           reportId={report.id}
           initialAddenda={report.addenda}
