@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { addReportAddendum, type Addendum } from "@/app/actions/report";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -21,11 +21,14 @@ type Props = {
   reportId: string;
   initialAddenda: Addendum[];
   canAdd: boolean;
-  // 投稿全体で持てる残り枚数。上限は投稿単位なので、本体の画像と追記の画像を合わせて数える
-  remainingImageSlots: number;
+  // 投稿本体（追記に紐づかない）の画像の枚数。上限は投稿単位なので、残り枚数はこれと
+  // **この部品が持っている追記の画像**を足して出す。
+  // ⚠️ 「残り何枚」を受け取る形にしてはいけない。追記で足した分がサーバーから渡された値に
+  //    反映されず、リロードするまで残り枚数が減らない（実際にそう出た）。
+  bodyImageCount: number;
 };
 
-export function ReportAddenda({ reportId, initialAddenda, canAdd, remainingImageSlots }: Props) {
+export function ReportAddenda({ reportId, initialAddenda, canAdd, bodyImageCount }: Props) {
   const [addenda, setAddenda] = useState<Addendum[]>(initialAddenda);
   const [body, setBody] = useState("");
   // 追記と一緒に送る画像。本文と同じで「追記する」を押すまでは送らない
@@ -33,7 +36,15 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, remainingImage
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [compressing, setCompressing] = useState(false);
-  const remaining = remainingImageSlots - images.length;
+  // 選択中（まだ送っていない分）も数に入れる
+  const used =
+    bodyImageCount +
+    addenda.reduce((count, addendum) => count + addendum.images.length, 0) +
+    images.length;
+  const remaining = REPORT_IMAGE_MAX_COUNT - used;
+  // 追記は取り消せないので、送る前に何を送るかを見せて確かめる
+  // （新規投稿の「確認する → 投稿する」と同じ形。<dialog> は ESC とフォーカス管理が付いてくる）
+  const confirmRef = useRef<HTMLDialogElement>(null);
 
   if (addenda.length === 0 && !canAdd) return null;
 
@@ -54,12 +65,21 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, remainingImage
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  // 「確認する」= 検証だけして確認のダイアログを開く。ここではまだ何も送らない
+  function handleConfirm(e: FormEvent) {
     e.preventDefault();
     if (!body.trim()) {
       setErrors([{ field: "addendum", message: "追記を入力してください" }]);
       return;
     }
+    setErrors([]);
+    confirmRef.current?.showModal();
+  }
+
+  async function handleSubmit() {
+    // 先に閉じる: 失敗の知らせはページ側の ErrorPanel に出すので、ダイアログに
+    // もう1つエラー表示を持たせない（同じことを2か所で言わない）
+    confirmRef.current?.close();
     setSubmitting(true);
     setErrors([]);
     try {
@@ -145,7 +165,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, remainingImage
       )}
 
       {canAdd && (
-        <form onSubmit={handleSubmit} className="space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
+        <form onSubmit={handleConfirm} className="space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
           <div>
             <label htmlFor="addendum" className="block text-sm font-medium text-gray-700 mb-1">
               追記する
@@ -240,11 +260,58 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd, remainingImage
               disabled={submitting}
               className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors shrink-0"
             >
-              {submitting ? "追記中..." : "追記する"}
+              {submitting ? "追記中..." : "確認する"}
             </button>
           </div>
         </form>
       )}
+
+      {/* 送る直前の確認。⚠️ form の外に置く（中に入れるとボタンが submit として拾われうる）。
+          出すのは**これから送るものそのもの**で、別に組み立て直さない */}
+      <dialog
+        ref={confirmRef}
+        className="m-auto max-h-[90dvh] w-[90vw] max-w-lg rounded-lg bg-transparent p-0 backdrop:bg-black/60"
+      >
+        <div className="space-y-4 rounded-lg bg-white p-6">
+          <h2 className="text-base font-semibold text-gray-900">この内容で追記します</h2>
+          <p className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+            {body}
+          </p>
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map(({ file, previewUrl }) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt={file.name}
+                  className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                />
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-500">
+            追記した内容は取り消せません。元の投稿の内容は変わりません。
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => confirmRef.current?.close()}
+              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              やめる
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              {submitting ? "追記中..." : "追記する"}
+            </button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
 import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
-import { ReportImageDeleter } from "@/components/admin/report-image-deleter";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { formatJstDate } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
@@ -94,18 +93,6 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           <dt className="text-gray-500">投稿日</dt>
           <dd>{formatJstDate(report.createdAt)}</dd>
 
-          {report.images.length > 0 && (
-            <>
-              <dt className="text-gray-500">添付画像</dt>
-              {/* 画像は1枚ずつ削除できる（権利者から「この画像だけ」と言われたときに
-                  投稿ごと消さずに応えるため = docs/moderation-policy.md） */}
-              <dd className="flex flex-wrap gap-3">
-                {report.images.map((img) => (
-                  <ReportImageDeleter key={img.id} imageId={img.id} imageUrl={img.imageUrl} />
-                ))}
-              </dd>
-            </>
-          )}
         </dl>
       </div>
 
@@ -154,6 +141,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
         currentComment={report.publisherComment ?? ""}
         currentFixedEdition={report.fixedEdition}
         currentFixedPrinting={report.fixedPrinting}
+        images={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
       />
     </div>
   );

@@ -69,6 +69,17 @@ async function attachImage(page: Page) {
   });
 }
 
+// 追記は取り消せないので、送る前に確認のダイアログを挟む（新規投稿の確認画面と同じ形）
+async function confirmAddendum(page: Page) {
+  await page.getByRole("button", { name: "確認する" }).click();
+  const dialog = page.locator("dialog[open]");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "追記する" }).click();
+  // 送り終えるまで待つ。⚠️ 待たずに本文を getByText で探すと、入力欄と確認ダイアログにも
+  //    同じ文字列が残っていて strict mode violation になる（成功すると両方から消える）
+  await expect(page.getByLabel("追記する")).toHaveValue("");
+}
+
 async function deleteReportAsAdmin(page: Page, reportId: string) {
   await page.goto(`/admin/reports/${reportId}`);
   page.once("dialog", (dialog) => dialog.accept());
@@ -107,7 +118,7 @@ test.describe("投稿者による編集（未対応の間）", () => {
     await expect(page.getByText(/^編集日時: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeVisible();
 
     // 未対応の間は追記の欄を出さない（本文を直せるので、同じことを2つの経路で言わせない）
-    await expect(page.getByRole("button", { name: "追記する" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "確認する" })).toHaveCount(0);
 
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
@@ -243,7 +254,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
       // 投稿者の画面から編集の導線が消え、代わりに追記の欄が出る
       await page.goto(`/reports/${reportId}`);
       await expect(page.getByRole("link", { name: "投稿を編集する" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "追記する" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "確認する" })).toBeVisible();
 
       // 編集画面を直接開いても詳細へ戻される（画面を出す時点での判定。
       // 保存側でもトランザクションの中で改めて確かめている = actions/report.ts）
@@ -256,7 +267,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
       const second = "正誤表にも掲載された（追記2）";
 
       await page.getByLabel("追記する").fill(first);
-      await page.getByRole("button", { name: "追記する" }).click();
+      await confirmAddendum(page);
       await expect(page.getByText(first)).toBeVisible();
       // 本文は元のまま（追記は足すだけで上書きしない）
       await expect(page.getByText("正字コード")).toBeVisible();
@@ -264,7 +275,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
 
       // 2件目を足しても1件目は残る（＝列1本ではなくテーブルにした理由）
       await page.getByLabel("追記する").fill(second);
-      await page.getByRole("button", { name: "追記する" }).click();
+      await confirmAddendum(page);
       await expect(page.getByText(second)).toBeVisible();
       await expect(page.getByText(first)).toBeVisible();
 
@@ -296,13 +307,18 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await page.goto(`/reports/${reportId}`);
       await page.getByLabel("追記する").fill("該当箇所の写真を追加します（追記）");
       await attachImage(page);
-      // 追記も画像も「追記する」で確定する（押すまでは送らない）
+      // 追記も画像も確認のダイアログを通してから確定する（押すまでは送らない）
       await expect(page.getByAltText("追記の画像")).toHaveCount(0);
-      await page.getByRole("button", { name: "追記する" }).click();
+      await confirmAddendum(page);
 
       await expect(page.getByAltText("追記の画像")).toHaveCount(1);
+      // 残り枚数はその場で減る。⚠️ 以前は「残り何枚」をサーバーから受け取っていたため、
+      //    追記で足した分が数に入らず**リロードするまで3枚のまま**だった（実機で発覚）
+      await expect(page.getByText("あと1枚まで。")).toBeVisible();
+
       await page.reload();
       await expect(page.getByAltText("追記の画像")).toHaveCount(1);
+      await expect(page.getByText("あと1枚まで。")).toBeVisible();
       // 本体の証拠画像は1枚のまま＝追記の画像が混ざっていない
       await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 

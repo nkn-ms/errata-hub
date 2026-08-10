@@ -16,7 +16,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 import { ReportAddenda } from "@/components/report-addenda";
 import { formatJstDateTime } from "@/utils/format";
-import { REPORT_IMAGE_MAX_COUNT } from "@/constants/report-images";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -236,9 +235,9 @@ export default async function ReportDetailPage({ params }: Props) {
           reportId={report.id}
           initialAddenda={report.addenda}
           canAdd={viewer === "owner" && report.status !== "PENDING"}
-          // 上限は投稿単位（本体＋追記の合計）。連絡後は本体の画像を消せないので、
-          // ここが 0 になったら追記に画像は足せない
-          remainingImageSlots={REPORT_IMAGE_MAX_COUNT - raw.images.length}
+          // 上限は投稿単位（本体＋追記の合計）。残りの計算は部品側で行う
+          // （追記で足した分をその場で数に入れるため）
+          bodyImageCount={bodyImages.length}
         />
 
         {/* 画像は閲覧のみ。本人の追加・削除は編集画面（PENDING の間）に置いてある。

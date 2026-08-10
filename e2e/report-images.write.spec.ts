@@ -123,8 +123,14 @@ test.describe("画像添付つき投稿（書き込み）", () => {
       await adminPage.goto(`/admin/reports/${reportId}`);
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(2);
 
-      adminPage.once("dialog", (dialog) => dialog.accept());
+      // × は画面から外すだけ。実際に消えるのは「保存する」を押したとき
+      // （取り消せない操作なので、離脱すれば無かったことにできる形にしてある）
       await adminPage.getByRole("button", { name: "この画像を削除" }).first().click();
+      await expect(adminPage.getByText('画像1枚を「保存する」で削除します。')).toBeVisible();
+
+      adminPage.once("dialog", (dialog) => dialog.accept());
+      await adminPage.getByRole("button", { name: "保存する" }).click();
+      await expect(adminPage.getByText("保存しました")).toBeVisible();
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(1);
 
       // 操作ログに残る（権利者対応の証跡）

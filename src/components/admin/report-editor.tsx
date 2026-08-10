@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-import { deleteReport, updateReport } from "@/app/actions/report";
+import { deleteReport, deleteReportImage, updateReport } from "@/app/actions/report";
 import { NumberField } from "@/components/number-field";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -19,9 +20,10 @@ type Props = {
   currentComment: string;
   currentFixedEdition?: number | null;
   currentFixedPrinting?: number | null;
+  images: { id: string; imageUrl: string }[];
 };
 
-export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting }: Props) {
+export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images: initialImages }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>(currentStatus);
   const [comment, setComment] = useState(currentComment);
@@ -30,6 +32,10 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  // 画像の削除も「保存する」で確定する（投稿者の編集画面と同じ扱い）。
+  // × は画面から外すだけで、実際に消えるのは保存を押したとき＝押し間違いは離脱で取り消せる
+  const [images, setImages] = useState(initialImages);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
 
   // 修正版・刷の入力欄は「修正済み」のときだけ表示する（保存値を消す判断はサーバーが担う）
   const isFixed = status === "FIXED";
@@ -47,6 +53,14 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
   }
 
   async function handleSave() {
+    // 画像の削除だけは取り消せないので、保存の直前に確かめる（投稿削除と同じ扱い）
+    if (
+      removedIds.length > 0 &&
+      !confirm(`画像${removedIds.length}枚を削除します。取り消せません。よろしいですか？`)
+    ) {
+      return;
+    }
+
     setSaving(true);
     setSaved(false);
     setError("");
@@ -62,9 +76,26 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     });
     if (result?.error) {
       setError(result.error);
-    } else {
-      setSaved(true);
+      setSaving(false);
+      return;
     }
+
+    // 途中で落ちたら、やり残した分だけを残してから知らせる
+    // ＝もう一度「保存する」を押せば続きからやり直せる（成功した分を二重に消さない）
+    const pendingRemovals = [...removedIds];
+    for (const imageId of removedIds) {
+      const deleted = await deleteReportImage(imageId);
+      if (deleted.error !== undefined) {
+        setRemovedIds(pendingRemovals);
+        setError(deleted.error);
+        setSaving(false);
+        return;
+      }
+      pendingRemovals.shift();
+    }
+    setRemovedIds([]);
+
+    setSaved(true);
     setSaving(false);
   }
 
@@ -129,6 +160,49 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
       </div>
+
+      {/* 添付画像。**閲覧だけでなく操作できるものなので、上の投稿内容ではなくこのフォームの中に置く**
+          （権利者から「この画像だけ消してほしい」と言われたときに投稿ごと消さずに応えるための手段
+          = docs/moderation-policy.md）。1枚も無ければ節ごと出さない */}
+      {images.length > 0 && (
+        <div>
+          <span className="block text-sm font-medium text-gray-700 mb-2">添付画像</span>
+          <div className="flex flex-wrap gap-3">
+            {images.map((image) => (
+              <div key={image.id} className="relative">
+                <a href={image.imageUrl} target="_blank" rel="noopener noreferrer">
+                  {/* 自前 Storage 由来だが書影と同じ unoptimized 恒久運用に合わせる */}
+                  <Image
+                    src={image.imageUrl}
+                    alt="添付画像"
+                    width={128}
+                    height={180}
+                    unoptimized
+                    className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
+                  />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImages((prev) => prev.filter((item) => item.id !== image.id));
+                    setRemovedIds((prev) => [...prev, image.id]);
+                    setSaved(false);
+                  }}
+                  aria-label="この画像を削除"
+                  className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          {removedIds.length > 0 && (
+            <p className="mt-2 text-xs text-gray-500">
+              画像{removedIds.length}枚を「保存する」で削除します。
+            </p>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-700">{error}</p>}
       {saved && <p className="text-sm text-green-700">保存しました</p>}
