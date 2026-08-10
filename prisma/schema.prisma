@@ -201,6 +201,9 @@ model ReportAddendum {
   report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
   body      String
   createdAt DateTime @default(now())
+  // 追記に添えて足された画像（本文を直せない代わりに、根拠は足せる）。
+  // 投稿本体の画像とは別扱い＝理由は ReportImage.addendumId のコメント
+  images    ReportImage[]
 
   // Postgres は FK 列にインデックスを自動作成しない。投稿詳細が毎回この列で引く
   @@index([reportId])
@@ -250,11 +253,20 @@ model ReportImage {
   id         String   @id @default(uuid())
   reportId String
   report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  // どの追記に添えて足された画像か。**null = 投稿本体の画像**（投稿時・編集中に付けたもの）。
+  //
+  // ⭐ 連絡後に足した画像を本体の「証拠画像」に混ぜないための列。混ぜると、出版社が見た時点で
+  // 何があったのかが読めなくなる＝本文を凍結して追記を分けた意味が画像の側で消える。
+  // 追記が不変なのと同じで、この紐づけも後から張り替えない。
+  addendumId String?
+  addendum   ReportAddendum? @relation(fields: [addendumId], references: [id], onDelete: Cascade)
   imageUrl   String   // Supabase Storage 公開バケット report-images の公開URL
   createdAt  DateTime @default(now())
 
   // 投稿詳細の画像表示・投稿削除時の Cascade・アップロード時の枚数カウントが参照する
   @@index([reportId])
+  // 追記ごとの画像表示が引く（Postgres は FK 列にインデックスを自動作成しない）
+  @@index([addendumId])
 }
 
 // レート制限のカウンタ（固定ウィンドウ）。しきい値は src/constants/rate-limits.ts、実装は src/lib/rate-limit.ts。

@@ -43,6 +43,7 @@ export default async function ReportEditPage({ params }: Props) {
           coverImageUrl: report.book.coverImageUrl ?? "",
         }}
         initialFields={toReportFieldsValue(report)}
+        initialImages={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
       />
     </div>
   );

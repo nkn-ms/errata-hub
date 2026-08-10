@@ -68,6 +68,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
     }
+
+    // 追記に添えて足された画像は、その追記に紐づける（未指定＝投稿本体の画像）。
+    // 他人の投稿の追記 ID を渡されても付かないよう、この投稿の追記であることを確かめる。
+    const addendumId = formData.get("addendumId");
+    if (addendumId !== null && typeof addendumId !== "string") {
+      return NextResponse.json({ error: "不正なリクエストです" }, { status: 400 });
+    }
+    if (addendumId !== null) {
+      const addendum = await prisma.reportAddendum.findUnique({ where: { id: addendumId } });
+      if (!addendum || addendum.reportId !== id) {
+        return NextResponse.json({ error: "追記が見つかりません" }, { status: 404 });
+      }
+    }
     const ext = REPORT_IMAGE_ALLOWED_TYPES[file.type];
     if (!ext) {
       return NextResponse.json(
@@ -106,7 +119,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (count >= REPORT_IMAGE_MAX_COUNT) {
           throw new ImageLimitReached();
         }
-        return tx.reportImage.create({ data: { reportId: id, imageUrl: publicUrl } });
+        return tx.reportImage.create({ data: { reportId: id, addendumId, imageUrl: publicUrl } });
       });
       return NextResponse.json(image, { status: 201 });
     } catch (e) {

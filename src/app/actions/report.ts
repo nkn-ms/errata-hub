@@ -378,7 +378,14 @@ const AddendumSchema = z.object({
   body: limited(REPORT_LIMITS.addendum, "追記").min(1, "追記を入力してください"),
 });
 export type AddendumInput = z.input<typeof AddendumSchema>;
-export type Addendum = { id: string; body: string; createdAt: string };
+// images は**作った直後は必ず空**（画像は追記を作ってから別リクエストで送るため）。
+// 呼び出し側が送り終えた分を自分の一覧に足す = components/report-addenda.tsx
+export type Addendum = {
+  id: string;
+  body: string;
+  createdAt: string;
+  images: { id: string; imageUrl: string }[];
+};
 type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: undefined; error: string };
 
 // ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
@@ -413,6 +420,7 @@ export async function addReportAddendum(id: string, input: AddendumInput): Promi
           id: created.id,
           body: created.body,
           createdAt: formatJstDateTime(created.createdAt),
+          images: [],
         },
       };
     });

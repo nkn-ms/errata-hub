@@ -141,26 +141,41 @@ test.describe("投稿者による編集（未対応の間）", () => {
   });
 });
 
-test.describe("投稿者による画像の追加・削除", () => {
-  test("未対応の間は自分で足せて、自分で消せる", async ({ page, browser }) => {
+test.describe("投稿者による画像の追加・削除（編集画面）", () => {
+  test("画像の追加も削除も「更新する」で確定する", async ({ page, browser }) => {
     const title = `E2E画像追加 ${Date.now()}`;
     await login(page, READER);
     const reportId = await createReport(page, title);
-
-    // 投稿時に付けなかった画像を、詳細ページから後で足せる
     await expect(page.getByAltText("証拠画像")).toHaveCount(0);
-    await attachImage(page);
-    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 
-    // 読み込み直しても残っている＝画面の state だけでなく Storage と DB に入っている
-    await page.reload();
+    await page.goto(`/reports/${reportId}/edit`);
+    await attachImage(page);
+
+    // ⚠️ ここが要点: 選んだだけでは保存しない。押していないのに反映済み、では
+    //    「更新する」が何をするボタンなのか分からなくなる
+    await page.goto(`/reports/${reportId}`);
+    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
+
+    await page.goto(`/reports/${reportId}/edit`);
+    await attachImage(page);
+    await page.getByRole("button", { name: "更新する" }).click();
+
+    await page.waitForURL(`**/reports/${reportId}`);
     await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+    // Storage と DB に入っている（画面の state だけの反映ではない）
     await expect(page.getByAltText("証拠画像")).toHaveAttribute("src", /report-images/);
 
-    page.once("dialog", (dialog) => dialog.accept());
+    // 削除も同じで、× を押しただけでは消えない
+    await page.goto(`/reports/${reportId}/edit`);
     await page.getByRole("button", { name: "この画像を削除" }).click();
-    await expect(page.getByAltText("証拠画像")).toHaveCount(0);
-    await page.reload();
+    await page.goto(`/reports/${reportId}`);
+    await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+
+    await page.goto(`/reports/${reportId}/edit`);
+    await page.getByRole("button", { name: "この画像を削除" }).click();
+    await page.getByRole("button", { name: "更新する" }).click();
+
+    await page.waitForURL(`**/reports/${reportId}`);
     await expect(page.getByAltText("証拠画像")).toHaveCount(0);
     // 画像を消しても投稿そのものは残る
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
@@ -169,27 +184,22 @@ test.describe("投稿者による画像の追加・削除", () => {
     const adminPage = await adminContext.newPage();
     try {
       await login(adminPage, ADMIN);
-
-      // 他人の投稿には追加の導線を出さない（管理者でも同じ。公開ページは閲覧のまま）。
-      // ボタンに見えているのは input のラベルなので、入力欄そのものが無いことまで見る
-      await adminPage.goto(`/reports/${reportId}`);
-      await expect(adminPage.getByText("画像を追加")).toHaveCount(0);
-      await expect(adminPage.locator('input[type="file"]')).toHaveCount(0);
-
       await deleteReportAsAdmin(adminPage, reportId);
     } finally {
       await adminContext.close();
     }
   });
 
-  // 追加は「足すだけ」なので連絡後も認める。削除は認めない＝消せるなら、本文を凍結しても
-  // 出版社が見た内容は結局変えられてしまう
-  test("連絡後は足せるが、消せない", async ({ page, browser }) => {
+  // 消せると、本文を凍結しても出版社が見た内容は結局変わってしまう
+  test("連絡後は画像を消せない（編集画面が開かない）", async ({ page, browser }) => {
     const title = `E2E画像連絡後 ${Date.now()}`;
     await login(page, READER);
     const reportId = await createReport(page, title);
 
+    await page.goto(`/reports/${reportId}/edit`);
     await attachImage(page);
+    await page.getByRole("button", { name: "更新する" }).click();
+    await page.waitForURL(`**/reports/${reportId}`);
     await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 
     const adminContext = await browser.newContext();
@@ -198,16 +208,15 @@ test.describe("投稿者による画像の追加・削除", () => {
       await login(adminPage, ADMIN);
       await forwardAsAdmin(adminPage, reportId);
 
+      // 公開ページに削除の手段は無い（画像は見えるが触れない）
       await page.goto(`/reports/${reportId}`);
-      // 連絡前に付けた画像の削除ボタンが消えている
+      await expect(page.getByAltText("証拠画像")).toHaveCount(1);
       await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
 
-      // 追加はできる
-      await attachImage(page);
-      await expect(page.getByAltText("証拠画像")).toHaveCount(2);
-      await page.reload();
-      await expect(page.getByAltText("証拠画像")).toHaveCount(2);
-      await expect(page.getByRole("button", { name: "この画像を削除" })).toHaveCount(0);
+      // 編集画面を直接開いても詳細へ戻される＝画像の削除経路もここで閉じる
+      await page.goto(`/reports/${reportId}/edit`);
+      await page.waitForURL(`**/reports/${reportId}`);
+      await expect(page.locator('input[type="file"]')).toHaveCount(0);
 
       await deleteReportAsAdmin(adminPage, reportId);
     } finally {
@@ -255,6 +264,44 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await page.getByRole("button", { name: "追記する" }).click();
       await expect(page.getByText(second)).toBeVisible();
       await expect(page.getByText(first)).toBeVisible();
+
+      await deleteReportAsAdmin(adminPage, reportId);
+    } finally {
+      await adminContext.close();
+    }
+  });
+
+  // 連絡後に足した画像を本体の「証拠画像」に混ぜると、出版社が見た時点で何があったのかが
+  // 読めなくなる。追記の中に置くことでその区別を保つ
+  test("追記に画像を添えられ、本体の証拠画像とは分けて出る", async ({ page, browser }) => {
+    const title = `E2E追記の画像 ${Date.now()}`;
+    await login(page, READER);
+    const reportId = await createReport(page, title);
+
+    // 投稿本体の画像を1枚（連絡前なので編集画面から）
+    await page.goto(`/reports/${reportId}/edit`);
+    await attachImage(page);
+    await page.getByRole("button", { name: "更新する" }).click();
+    await page.waitForURL(`**/reports/${reportId}`);
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+      await forwardAsAdmin(adminPage, reportId);
+
+      await page.goto(`/reports/${reportId}`);
+      await page.getByLabel("追記する").fill("該当箇所の写真を追加します（追記）");
+      await attachImage(page);
+      // 追記も画像も「追記する」で確定する（押すまでは送らない）
+      await expect(page.getByAltText("追記の画像")).toHaveCount(0);
+      await page.getByRole("button", { name: "追記する" }).click();
+
+      await expect(page.getByAltText("追記の画像")).toHaveCount(1);
+      await page.reload();
+      await expect(page.getByAltText("追記の画像")).toHaveCount(1);
+      // 本体の証拠画像は1枚のまま＝追記の画像が混ざっていない
+      await expect(page.getByAltText("証拠画像")).toHaveCount(1);
 
       await deleteReportAsAdmin(adminPage, reportId);
     } finally {

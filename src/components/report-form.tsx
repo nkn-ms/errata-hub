@@ -243,8 +243,8 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
           <p className="mt-1 text-sm">
             ただし、画像{imageUploadFailure.failedCount}枚は添付できませんでした。投稿の内容は保存されています。
           </p>
-          {/* ここで終わらせず、直せる場所を教える（下の「投稿を見る」がその画面） */}
-          <p className="mt-1 text-sm">投稿ページから添付し直せます。</p>
+          {/* ここで終わらせず、直せる場所を教える（下の「投稿を見る」から編集画面へ行ける） */}
+          <p className="mt-1 text-sm">投稿の編集画面から添付し直せます。</p>
         </div>
 
         {/* 並びはフォームの footer と同じ（主要な行き先を右に置く） */}
