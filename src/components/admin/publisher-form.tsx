@@ -73,7 +73,7 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
           />
           <p className="mt-1 text-xs text-gray-400">
-            このドメインのメアドで登録したユーザーに自動でアクセス権を付与します
+            連絡先を控えておくためのメモです。アクセス権の判定には使いません（付与は各ユーザーの編集画面から個別に行います）
           </p>
         </div>
 
