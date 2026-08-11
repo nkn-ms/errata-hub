@@ -12,7 +12,7 @@ import { openBookEditor } from "./admin-book-editor";
 //   - OpenBD の差分取り込みは「反映」しても更新はされない（管理者が確認して更新する2段構え）
 // 編集した値はテストの最後に必ず元へ戻す（繰り返し実行できるようにするため）。
 
-const BOOK_WITH_REPORT = "Web API:The Good Parts"; // シード投稿が紐づく本（削除できない側）
+const BOOK_WITH_REPORT_ISBN = "9784873116860"; // シード投稿が紐づく本（削除できない側）
 const BOOK_EDITABLE = {
   isbn: "9784274224478",
   title: "マスタリングTCP/IP 入門編",
@@ -24,7 +24,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
     const newErratumUrl = `https://example.com/errata/book-${Date.now()}`;
 
     await login(page, ADMIN);
-    await openBookEditor(page, BOOK_EDITABLE.title);
+    await openBookEditor(page, BOOK_EDITABLE.isbn);
 
     // 戻せるように現在の値を控える（他のテストが正誤表URLを入れている場合もある）
     const originalTitle = await page.getByLabel("書籍名").inputValue();
@@ -42,7 +42,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
     await expect(publicLink).toHaveAttribute("href", newErratumUrl);
 
     // 後片付け: 元の値へ戻す
-    await openBookEditor(page, newTitle);
+    await openBookEditor(page, BOOK_EDITABLE.isbn);
     await page.getByLabel("書籍名").fill(originalTitle);
     await page.getByLabel("正誤表URL").fill(originalErratumUrl);
     await page.getByRole("button", { name: "更新する" }).click();
@@ -54,7 +54,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
 
   test("ISBN は編集できない", async ({ page }) => {
     await login(page, ADMIN);
-    await openBookEditor(page, BOOK_EDITABLE.title);
+    await openBookEditor(page, BOOK_EDITABLE.isbn);
 
     // ISBN は本の同一性の基準なので、間違いを直す用途でも編集させない（別の本になってしまうため）
     const isbnInput = page.getByLabel("ISBN（変更不可）");
@@ -64,7 +64,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
 
   test("投稿が紐づく書籍は削除できない（理由も表示される）", async ({ page }) => {
     await login(page, ADMIN);
-    await openBookEditor(page, BOOK_WITH_REPORT);
+    await openBookEditor(page, BOOK_WITH_REPORT_ISBN);
 
     // UI 側のガード。最終保証は Book への FK（onDelete: Restrict）が担うので、
     // ここで見ているのは「押させない・理由を示す」という UX 側の約束
@@ -95,7 +95,7 @@ test.describe("OpenBD の差分取り込み（管理者）", () => {
     );
 
     await login(page, ADMIN);
-    await openBookEditor(page, BOOK_EDITABLE.title);
+    await openBookEditor(page, BOOK_EDITABLE.isbn);
     const originalTitle = await page.getByLabel("書籍名").inputValue();
 
     await page.getByRole("button", { name: "ISBNで最新取得" }).click();

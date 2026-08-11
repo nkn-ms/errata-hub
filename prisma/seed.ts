@@ -13,6 +13,9 @@ const ADMIN_EMAIL = "admin@local.test";
 const ADMIN_PASSWORD = "password123"; // ローカル専用の捨てアカウント
 
 // 一般ユーザー（管理者の投稿への賛同など「他人の投稿」が要るテストで使う）
+// サンプル投稿の id を固定する（毎回同じ行を作り直せるようにするため = 下の upsert）
+const SAMPLE_REPORT_ID = "00000000-0000-4000-8000-000000000001";
+
 const READER_EMAIL = "reader@local.test";
 const READER_PASSWORD = "password123";
 
@@ -84,18 +87,26 @@ async function main() {
     update: {},
     create: { title: "Web API:The Good Parts", author: "水野,貴明,1973-", isbn: "9784873116860", publisherId: publisher.id },
   });
-  if ((await prisma.report.count({ where: { bookId: bookA.id } })) === 0) {
-    await prisma.report.create({
-      data: { userId, bookId: bookA.id, title: "サンプル投稿", type: "ERRATA", medium: "PAPER", edition: 1, page: 12, wrong: "誤りの例", correct: "正しい例" },
-    });
-  }
+  // ⚠️ **決まった id で upsert する。** 以前は「本Aに投稿が0件のときだけ作る」条件付きで、
+  //    サンプル投稿を消したあと別の投稿を作ってしまうと **seed を流し直しても戻らなかった**
+  //    （実際にそうなった）。id を固定すれば、何件あっても・状態がどうなっていても復旧できる。
+  //    ステータスや本文を手で変えた場合も update で初期状態へ戻る。
+  await prisma.report.upsert({
+    where: { id: SAMPLE_REPORT_ID },
+    update: { status: "PENDING", publisherComment: null, fixedEdition: null, fixedPrinting: null },
+    create: { id: SAMPLE_REPORT_ID, userId, bookId: bookA.id, title: "サンプル投稿", type: "ERRATA", medium: "PAPER", edition: 1, page: 12, wrong: "誤りの例", correct: "正しい例" },
+  });
 
-  // 5) 本B（投稿なし＝削除/編集検証用）
-  await prisma.book.upsert({
+  // 5) 本B（投稿なし＝削除/編集検証用。e2e の使い捨て投稿もここに作る = e2e/throwaway-report.ts）
+  const bookB = await prisma.book.upsert({
     where: { isbn: "9784274224478" },
     update: {},
     create: { title: "マスタリングTCP/IP 入門編", author: "井上,直也,1974-", isbn: "9784274224478", publisherId: publisher.id },
   });
+  // ⚠️ **この本の投稿は消す。** 「投稿なし」がこの本の定義で、残っているのは
+  //    途中で落ちた e2e の後片付け漏れ（後片付けは各テストの末尾にあるので、失敗するとそこへ届かない）。
+  //    seed を「シードの状態へ戻す操作」として成立させるために、ここで拾う。
+  await prisma.report.deleteMany({ where: { bookId: bookB.id } });
 
   console.log("✓ seed 完了");
   console.log(`  管理者ログイン: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);

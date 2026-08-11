@@ -3,6 +3,7 @@ import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { createThrowawayAccount } from "./throwaway-user";
 import { backgroundContrast } from "./contrast";
+import { createThrowawayReport, deleteReportAsAdmin } from "./throwaway-report";
 
 // 管理画面（書き込み）の e2e。ローカル dev＋ローカル Supabase 限定で実行される
 // （playwright.config.ts の write-local project）。前提は他の書き込みテストと同じ:
@@ -11,7 +12,6 @@ import { backgroundContrast } from "./contrast";
 // 担保するのは管理画面の更新フロー（Server Actions）。
 // いずれのテストも、最後にシードの初期状態へ戻してから終わる（繰り返し実行できる）。
 
-const SEEDED_REPORT_TITLE = "サンプル投稿"; // シードが作る唯一の投稿（初期ステータス=未対応）
 const SEED_PUBLISHER = "オーム社"; // シードが作る唯一の出版社
 
 test.describe("認可（管理画面）", () => {
@@ -60,18 +60,14 @@ test.describe("現在地の表示（管理画面のナビ）", () => {
 
 test.describe("投稿のステータス更新（管理者）", () => {
   test("ステータスと出版社コメントを更新すると、公開ページに反映される", async ({ page }) => {
+    const title = `E2E管理更新テスト ${Date.now()}`;
     const comment = `E2E 出版社コメント ${Date.now()}`;
     await login(page, ADMIN);
 
-    await page.goto("/admin/reports");
-    await page
-      .getByRole("row")
-      .filter({ hasText: SEEDED_REPORT_TITLE })
-      .getByRole("link", { name: "詳細・編集" })
-      .click();
-    await page.waitForURL(/\/admin\/reports\/[0-9a-f-]+$/);
-    const reportId = page.url().split("/").pop()!;
+    // 使い捨ての投稿を自分で作る（シードの投稿は借りない = e2e/throwaway-report.ts）
+    const reportId = await createThrowawayReport(page, title);
 
+    await page.goto(`/admin/reports/${reportId}`);
     await page.getByRole("button", { name: "修正済み", exact: true }).click();
     await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill(comment);
     await page.getByRole("button", { name: "更新する" }).click();
@@ -82,7 +78,7 @@ test.describe("投稿のステータス更新（管理者）", () => {
     await expect(page.getByText("修正済み")).toBeVisible();
     await expect(page.getByText(comment)).toBeVisible();
 
-    // シードの初期状態（未対応・コメントなし）に戻す
+    // 戻せることも見る（一本道のステータスを画面から巻き戻す操作は、実運用でも打ち間違いの訂正で使う）
     await page.goto(`/admin/reports/${reportId}`);
     await page.getByRole("button", { name: "未対応", exact: true }).click();
     await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill("");
@@ -92,6 +88,8 @@ test.describe("投稿のステータス更新（管理者）", () => {
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByText("未対応")).toBeVisible();
     await expect(page.getByText(comment)).toBeHidden();
+
+    await deleteReportAsAdmin(page, reportId);
   });
 });
 
