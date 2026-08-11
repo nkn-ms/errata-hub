@@ -134,11 +134,11 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
         </div>
       )}
 
-      {/* ステータス・出版社コメント編集 */}
+      {/* ステータス・運営者の補足の編集 */}
       <AdminReportEditor
         id={report.id}
         currentStatus={report.status}
-        currentComment={report.publisherComment ?? ""}
+        currentStatusNote={report.statusNote ?? ""}
         currentFixedEdition={report.fixedEdition}
         currentFixedPrinting={report.fixedPrinting}
         images={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}

@@ -140,20 +140,20 @@ describe("toggleUpvote（賛同を取り消す）", () => {
 });
 
 describe("updateReport（ステータス更新のバリデーション）", () => {
-  it("「その他」は出版社コメントが無いと保存できない（空の OTHER を作らせない）", async () => {
-    const result = await updateReport("r1", { status: "OTHER", publisherComment: "" });
+  it("「その他」は運営者の補足が無いと保存できない（空の OTHER を作らせない）", async () => {
+    const result = await updateReport("r1", { status: "OTHER", statusNote: "" });
 
-    expect(result.error).toBe("「その他」を選んだときは、出版社コメント欄に事情を記載してください");
+    expect(result.error).toBe("「その他」を選んだときは、運営者の補足欄に事情を記載してください");
     expect(prismaMock.report.update).not.toHaveBeenCalled();
   });
 
-  it("「その他」でも出版社コメントがあれば保存できる", async () => {
+  it("「その他」でも運営者の補足があれば保存できる", async () => {
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "OTHER" });
 
     const result = await updateReport("r1", {
       status: "OTHER",
-      publisherComment: "出版社が廃業しており連絡が取れません",
+      statusNote: "出版社が廃業しており連絡が取れません",
     });
 
     expect(result.error).toBeUndefined();
@@ -164,7 +164,7 @@ describe("updateReport（ステータス更新のバリデーション）", () =
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "LISTED" });
 
-    const result = await updateReport("r1", { status: "LISTED", publisherComment: "" });
+    const result = await updateReport("r1", { status: "LISTED", statusNote: "" });
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.report.update).toHaveBeenCalled();
@@ -223,14 +223,14 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
     expect(prismaMock.report.create).not.toHaveBeenCalled();
   });
 
-  it("管理者の出版社コメントにも上限がある", async () => {
+  it("運営者の補足にも上限がある", async () => {
     const result = await updateReport("r1", {
       status: "LISTED",
-      publisherComment: "あ".repeat(REPORT_LIMITS.publisherComment + 1),
+      statusNote: "あ".repeat(REPORT_LIMITS.statusNote + 1),
     });
 
     expect(result.error).toBe(
-      `出版社コメントは${REPORT_LIMITS.publisherComment}文字以内で入力してください`
+      `運営者の補足は${REPORT_LIMITS.statusNote}文字以内で入力してください`
     );
     expect(prismaMock.report.update).not.toHaveBeenCalled();
   });

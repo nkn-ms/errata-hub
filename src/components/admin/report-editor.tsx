@@ -17,16 +17,16 @@ type Status = ReportStatus;
 type Props = {
   id: string;
   currentStatus: Status;
-  currentComment: string;
+  currentStatusNote: string;
   currentFixedEdition?: number | null;
   currentFixedPrinting?: number | null;
   images: { id: string; imageUrl: string }[];
 };
 
-export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images }: Props) {
+export function AdminReportEditor({ id, currentStatus, currentStatusNote, currentFixedEdition, currentFixedPrinting, images }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>(currentStatus);
-  const [comment, setComment] = useState(currentComment);
+  const [statusNote, setStatusNote] = useState(currentStatusNote);
   const [fixedEdition, setFixedEdition] = useState<string>(currentFixedEdition?.toString() ?? "");
   const [fixedPrinting, setFixedPrinting] = useState<string>(currentFixedPrinting?.toString() ?? "");
   const [saving, setSaving] = useState(false);
@@ -71,7 +71,7 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
     // ここは入力値をそのまま送る（未入力は toIntOrNull が null にする）。
     const result = await updateReport(id, {
       status,
-      publisherComment: comment || null,
+      statusNote: statusNote || null,
       fixedEdition: toIntOrNull(fixedEdition),
       fixedPrinting: toIntOrNull(fixedPrinting),
     });
@@ -150,15 +150,21 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         </div>
       )}
 
+      {/* ⚠️ **ここは出版社の回答を書く欄ではない。** 出版社からの回答は公開ページの
+          「出版社として回答する」から入れる（代理記載も同じ経路 = actions/publisher-comment.ts）。
+          この欄は運営者自身の説明で、ステータスの属性なのでステータスと同じ確定ボタンで保存する */}
       <div>
-        <label htmlFor="publisher-comment" className="block text-sm font-medium text-gray-700 mb-1">出版社コメント</label>
+        <label htmlFor="status-note" className="block text-sm font-medium text-gray-700 mb-1">運営者の補足</label>
+        <p className="text-xs text-gray-500 mb-1">
+          ステータスに添える運営者からの説明。「その他」を選んだときは必須です。
+        </p>
         <textarea
-          id="publisher-comment"
-          value={comment}
-          onChange={(e) => { setComment(e.target.value); setSaved(false); }}
-          maxLength={REPORT_LIMITS.publisherComment}
-          rows={4}
-          placeholder="出版社からの回答や対応内容を記載してください"
+          id="status-note"
+          value={statusNote}
+          onChange={(e) => { setStatusNote(e.target.value); setSaved(false); }}
+          maxLength={REPORT_LIMITS.statusNote}
+          rows={3}
+          placeholder="例: 出版社が廃業しており連絡が取れません"
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
       </div>

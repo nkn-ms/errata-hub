@@ -27,6 +27,9 @@ export const REPORT_LIMITS = {
   // URL。ブラウザ・サーバーが実用上扱える長さの目安
   reportedErratumUrl: 2000,
   addendum: 1000,
-  // 管理者が入れる出版社からの回答
+  // 出版社からの回答（出版社の担当者本人または管理者の代理記載）
   publisherComment: 2000,
+  // ステータスに添える運営者の説明。「その他」のときだけ必須。
+  // 出版社の回答ほど長くはならない（事情を1〜2文で書く欄）
+  statusNote: 500,
 } as const;

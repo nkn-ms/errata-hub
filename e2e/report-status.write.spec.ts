@@ -39,7 +39,7 @@ async function save(page: Page) {
 test.describe("ステータス運用（管理者）", () => {
   test("「その他」は説明が無いと保存できず、書くと公開ページに出る", async ({ page }) => {
     const title = `E2Eその他テスト ${Date.now()}`;
-    const comment = `E2E その他の事情 ${Date.now()}`;
+    const note = `E2E その他の事情 ${Date.now()}`;
     await login(page, ADMIN);
     const reportId = await createThrowawayReport(page, title);
     await openInAdmin(page, reportId);
@@ -47,10 +47,10 @@ test.describe("ステータス運用（管理者）", () => {
     // 説明が空のまま「その他」で保存 → サーバー（superRefine）が弾く。
     // 「迷ったときの掃きだめ」にしないためのガードなので、UI ではなくサーバーで効くことに意味がある
     await setStatus(page, "その他");
-    await page.getByLabel("出版社コメント").fill("");
+    await page.getByLabel("運営者の補足").fill("");
     await page.getByRole("button", { name: "更新する" }).click();
     await expect(
-      page.getByText("「その他」を選んだときは、出版社コメント欄に事情を記載してください")
+      page.getByText("「その他」を選んだときは、運営者の補足欄に事情を記載してください")
     ).toBeVisible();
     await expect(page.getByText("更新しました")).toHaveCount(0);
 
@@ -61,12 +61,12 @@ test.describe("ステータス運用（管理者）", () => {
     // 説明を書けば保存でき、ステータスと説明が公開ページに出る
     await page.goto(`/admin/reports/${reportId}`);
     await setStatus(page, "その他");
-    await page.getByLabel("出版社コメント").fill(comment);
+    await page.getByLabel("運営者の補足").fill(note);
     await save(page);
 
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByText("その他", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(comment)).toBeVisible();
+    await expect(page.getByText(note)).toBeVisible();
 
     await deleteReportAsAdmin(page, reportId);
   });
