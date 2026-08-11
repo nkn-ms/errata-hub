@@ -13,7 +13,7 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
   }
   const models = {
     report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-    reportImage: { findUnique: vi.fn(), delete: vi.fn() },
+    reportImage: { findUnique: vi.fn(), delete: vi.fn(), update: vi.fn() },
     reportAddendum: { create: vi.fn() },
     upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
     book: { upsert: vi.fn() },
@@ -56,7 +56,7 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport } from "./report";
+import { addReportAddendum, createReport, deleteOwnReportImage, deleteReportImage, toggleUpvote, updateReport } from "./report";
 import { AUDIT_ACTION } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
@@ -398,6 +398,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
     id: "image-1",
     reportId: "report-1",
     imageUrl: "https://example.test/not-a-storage-url.png",
+    removedByOperatorAt: null,
     report: { userId: "user-1", status: "PENDING" },
   };
 
@@ -478,6 +479,78 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
 
     expect(result.error).toBe("画像が見つかりません");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("運営者が削除した画像（墓標）は投稿者からは消せない", async () => {
+    // 消せると「運営者が削除しました」の表示ごと消え、規約第6条3項の明示義務を満たせなくなる
+    prismaMock.reportImage.findUnique.mockResolvedValue({
+      ...image,
+      removedByOperatorAt: new Date("2026-08-11T00:00:00Z"),
+    });
+
+    const result = await deleteOwnReportImage("image-1");
+
+    expect(result.error).toContain("運営者が削除しています");
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteReportImage（運営者による画像の削除）", () => {
+  const image = {
+    id: "image-1",
+    reportId: "report-1",
+    imageUrl: "https://example.test/not-a-storage-url.png",
+    removedByOperatorAt: null,
+  };
+
+  beforeEach(() => {
+    prismaMock.reportImage.findUnique.mockResolvedValue(image);
+  });
+
+  it("行は消さず墓標を立てる（公開ページに削除した事実を出すため）", async () => {
+    const result = await deleteReportImage("image-1");
+
+    expect(result.error).toBeUndefined();
+    // ⚠️ delete ではない。行を消すと「最初から無かった」と区別が付かなくなる
+    expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
+    expect(prismaMock.reportImage.update).toHaveBeenCalledWith({
+      where: { id: "image-1" },
+      data: { removedByOperatorAt: expect.any(Date) },
+    });
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "admin-1",
+        action: AUDIT_ACTION.DELETE_REPORT_IMAGE,
+        // 画像は投稿の一部なので、対象は投稿（画像 ID ではない）
+        targetId: "report-1",
+        before: expect.objectContaining({ imageUrl: image.imageUrl }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it("既に墓標が立っている画像は書き換えない", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue({
+      ...image,
+      removedByOperatorAt: new Date("2026-08-11T00:00:00Z"),
+    });
+
+    const result = await deleteReportImage("image-1");
+
+    expect(result.error).toBeUndefined();
+    // 日時を上書きすると「いつ消したか」が後の操作でずれる。Storage のファイルも前回消えている
+    expect(prismaMock.reportImage.update).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("画像が見つからないときは何もしない", async () => {
+    prismaMock.reportImage.findUnique.mockResolvedValue(null);
+
+    const result = await deleteReportImage("image-1");
+
+    expect(result.error).toBe("画像が見つかりません");
+    expect(prismaMock.reportImage.update).not.toHaveBeenCalled();
     expect(createAuditLogMock).not.toHaveBeenCalled();
   });
 });

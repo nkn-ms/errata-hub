@@ -22,15 +22,18 @@ class ImageLimitReached extends Error {}
  * 早期チェックとトランザクション内の最終判定で**同じ条件**を使うためにまとめてある。
  */
 function imagePool(addendumId: string | null) {
+  // 運営者が削除した画像（墓標）は数えない。行が残るのは表示上の明示のためで、
+  // 投稿者の枠を食わせるためではない（消された分を足し直せないと差し替えができなくなる）
+  const notRemoved = { removedByOperatorAt: null };
   return addendumId === null
     ? {
         limit: REPORT_IMAGE_MAX_COUNT,
-        where: (reportId: string) => ({ reportId, addendumId: null }),
+        where: (reportId: string) => ({ reportId, addendumId: null, ...notRemoved }),
         message: `画像は${REPORT_IMAGE_MAX_COUNT}枚までです`,
       }
     : {
         limit: ADDENDUM_IMAGE_MAX_COUNT,
-        where: (reportId: string) => ({ reportId, addendumId: { not: null } }),
+        where: (reportId: string) => ({ reportId, addendumId: { not: null }, ...notRemoved }),
         message: `追記に添付できる画像は1件の投稿につき${ADDENDUM_IMAGE_MAX_COUNT}枚までです`,
       };
 }
