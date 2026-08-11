@@ -2,6 +2,20 @@ import type { ReportType, ReportStatus, Medium } from "@/generated/prisma/client
 
 export type { ReportType, ReportStatus, Medium };
 
+/**
+ * 出版社からの回答1件（規約 第8条）。**書いた人（authorId）は含めない** — 発言の主体は
+ * 個人ではなく出版社で、担当者名を公開する約束はしていない。
+ */
+export type PublisherCommentView = {
+  id: string;
+  publisherName: string;
+  body: string;
+  // 運営者による代理記載。画面に明示する義務がある = 規約 第8条4項
+  byAdmin: boolean;
+  // 表示用に整形済み（JST・日付＋時刻）
+  createdAt: string;
+};
+
 // クライアントへ渡す表示用の Report。type / medium / status は Prisma enum 値のまま持ち、
 // 日本語ラベルは constants/report-labels.ts・report-status.ts で表示直前に引く。
 export type Report = {

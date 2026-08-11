@@ -5,6 +5,7 @@ export const TARGET_TYPE = {
   REPORT: "Report",
   PROFILE: "Profile",
   PUBLISHER_ACCESS: "PublisherAccess",
+  PUBLISHER_COMMENT: "PublisherComment",
   BOOK: "Book",
   PUBLISHER: "Publisher",
 } as const;
@@ -24,6 +25,8 @@ export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   Report: "投稿",
   Profile: "ユーザー",
   PublisherAccess: "ユーザー",
+  // ⚠️ こちらは PublisherAccess と違い、targetId に本当に PublisherComment の id が入る
+  PublisherComment: "出版社の回答",
   Book: "書籍",
   Publisher: "出版社",
 };
@@ -47,6 +50,7 @@ export const AUDIT_ACTION = {
   DELETE_REPORT_IMAGE: "DELETE_REPORT_IMAGE",
   DELETE_OWN_REPORT_IMAGE: "DELETE_OWN_REPORT_IMAGE",
   WITHDRAW_OWN_REPORT: "WITHDRAW_OWN_REPORT",
+  DELETE_PUBLISHER_COMMENT: "DELETE_PUBLISHER_COMMENT",
   ADOPT_ERRATUM_URL: "ADOPT_ERRATUM_URL",
   UPDATE_USER_ROLE: "UPDATE_USER_ROLE",
   GRANT_PUBLISHER_ACCESS: "GRANT_PUBLISHER_ACCESS",
@@ -77,6 +81,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   DELETE_OWN_REPORT_IMAGE: "投稿者による画像削除",
   // ⚠️ 退会（WITHDRAW_USER）とは別物。あちらはアカウント、こちらは投稿1件の取り下げ
   WITHDRAW_OWN_REPORT: "投稿者による取り下げ",
+  // 回答は本人も取り消せない（規約 第8条3項）ので、消せるのは運営者のモデレーションだけ。
+  // ⚠️ 作成の方は記録しない（投稿者の追記と同じで、行そのものが誰がいつ書いたかを持っている）
+  DELETE_PUBLISHER_COMMENT: "出版社の回答を削除",
   ADOPT_ERRATUM_URL: "正誤表URL採用",
   UPDATE_USER_ROLE: "ロール変更",
   GRANT_PUBLISHER_ACCESS: "出版社アクセス付与",
