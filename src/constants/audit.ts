@@ -13,6 +13,26 @@ export const TARGET_TYPE = {
 // → "Report" | "Profile" | "PublisherAccess" | "Book" | "Publisher"
 export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
 
+// 操作ログの「対象」列に出す日本語。Record<TargetType, string> なので、
+// TARGET_TYPE に足してここに足し忘れると tsc が落ちる（AUDIT_ACTION_LABELS と同じ縛り）。
+//
+// ⚠️ **PublisherAccess が「ユーザー」なのは誤記ではない。** この操作の targetId には
+// PublisherAccess の行ではなく **Profile の id**（権限を与えられた人）が入っている
+// = actions/user.ts の grantPublisherAccess / revokePublisherAccess。
+// 型名をそのまま出していた頃は「PublisherAccess の ID だ」と読まれ、実際に取り違えが起きた。
+export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
+  Report: "投稿",
+  Profile: "ユーザー",
+  PublisherAccess: "ユーザー",
+  Book: "書籍",
+  Publisher: "出版社",
+};
+
+/** 未知の targetType（古い記録）はそのまま出す。ラベルを増やす前の行が読めなくならないように */
+export function targetTypeLabel(targetType: string): string {
+  return TARGET_TYPE_LABELS[targetType as TargetType] ?? targetType;
+}
+
 // AuditLog.action に入れる値。以前は各アクションでベタ書きしていたため、
 // 操作を増やしたときに下の ACTION_LABELS への追加を忘れても誰も気づけなかった
 // （#160 の出版社3件と #173 の WITHDRAWAL_INCOMPLETE が実際に取りこぼされ、

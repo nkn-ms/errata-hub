@@ -142,11 +142,16 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
     await expect(changedTo.locator("pre")).toBeVisible();
     await expect(changedTo.locator("pre")).toContainText(SEED_PUBLISHER);
 
-    // 対象列は CSS ではなく先頭8文字に切ってあるので、開いて初めて完全な ID が読める
-    // （＝他の画面や DB と突き合わせられる）
+    // 対象は「誰に付与したか」がそのまま読める（型名 PublisherAccess と UUID を出していた頃は、
+    // あの UUID を PublisherAccess の ID だと読まれた。実際は Profile の id）
     const target = logRow.locator("details").first();
+    await expect(target).toContainText(`ユーザー:${READER.email}`);
+
+    // 開くと保存されている型名と ID もそのまま読める（記録の正はこちら）
     await target.locator("summary").click();
-    await expect(target.locator("pre")).toHaveText(/^PublisherAccess:[0-9a-f-]{36}$/);
+    await expect(target.locator("pre")).toHaveText(
+      new RegExp(`^ユーザー:${READER.email}\\nPublisherAccess:[0-9a-f-]{36}$`)
+    );
 
     // 剥奪（＝シードの初期状態に戻す）
     await page.goto(userEditUrl);

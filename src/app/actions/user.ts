@@ -100,7 +100,7 @@ export async function grantPublisherAccess(
           grantedById: admin.id,
           grantedByEmail: admin.email,
         },
-        include: { publisher: true },
+        include: { publisher: true, profile: { select: { email: true } } },
       });
 
       await createAuditLog(
@@ -110,7 +110,14 @@ export async function grantPublisherAccess(
           action: AUDIT_ACTION.GRANT_PUBLISHER_ACCESS,
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
-          after: { publisherId: parsed.data, publisherName: created.publisher.name },
+          // ⚠️ targetEmail は**誰に付与したか**（userEmail は操作した管理者であって対象者ではない）。
+          //    ID だけだと後から DB で名寄せしないと読めず、退会・削除されると辿れなくなる。
+          //    publisherName を残しているのと同じ考え方で、当時の値をそのまま持たせる。
+          after: {
+            targetEmail: created.profile.email,
+            publisherId: parsed.data,
+            publisherName: created.publisher.name,
+          },
         },
         tx
       );
@@ -233,6 +240,11 @@ export async function revokePublisherAccess(
     // 剥奪と監査ログを1つの塊にする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
     const revoked = await prisma.$transaction(async (tx) => {
       const publisher = await tx.publisher.findUnique({ where: { id: parsed.data } });
+      // 誰から剥奪したかを記録に残すため（付与側と対称。理由はあちらのコメント）
+      const profile = await tx.profile.findUnique({
+        where: { id: profileId },
+        select: { email: true },
+      });
 
       // deleteMany は対象が無くても成功する。**0件のまま監査ログを書くと「剥奪した」という
       // 起きていない操作の記録が残る**ので、消えた件数で分岐する。
@@ -249,7 +261,11 @@ export async function revokePublisherAccess(
           action: AUDIT_ACTION.REVOKE_PUBLISHER_ACCESS,
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
-          before: { publisherId: parsed.data, publisherName: publisher?.name },
+          before: {
+            targetEmail: profile?.email,
+            publisherId: parsed.data,
+            publisherName: publisher?.name,
+          },
         },
         tx
       );
