@@ -87,7 +87,7 @@ export default function TermsPage() {
             </strong>{" "}
             これは、投稿された正誤情報等が他の利用者にとって有用な共有資産であることを踏まえた取り扱いであり、ユーザーは登録および投稿の時点でこれに同意するものとします。
           </li>
-          <li>投稿そのものの削除を希望する場合の取り扱いは、第8条および本サービスの運用に従います。</li>
+          <li>投稿そのものの削除を希望する場合の取り扱いは、第9条および本サービスの運用に従います。</li>
         </OrderedList>
       </Article>
 
@@ -106,7 +106,7 @@ export default function TermsPage() {
             を許諾するものとします。本許諾は、退会後も第5条第3項により残存する投稿コンテンツについて存続します。
           </li>
           <li>
-            <strong>運営者は、投稿コンテンツの内容を書き換えません。</strong>{" "}
+            <strong>運営者は、ユーザーの投稿コンテンツの内容を書き換えません。</strong>{" "}
             ただし、表示上の整形、および第三者の権利を侵害する部分・個人情報・誹謗中傷等に該当する部分の
             <strong>削除またはマスキング（伏せ字化）</strong>
             に必要な範囲に限り、投稿コンテンツを編集することができます。ユーザーは、当該範囲における編集について、著作者人格権を行使しないものとします。運営者は、この編集を行った場合、
@@ -129,7 +129,29 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第7条（禁止事項）">
+      <Article heading="第7条（投稿の修正・追記）">
+        <OrderedList>
+          <li>
+            ユーザーは、自らが行った投稿について、運営者が当該投稿の内容を出版社その他の権利者へ連絡する前（本サービス上の対応状況が「
+            <strong>未対応</strong>
+            」と表示されている間）に限り、投稿コンテンツの内容を修正し、また添付した画像を追加し、若しくは削除することができます。
+          </li>
+          <li>
+            運営者が前項の連絡を行った後は、ユーザーは投稿コンテンツの内容および添付済みの画像を変更することができず、
+            <strong>追記および画像の追加のみ</strong>を行うことができます。
+          </li>
+          <li>
+            追記は、投稿された日時とともに表示され、
+            <strong>投稿したユーザー自身を含め、これを取り消し又は変更することはできません。</strong>{" "}
+            これは、出版社その他の権利者が確認した時点の内容を後から書き換えられないようにするための取り扱いであり、ユーザーは追記の時点でこれに同意するものとします。
+          </li>
+          <li>
+            本条は、ユーザー自身による修正について定めるものであり、運営者による編集については第6条第3項が適用されます。
+          </li>
+        </OrderedList>
+      </Article>
+
+      <Article heading="第8条（禁止事項）">
         <p>ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。</p>
         <OrderedList>
           <li>法令または公序良俗に違反する行為</li>
@@ -149,7 +171,7 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第8条（投稿の削除・モデレーション）">
+      <Article heading="第9条（投稿の削除・モデレーション）">
         <OrderedList>
           <li>
             運営者は、投稿コンテンツが本規約に違反すると判断した場合、または運営上必要と判断した場合、ユーザーへの事前通知なく、当該投稿コンテンツを削除し、または非表示にすることができます。
@@ -164,7 +186,7 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第9条（利用制限・アカウントの停止等）">
+      <Article heading="第10条（利用制限・アカウントの停止等）">
         <OrderedList>
           <li>
             運営者は、ユーザーが次の各号のいずれかに該当する場合、事前の通知なく、当該ユーザーによる本サービスの利用を一時的に制限し、または当該ユーザーのアカウントを停止し、若しくは削除（登録の抹消）することができます。
@@ -188,7 +210,7 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第10条（保証の否認・免責）">
+      <Article heading="第11条（保証の否認・免責）">
         <OrderedList>
           <li>
             本サービスは、個人が運営する無償のサービスであり、運営者は、本サービスおよび投稿コンテンツの
@@ -198,7 +220,8 @@ export default function TermsPage() {
             <strong>
               投稿コンテンツは、各ユーザーによる報告であり、出版社等による確認を経ていない未確認の情報を含みます。
             </strong>{" "}
-            ユーザーは、投稿コンテンツを利用する際、各投稿に表示される出版社の回答・対応状況等とあわせて、自己の責任において内容を確認するものとします。
+            ユーザーは、投稿コンテンツを利用する際、各投稿に表示される出版社の回答・対応状況等とあわせて、自己の責任において内容を確認するものとします。投稿コンテンツは、第7条により
+            <strong>投稿者によって後から修正され、又は追記されることがあります。</strong>
           </li>
           <li>
             運営者は、本サービスの中断、停止、終了、利用不能、データの消失等によりユーザーに生じた損害について、運営者に故意または重過失がある場合を除き、責任を負いません。
@@ -212,25 +235,25 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第11条（サービスの変更・中断・終了）">
+      <Article heading="第12条（サービスの変更・中断・終了）">
         <p>
           運営者は、ユーザーへの事前の通知なく、本サービスの内容を変更し、提供を中断し、または終了することができます。これによりユーザーに生じた損害について、運営者は責任を負いません。
         </p>
       </Article>
 
-      <Article heading="第12条（権利義務の譲渡禁止）">
+      <Article heading="第13条（権利義務の譲渡禁止）">
         <p>
           ユーザーは、運営者の事前の書面による承諾なく、本規約上の地位または本規約に基づく権利義務の全部若しくは一部を、第三者に譲渡し、承継させ、または担保に供してはなりません。
         </p>
       </Article>
 
-      <Article heading="第13条（分離可能性）">
+      <Article heading="第14条（分離可能性）">
         <p>
           本規約のいずれかの条項またはその一部が、法令等により無効または執行不能と判断された場合であっても、本規約のその余の規定および当該条項の残りの部分は、引き続き完全に効力を有するものとします。
         </p>
       </Article>
 
-      <Article heading="第14条（準拠法・管轄）">
+      <Article heading="第15条（準拠法・管轄）">
         <OrderedList>
           <li>本規約の準拠法は日本法とします。</li>
           <li>
@@ -239,7 +262,7 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第15条（本規約の変更）">
+      <Article heading="第16条（本規約の変更）">
         <OrderedList>
           <li>運営者は、必要と判断した場合、本規約を変更することができます。</li>
           <li>
@@ -248,7 +271,7 @@ export default function TermsPage() {
         </OrderedList>
       </Article>
 
-      <Article heading="第16条（お問い合わせ）">
+      <Article heading="第17条（お問い合わせ）">
         <p>
           本サービスおよび本規約に関するお問い合わせは、
           <a href={`mailto:${site.contactEmail}`} className="text-blue-600 hover:underline">
@@ -260,6 +283,7 @@ export default function TermsPage() {
 
       <div className="border-t border-gray-200 pt-6 text-xs text-gray-500 space-y-1">
         <p>制定日：2026年7月29日</p>
+        <p>改定日：2026年8月11日</p>
         <p>運営者：nkn-ms（個人）</p>
         <p className="pt-2">
           関連文書：
