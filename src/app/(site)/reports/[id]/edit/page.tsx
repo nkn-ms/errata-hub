@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { findReportById } from "@/services/report";
 import { createClient } from "@/lib/supabase/server";
 import { ReportEditForm } from "@/components/report-edit-form";
+import { ReportWithdraw } from "@/components/report-withdraw";
 import { toReportFieldsValue } from "@/utils/report-fields-value";
 import { routes } from "@/constants/routes";
 import { FORM_COLUMN } from "@/constants/layout";
@@ -49,6 +50,8 @@ export default async function ReportEditPage({ params }: Props) {
           .filter((image) => image.addendumId === null)
           .map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
       />
+      {/* 取り下げられる条件は編集と同じ（PENDING かつ本人）なので、この画面の下に置く */}
+      <ReportWithdraw reportId={report.id} title={report.title} />
     </div>
   );
 }

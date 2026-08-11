@@ -12,7 +12,7 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
     }
   }
   const models = {
-    report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
+    report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
     reportImage: { findUnique: vi.fn(), delete: vi.fn() },
     reportAddendum: { create: vi.fn() },
     upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
@@ -56,8 +56,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport } from "./report";
-import { AUDIT_ACTION } from "@/constants/audit";
+import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport, withdrawOwnReport } from "./report";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
@@ -388,6 +388,86 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
     const result = await createReport({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
     expect(result.error).toBeUndefined();
     expect(result.id).toBe("report-2");
+  });
+});
+
+describe("withdrawOwnReport（投稿者による取り下げ）", () => {
+  const report = {
+    id: "report-1",
+    userId: "user-1",
+    status: "PENDING",
+    title: "誤植の報告",
+    // 実在しないバケットの URL＝ storagePathFromPublicUrl が null を返し Storage を触らない
+    images: [{ id: "image-1", imageUrl: "https://example.test/not-a-storage-url.png" }],
+  };
+
+  beforeEach(() => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", email: "reader@local.test" } } });
+    prismaMock.report.findUnique.mockResolvedValue(report);
+  });
+
+  it("未認証はエラー", async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+
+    const result = await withdrawOwnReport("report-1");
+
+    expect(result).toEqual({ error: "認証が必要です" });
+    expect(prismaMock.report.delete).not.toHaveBeenCalled();
+  });
+
+  it("他人の投稿は取り下げられない", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-2", email: "other@local.test" } } });
+
+    const result = await withdrawOwnReport("report-1");
+
+    expect(result.error).toContain("権限がありません");
+    expect(prismaMock.report.delete).not.toHaveBeenCalled();
+  });
+
+  it("出版社へ連絡した後は取り下げられない", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ ...report, status: "FORWARDED" });
+
+    const result = await withdrawOwnReport("report-1");
+
+    expect(result.error).toContain("出版社へ連絡した後");
+    expect(prismaMock.report.delete).not.toHaveBeenCalled();
+  });
+
+  it("却下された投稿も取り下げられない（PENDING だけ）", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ ...report, status: "DISMISSED" });
+
+    const result = await withdrawOwnReport("report-1");
+
+    expect(result.error).toContain("出版社へ連絡した後");
+    expect(prismaMock.report.delete).not.toHaveBeenCalled();
+  });
+
+  it("投稿が見つからないときは削除もログもしない", async () => {
+    prismaMock.report.findUnique.mockResolvedValue(null);
+
+    const result = await withdrawOwnReport("report-1");
+
+    expect(result.error).toBe("投稿が見つかりません");
+    expect(prismaMock.report.delete).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("未対応の間は取り下げでき、投稿の中身ごと操作ログに残る", async () => {
+    // 成功時は redirect が制御フロー例外を投げるので、ここまで来れば削除とログは通っている
+    await expect(withdrawOwnReport("report-1")).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(prismaMock.report.delete).toHaveBeenCalledWith({ where: { id: "report-1" } });
+    // 投稿は物理削除されるので、何が消えたかを辿れるのはこの記録だけ
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        action: AUDIT_ACTION.WITHDRAW_OWN_REPORT,
+        targetType: TARGET_TYPE.REPORT,
+        targetId: "report-1",
+        before: expect.objectContaining({ title: report.title }),
+      }),
+      expect.anything()
+    );
   });
 });
 
