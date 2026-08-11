@@ -231,6 +231,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
     prismaMock.publisherAccess.create.mockResolvedValue({
       id: "access-1",
       publisher: { id: PUBLISHER_ID, name: "オーム社" },
+      profile: { email: "reader@local.test" },
     });
   });
 
@@ -266,6 +267,19 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
     const [, tx] = createAuditLogMock.mock.calls[0];
     expect(tx).toBeDefined();
   });
+
+  // ⚠️ userEmail は**操作した管理者**。誰に付与したかは targetId の UUID しか無く、
+  //    後から DB で名寄せしないと読めなかった（対象者が退会・削除されると辿れない）
+  it("誰に付与したかを記録に残す（当時のメール）", async () => {
+    await grantPublisherAccess(TARGET_ID, PUBLISHER_ID);
+
+    const [params] = createAuditLogMock.mock.calls[0];
+    expect(params).toMatchObject({
+      userEmail: "admin@local.test",
+      targetId: TARGET_ID,
+      after: { targetEmail: "reader@local.test", publisherName: "オーム社" },
+    });
+  });
 });
 
 describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
@@ -290,6 +304,7 @@ describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
 
   it("実際に剥奪できたときだけ、監査ログを同じ塊の中でどの出版社かまで残す", async () => {
     prismaMock.publisher.findUnique.mockResolvedValue({ id: PUBLISHER_ID, name: "オーム社" });
+    prismaMock.profile.findUnique.mockResolvedValue({ email: "reader@local.test" });
     prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 1 });
 
     const result = await revokePublisherAccess(TARGET_ID, PUBLISHER_ID);
@@ -303,7 +318,12 @@ describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
     expect(tx).toBeDefined();
     expect(params).toMatchObject({
       action: "REVOKE_PUBLISHER_ACCESS",
-      before: { publisherId: PUBLISHER_ID, publisherName: "オーム社" },
+      // 誰から剥奪したかも残す（付与側と対称）
+      before: {
+        targetEmail: "reader@local.test",
+        publisherId: PUBLISHER_ID,
+        publisherName: "オーム社",
+      },
     });
   });
 });

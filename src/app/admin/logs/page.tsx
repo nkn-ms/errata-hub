@@ -6,7 +6,7 @@ import { routes } from "@/constants/routes";
 import { shortId } from "@/utils/format";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
-import { AUDIT_ACTION_LABELS, auditActionLabel } from "@/constants/audit";
+import { AUDIT_ACTION_LABELS, auditActionLabel, targetTypeLabel } from "@/constants/audit";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -34,10 +34,47 @@ function ExpandableCell({ summary, full }: { summary: string; full: string }) {
   );
 }
 
+/**
+ * 記録に残した「誰に対する操作か」のメール。無ければ null。
+ *
+ * 出版社アクセスの付与・剥奪だけが持つ（`targetId` が Profile の id で、ID のままでは読めないため
+ * = actions/user.ts）。**古い記録は持っていない**ので、その場合は ID の表示に落とす。
+ * AuditLog は90日で消えるため、この分岐が要るのも最大90日。
+ */
+function targetEmailOf(before: Prisma.JsonValue | null, after: Prisma.JsonValue | null): string | null {
+  for (const payload of [after, before]) {
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const email = (payload as Record<string, unknown>).targetEmail;
+      if (typeof email === "string") return email;
+    }
+  }
+  return null;
+}
+
 function JsonCell({ value }: { value: Prisma.JsonValue | null }) {
   if (!value) return <span className="text-gray-400">-</span>;
 
   return <ExpandableCell summary={JSON.stringify(value)} full={JSON.stringify(value, null, 2)} />;
+}
+
+function TargetCell({
+  targetType,
+  targetId,
+  email,
+}: {
+  targetType: string;
+  targetId: string;
+  email: string | null;
+}) {
+  const label = targetTypeLabel(targetType);
+  const stored = `${targetType}:${targetId}`;
+
+  return (
+    <ExpandableCell
+      summary={email ? `${label}:${email}` : `${label}:${shortId(targetId)}…`}
+      full={email ? `${label}:${email}\n${stored}` : stored}
+    />
+  );
 }
 
 type Props = {
@@ -156,12 +193,16 @@ export default async function AdminLogsPage({ searchParams }: Props) {
                     {auditActionLabel(log.action)}
                   </span>
                 </td>
-                {/* こちらは CSS ではなく shortId で本当に切っている（全文が DOM に無い）ので、
-                    開いたときに初めて完全な ID が読める＝他の画面や DB と突き合わせられる */}
+                {/* 対象は「何に対する操作か」を日本語のラベルで出す。型名をそのまま出していた頃は
+                    `PublisherAccess:16f8…` を「PublisherAccess の ID」と読まれ、実際に取り違えが起きた
+                    （あの UUID は Profile の id）。記録がメールを持っていればそれを出す。
+                    ⚠️ 開いたときは**保存されている型名と ID をそのまま**出す（記録の正はこちら）。
+                       shortId で本当に切っているので、完全な ID は開かないと読めない */}
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
-                  <ExpandableCell
-                    summary={`${log.targetType}:${shortId(log.targetId)}…`}
-                    full={`${log.targetType}:${log.targetId}`}
+                  <TargetCell
+                    targetType={log.targetType}
+                    targetId={log.targetId}
+                    email={targetEmailOf(log.before, log.after)}
                   />
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
