@@ -1,8 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
-import { openReportByTitle } from "./find-report";
-import { confirmAndSubmit } from "./submit-report";
+import {
+  createThrowawayReport,
+  deleteReportAsAdmin,
+  THROWAWAY_BOOK,
+} from "./throwaway-report";
 
 // 投稿者による自分の投稿の編集と追記。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
@@ -10,41 +13,6 @@ import { confirmAndSubmit } from "./submit-report";
 // この spec が守っている線引き:
 //   未対応（PENDING）の間 = 本文を修正できる／画像を追加も削除もできる
 //   出版社へ連絡した後     = 本文は直せず、追記だけできる／画像は追加だけできる
-
-const BOOK_B = {
-  isbn: "9784274224478",
-  title: "マスタリングTCP/IP 入門編",
-  author: "井上,直也,1974-",
-  publisher: "オーム社",
-};
-
-async function mockBookApis(page: Page) {
-  await page.route("**/api/books/openbd*", (route) =>
-    route.fulfill({
-      json: [{ summary: { isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, cover: "" } }],
-    })
-  );
-  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
-}
-
-// 使い捨ての投稿を1件作り、その id を返す
-async function createReport(page: Page, title: string): Promise<string> {
-  await mockBookApis(page);
-  await page.goto("/submit");
-  await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
-  await page.getByRole("button", { name: "検索", exact: true }).click();
-  await expect(page.getByText(BOOK_B.title)).toBeVisible();
-
-  await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-  await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-  await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(title);
-  await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("正字コード");
-  await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
-  await confirmAndSubmit(page);
-  await page.waitForURL(/\/$/);
-
-  return openReportByTitle(page, title);
-}
 
 // 管理者として「出版社へ連絡済み」にする（＝この時点から本文は直せなくなる）
 async function forwardAsAdmin(page: Page, reportId: string) {
@@ -80,18 +48,11 @@ async function confirmAddendum(page: Page) {
   await expect(page.getByLabel("追記する")).toHaveValue("");
 }
 
-async function deleteReportAsAdmin(page: Page, reportId: string) {
-  await page.goto(`/admin/reports/${reportId}`);
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "削除", exact: true }).click();
-  await page.waitForURL(/\/admin\/reports$/);
-}
-
 test.describe("投稿者による編集（未対応の間）", () => {
   test("自分の投稿を直せて、編集日時が入る", async ({ page, browser }) => {
     const title = `E2E編集テスト ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     // 投稿直後は編集日時が「-」（触っていないものを編集済みと言わない）
     await expect(page.getByText(/^投稿日時: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeVisible();
@@ -101,7 +62,7 @@ test.describe("投稿者による編集（未対応の間）", () => {
     await page.waitForURL(/\/reports\/[^/]+\/edit$/);
 
     // 書籍は確定表示で、選び直せない（本を変えるのは別の投稿を作ること）
-    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+    await expect(page.getByText(THROWAWAY_BOOK.title)).toBeVisible();
     await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toHaveCount(0);
 
     // 入力欄には今の内容が入っている（新規投稿と同じ欄を共有している）
@@ -130,7 +91,7 @@ test.describe("投稿者による編集（未対応の間）", () => {
   test("他人の投稿は編集できず、URL を直接開いても詳細へ戻される", async ({ page, browser }) => {
     const title = `E2E他人の投稿 ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
@@ -156,7 +117,7 @@ test.describe("投稿の取り下げ（未対応の間）", () => {
   test("自分の投稿を取り下げると消え、詳細ページは 404 になる", async ({ page }) => {
     const title = `E2E取り下げテスト ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     await page.goto(`/reports/${reportId}/edit`);
 
@@ -183,7 +144,7 @@ test.describe("投稿の取り下げ（未対応の間）", () => {
   test("連絡後は取り下げられない（編集画面が開かない）", async ({ page, browser }) => {
     const title = `E2E取り下げ不可テスト ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
@@ -207,7 +168,7 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
   test("画像の追加も削除も「更新する」で確定する", async ({ page, browser }) => {
     const title = `E2E画像追加 ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
     await expect(page.getByAltText("証拠画像")).toHaveCount(0);
 
     await page.goto(`/reports/${reportId}/edit`);
@@ -265,7 +226,7 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
   test("連絡後は画像を消せない（編集画面が開かない）", async ({ page, browser }) => {
     const title = `E2E画像連絡後 ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     await page.goto(`/reports/${reportId}/edit`);
     await attachImage(page);
@@ -303,7 +264,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
   test("連絡後は本文を直せず、追記だけできる", async ({ page, browser }) => {
     const title = `E2E追記テスト ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
@@ -357,7 +318,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
   test("追記に画像を添えられ、本体の証拠画像とは分けて出る", async ({ page, browser }) => {
     const title = `E2E追記の画像 ${Date.now()}`;
     await login(page, READER);
-    const reportId = await createReport(page, title);
+    const reportId = await createThrowawayReport(page, title);
 
     // 投稿本体の画像を1枚（連絡前なので編集画面から）
     await page.goto(`/reports/${reportId}/edit`);

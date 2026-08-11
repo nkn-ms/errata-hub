@@ -45,7 +45,7 @@ test.describe("正誤表URLの申告と採用", () => {
       // 申告欄は「まだ正誤表が登録されていない本」にだけ出す（登録済みの本に再申告させない）。
       // 前回の実行が途中で落ちて URL が残っていても同じ条件から始められるよう、先に空にする。
       // 控えた値はテストの最後に戻す
-      await openBookEditor(adminPage, BOOK_B.title);
+      await openBookEditor(adminPage, BOOK_B.isbn);
       const originalErratumUrl = await adminPage.getByLabel("正誤表URL").inputValue();
       if (originalErratumUrl) await saveErratumUrl(adminPage, "");
 
@@ -79,7 +79,7 @@ test.describe("正誤表URLの申告と採用", () => {
       // --- 管理者として、内容を確認して採用する ---
       // 採用の操作は投稿詳細にしか無いので、書籍編集画面には「未採用の申告がある」ことと
       // そこへの導線だけを出している（管理者が申告に気づけないと採用が始まらない）
-      await openBookEditor(adminPage, BOOK_B.title);
+      await openBookEditor(adminPage, BOOK_B.isbn);
       await expect(adminPage.getByText(/未採用の正誤表URLの申告/)).toBeVisible();
       // 件数ではなく「今回の申告が並んでいるか」を見る（過去の実行が残した申告があっても成立する）
       const adoptEntry = adminPage.getByRole("listitem").filter({ hasText: reportedUrl });
@@ -120,7 +120,7 @@ test.describe("正誤表URLの申告と採用", () => {
       await adminPage.getByRole("button", { name: "削除", exact: true }).click();
       await adminPage.waitForURL(/\/admin\/reports$/);
 
-      await openBookEditor(adminPage, BOOK_B.title);
+      await openBookEditor(adminPage, BOOK_B.isbn);
       await saveErratumUrl(adminPage, originalErratumUrl);
     } finally {
       await adminContext.close();
