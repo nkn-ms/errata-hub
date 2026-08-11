@@ -207,6 +207,16 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
     await page.getByRole("button", { name: "この画像を削除" }).click();
     await page.getByRole("button", { name: "更新する" }).click();
 
+    // 取り消せないので、消える画像を見せて確かめてから送る（管理画面の同じ操作には前からあった）
+    const confirmDialog = page.locator("dialog[open]");
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog.getByAltText("削除する画像")).toHaveCount(1);
+    await confirmDialog.getByRole("button", { name: "キャンセル" }).click();
+    await expect(page.getByText("削除予定")).toBeVisible(); // 閉じても印は残る＝やり直せる
+
+    await page.getByRole("button", { name: "更新する" }).click();
+    await confirmDialog.getByRole("button", { name: "削除して更新する" }).click();
+
     await page.waitForURL(`**/reports/${reportId}`);
     await expect(page.getByAltText("証拠画像")).toHaveCount(0);
     // 画像を消しても投稿そのものは残る
