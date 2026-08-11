@@ -108,9 +108,16 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
 
     await expect(page.getByText("付与された出版社なし")).toBeVisible();
 
+    // 選んで「追加」を押しただけでは送らない（「追加予定」として並ぶだけ）。
+    // 押した瞬間に反映していた頃は、押し間違いを戻す手立ても、何が変わったかを知る手立ても無かった
     await page.getByRole("combobox").selectOption({ label: SEED_PUBLISHER });
-    await page.getByRole("button", { name: "追加" }).click();
-    await expect(page.getByText("追加しました")).toBeVisible();
+    await page.getByRole("button", { name: "追加", exact: true }).click();
+    await expect(page.getByText("追加予定")).toBeVisible();
+    await expect(page.getByText("更新しました")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "アクセス権を更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
+    await expect(page.getByText("追加予定")).toHaveCount(0);
     await expect(page.getByRole("listitem").filter({ hasText: SEED_PUBLISHER })).toBeVisible();
 
     // 出版社側の画面からも「誰が持っているか」と「誰が付けたか」が分かる。
@@ -153,10 +160,20 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
       new RegExp(`^ユーザー:${READER.email}\\nPublisherAccess:[0-9a-f-]{36}$`)
     );
 
-    // 剥奪（＝シードの初期状態に戻す）
+    // 剥奪（＝シードの初期状態に戻す）。こちらも押しただけでは消えず、印を付けて確定する。
+    // ⚠️ 印を付けた行を一覧から外さない（消えたのか壊れたのか区別が付かなくなる）
     await page.goto(userEditUrl);
-    await page.getByRole("button", { name: "削除" }).click();
-    await expect(page.getByText("削除しました")).toBeVisible();
+    await page.getByRole("button", { name: "権限を外す" }).click();
+    await expect(page.getByText("削除予定")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: SEED_PUBLISHER })).toBeVisible();
+
+    // 気が変わったら戻せる（確定していないのだから戻せるべき）
+    await page.getByRole("button", { name: "外すのをやめる" }).click();
+    await expect(page.getByText("削除予定")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "権限を外す" }).click();
+    await page.getByRole("button", { name: "アクセス権を更新する" }).click();
+    await expect(page.getByText("更新しました")).toBeVisible();
     await expect(page.getByText("付与された出版社なし")).toBeVisible();
 
     // 一覧側にも反映されている（付与列が "-" に戻る）
