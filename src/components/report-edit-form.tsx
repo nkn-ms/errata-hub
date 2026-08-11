@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -82,14 +82,29 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  // 画像の削除は取り消せないので、確定の前に**何が消えるか**を見せて確かめる
+  // （管理画面の同じ操作には前からあった＝一般ユーザーが触るこちらの面だけ緩かった）。
+  // ⚠️ 消す画像が無いときは出さない。本文を直しに来ただけの人に確認を挟まない
+  const confirmRef = useRef<HTMLDialogElement>(null);
+  const removedImages = images.filter((image) => isRemoved(image.id));
+
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const found = reportFieldsErrors(fields);
     if (found.length > 0) {
       setErrors(found);
       return;
     }
+    setErrors([]);
 
+    if (removedImages.length > 0) {
+      confirmRef.current?.showModal();
+      return;
+    }
+    void save();
+  }
+
+  async function save() {
     setSubmitting(true);
     setErrors([]);
     try {
@@ -280,6 +295,56 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
       </section>
 
       <ErrorPanel errors={errors} />
+
+      {/* 消す画像を見せてから確かめる（新規投稿の確認画面・追記と同じ形）。
+          ⚠️ **この form の中に置いてよいのは、中のボタンを両方 type="button" にしているから**。
+             既定の type="submit" のままだと、確認のつもりで押した瞬間に送信が走る */}
+      <dialog
+        ref={confirmRef}
+        className="m-auto max-h-[90dvh] w-[90vw] max-w-lg rounded-lg bg-transparent p-0 backdrop:bg-black/60"
+      >
+        <div className="space-y-4 rounded-lg bg-white p-6">
+          <h2 className="text-base font-semibold text-gray-900">
+            画像{removedImages.length}枚を削除します
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {removedImages.map((image) => (
+              <Image
+                key={image.id}
+                src={image.imageUrl}
+                alt="削除する画像"
+                width={96}
+                height={128}
+                unoptimized
+                className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+              />
+            ))}
+          </div>
+          <p className="text-sm text-gray-700">
+            削除した画像は<strong>元に戻せません。</strong>本文の変更も一緒に保存されます。
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => confirmRef.current?.close()}
+              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                confirmRef.current?.close();
+                void save();
+              }}
+              disabled={submitting}
+              className="px-6 py-2 text-sm bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50 transition-colors"
+            >
+              削除して更新する
+            </button>
+          </div>
+        </div>
+      </dialog>
 
       <div className="flex gap-3 justify-end">
         <Link
