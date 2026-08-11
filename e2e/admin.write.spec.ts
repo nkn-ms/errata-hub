@@ -134,17 +134,19 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
     // ⚠️ 開いて読めるのは**記録に入っている値だけ**。出版社名は残しているので出るが、
     //    付与した相手は targetId の UUID しか無く、この行からは誰に付けたのか読めないままである
     await page.goto("/admin/logs?action=GRANT_PUBLISHER_ACCESS");
-    const logDetails = page
-      .getByRole("row")
-      .filter({ hasText: "出版社アクセス付与" })
-      .first()
-      .locator("details")
-      .last();
-    await expect(logDetails.locator("pre")).toBeHidden();
+    const logRow = page.getByRole("row").filter({ hasText: "出版社アクセス付与" }).first();
 
-    await logDetails.locator("summary").click();
-    await expect(logDetails.locator("pre")).toBeVisible();
-    await expect(logDetails.locator("pre")).toContainText(SEED_PUBLISHER);
+    const changedTo = logRow.locator("details").last();
+    await expect(changedTo.locator("pre")).toBeHidden();
+    await changedTo.locator("summary").click();
+    await expect(changedTo.locator("pre")).toBeVisible();
+    await expect(changedTo.locator("pre")).toContainText(SEED_PUBLISHER);
+
+    // 対象列は CSS ではなく先頭8文字に切ってあるので、開いて初めて完全な ID が読める
+    // （＝他の画面や DB と突き合わせられる）
+    const target = logRow.locator("details").first();
+    await target.locator("summary").click();
+    await expect(target.locator("pre")).toHaveText(/^PublisherAccess:[0-9a-f-]{36}$/);
 
     // 剥奪（＝シードの初期状態に戻す）
     await page.goto(userEditUrl);
