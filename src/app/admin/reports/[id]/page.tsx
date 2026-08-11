@@ -4,6 +4,7 @@ import { AdminReportEditor } from "@/components/admin/report-editor";
 import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
 import { TYPE_LABELS } from "@/constants/report-labels";
 import { formatJstDate } from "@/utils/format";
+import { toReportImageView } from "@/utils/mappers";
 import type { Report } from "@/generated/prisma/client";
 
 // 位置の1行表示。媒体ごとに入力される項目が違う（紙=ページ/行、電子=位置、その他=メモ）
@@ -26,7 +27,8 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
     where: { id },
     include: {
       book: { include: { publisher: true } },
-      images: true,
+      // 古い順に固定する（墓標が混ざるので並びが揺れると「どこにあった画像か」が読めない）
+      images: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -141,7 +143,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
         currentComment={report.publisherComment ?? ""}
         currentFixedEdition={report.fixedEdition}
         currentFixedPrinting={report.fixedPrinting}
-        images={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
+        images={report.images.map(toReportImageView)}
       />
     </div>
   );

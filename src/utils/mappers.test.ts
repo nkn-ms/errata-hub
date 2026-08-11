@@ -114,4 +114,34 @@ describe("mapReport", () => {
     expect(r.publisher).toBe("");
     expect(r.bookAuthor).toBe("");
   });
+
+  it("追記に添えた画像は本体の images に混ぜない", () => {
+    const r = mapReport(
+      buildPrismaReport({
+        images: [
+          { id: "img-1", addendumId: null, imageUrl: "https://example.com/1.png", removedByOperatorAt: null },
+          { id: "img-2", addendumId: "add-1", imageUrl: "https://example.com/2.png", removedByOperatorAt: null },
+        ],
+      })
+    );
+    expect(r.images.map((image) => image.id)).toEqual(["img-1"]);
+  });
+
+  // 運営者が消した画像は Storage のファイルが実在しない。URL を渡せば壊れた画像になるので、
+  // 型の上で「表示できない」ことを保証する（表示側は墓標に分岐する = components/report-image.tsx）
+  it("運営者が削除した画像は URL を持たせず、印だけを渡す", () => {
+    const r = mapReport(
+      buildPrismaReport({
+        images: [
+          {
+            id: "img-1",
+            addendumId: null,
+            imageUrl: "https://example.com/1.png",
+            removedByOperatorAt: new Date("2026-08-11T00:00:00.000Z"),
+          },
+        ],
+      })
+    );
+    expect(r.images).toEqual([{ id: "img-1", removedByOperator: true }]);
+  });
 });

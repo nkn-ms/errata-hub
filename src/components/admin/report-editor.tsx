@@ -6,11 +6,13 @@ import Image from "next/image";
 
 import { deleteReport, deleteReportImage, updateReport } from "@/app/actions/report";
 import { NumberField } from "@/components/number-field";
+import { ReportImageOrTombstone } from "@/components/report-image";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";
+import type { ReportImageView } from "@/types/report";
 
 type Status = ReportStatus;
 
@@ -20,7 +22,7 @@ type Props = {
   currentComment: string;
   currentFixedEdition?: number | null;
   currentFixedPrinting?: number | null;
-  images: { id: string; imageUrl: string }[];
+  images: ReportImageView[];
 };
 
 export function AdminReportEditor({ id, currentStatus, currentComment, currentFixedEdition, currentFixedPrinting, images }: Props) {
@@ -170,7 +172,12 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-2">添付画像</span>
           <div className="flex flex-wrap gap-3">
-            {images.map((image) => (
+            {images.map((image) =>
+              // 既に消した画像は墓標だけを出す（公開ページと同じ表示）。× は付けない＝
+              // 消えているものをもう一度消せてはならないし、戻すこともできない
+              image.removedByOperator ? (
+                <ReportImageOrTombstone key={image.id} image={image} alt="添付画像" />
+              ) : (
               <div key={image.id} className="relative">
                 <a href={image.imageUrl} target="_blank" rel="noopener noreferrer">
                   {/* 自前 Storage 由来だが書影と同じ unoptimized 恒久運用に合わせる */}
@@ -206,7 +213,8 @@ export function AdminReportEditor({ id, currentStatus, currentComment, currentFi
                   {isRemoved(image.id) ? "↩" : "×"}
                 </button>
               </div>
-            ))}
+              )
+            )}
           </div>
           {removedIds.length > 0 && (
             <p className="mt-2 text-xs text-gray-500">

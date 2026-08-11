@@ -44,9 +44,11 @@ export default async function ReportEditPage({ params }: Props) {
         }}
         initialFields={toReportFieldsValue(report)}
         // 追記の画像は別枠で、この画面では扱わない（連絡前なので本来まだ存在しないが、
-        // 「本体の画像」を渡す意図を条件で示しておく）
+        // 「本体の画像」を渡す意図を条件で示しておく）。
+        // ⚠️ 運営者が削除した画像（墓標）も外す。この画面でできるのは投稿者自身の追加・削除で、
+        //    墓標はどちらの対象でもない（消えたことは公開ページに出る = components/report-image.tsx）
         initialImages={report.images
-          .filter((image) => image.addendumId === null)
+          .filter((image) => image.addendumId === null && image.removedByOperatorAt === null)
           .map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
       />
     </div>

@@ -261,6 +261,15 @@ model ReportImage {
   addendumId String?
   addendum   ReportAddendum? @relation(fields: [addendumId], references: [id], onDelete: Cascade)
   imageUrl   String   // Supabase Storage 公開バケット report-images の公開URL
+  // 運営者（管理者）が権利者対応等で削除した日時。**null = 削除されていない**。
+  //
+  // ⭐ 行ごと消さずに墓標を残すのは、規約第6条3項が「運営者が編集したらその旨を投稿の表示上に
+  // 明示する」義務を課しているため。黙って消すと、読み手には**最初から無かったのと区別が付かない**。
+  // 追記に添えた画像にも効く（規約第7条3項で追記は不変と定めた以上、中身が黙って減ってはいけない）。
+  // ⚠️ Storage のファイルは実際に消えるので、この列が入った行の imageUrl は**表示してはいけない**
+  //    （読み取り側は墓標に差し替える。src/services/report.ts の visibleImages を通す）。
+  // ⚠️ 投稿者自身の削除は物理削除のまま（自分の投稿の修正であって、他人の著作物への改変ではない）。
+  removedByOperatorAt DateTime?
   createdAt  DateTime @default(now())
 
   // 投稿詳細の画像表示・投稿削除時の Cascade・アップロード時の枚数カウントが参照する

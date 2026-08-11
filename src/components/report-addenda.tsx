@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import Image from "next/image";
 import { addReportAddendum, type Addendum } from "@/app/actions/report";
+import { ReportImageOrTombstone } from "@/components/report-image";
+import type { ReportImageView } from "@/types/report";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/components/report-fields";
 import { routes } from "@/constants/routes";
@@ -34,8 +35,13 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
   // 枠は投稿本体とは別で、**投稿単位**（追記1件ごとではない = constants/report-images.ts）。
   // ⚠️ 残り枚数はこの部品が持っている追記から数える。「残り何枚」をサーバーから受け取る形に
   //    すると、追記で足した分が反映されずリロードするまで減らない（実機で実際にそうなった）。
+  // 運営者が削除した画像（墓標）は数えない＝サーバー側の枠の数え方に合わせる
+  // （api/reports/[id]/images の imagePool）。消された分を足し直せないと差し替えができない
   const used =
-    addenda.reduce((count, addendum) => count + addendum.images.length, 0) + images.length;
+    addenda.reduce(
+      (count, addendum) => count + addendum.images.filter((image) => !image.removedByOperator).length,
+      0
+    ) + images.length;
   const remaining = ADDENDUM_IMAGE_MAX_COUNT - used;
   // 追記は取り消せないので、送る前に何を送るかを見せて確かめる
   // （新規投稿の「確認する → 投稿する」と同じ形。<dialog> は ESC とフォーカス管理が付いてくる）
@@ -87,7 +93,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
       // 画像は追記を作ってから、その追記に紐づけて送る（本体の証拠画像と混ぜない）。
       // ⚠️ 追記は不変なので、ここで失敗した分を後からこの追記に足すことはできない。
       //    追記自体は保存されている＝「何が起きたか」をそのまま伝えて、やり直しは別の追記に委ねる。
-      const uploaded: { id: string; imageUrl: string }[] = [];
+      const uploaded: ReportImageView[] = [];
       let failedCount = 0;
       for (const { file, previewUrl } of images) {
         const formData = new FormData();
@@ -100,7 +106,8 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
           failedCount++;
           continue;
         }
-        uploaded.push(await response.json());
+        const created: { id: string; imageUrl: string } = await response.json();
+        uploaded.push({ id: created.id, removedByOperator: false, imageUrl: created.imageUrl });
         URL.revokeObjectURL(previewUrl);
       }
 
@@ -139,16 +146,12 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
                 {addendum.images.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {addendum.images.map((image) => (
-                      <a key={image.id} href={image.imageUrl} target="_blank" rel="noopener noreferrer">
-                        <Image
-                          src={image.imageUrl}
-                          alt="追記の画像"
-                          width={96}
-                          height={128}
-                          unoptimized
-                          className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50 hover:opacity-80 transition-opacity cursor-zoom-in"
-                        />
-                      </a>
+                      <ReportImageOrTombstone
+                        key={image.id}
+                        image={image}
+                        alt="追記の画像"
+                        size="addendum"
+                      />
                     ))}
                   </div>
                 )}

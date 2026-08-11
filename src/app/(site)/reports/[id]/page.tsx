@@ -5,7 +5,6 @@ import { mapReport } from "@/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +14,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 import { ReportAddenda } from "@/components/report-addenda";
+import { ReportImageOrTombstone } from "@/components/report-image";
 import { formatJstDateTime } from "@/utils/format";
 
 type Props = {
@@ -54,8 +54,6 @@ export default async function ReportDetailPage({ params }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const viewer = getViewerRole(user?.id, report.userId);
-  // 投稿本体の画像（追記に添えて足されたものは、その追記の中に出す）
-  const bodyImages = raw.images.filter((image) => image.addendumId === null);
   const upvoted = user
     ? (await prisma.upvote.findUnique({
         where: { reportId_profileId: { reportId: report.id, profileId: user.id } },
@@ -233,21 +231,12 @@ export default async function ReportDetailPage({ params }: Props) {
             **投稿の一部なので追記より上**（間に追記の入力欄が挟まると、本文と証拠が離れる）。
             ⚠️ 追記に添えて足された画像はここに混ぜない（下の追記の中に出る）。
                混ぜると、出版社が見た時点で何があったのかが読めなくなる */}
-        {bodyImages.length > 0 && (
+        {report.images.length > 0 && (
           <div>
             <p className="text-xs text-gray-500 mb-2">証拠画像</p>
             <div className="flex flex-wrap gap-3">
-              {bodyImages.map((img) => (
-                <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
-                  <Image
-                    src={img.imageUrl}
-                    alt="証拠画像"
-                    width={128}
-                    height={180}
-                    unoptimized
-                    className="w-32 h-auto rounded border border-gray-200 hover:opacity-80 transition-opacity cursor-zoom-in"
-                  />
-                </a>
+              {report.images.map((img) => (
+                <ReportImageOrTombstone key={img.id} image={img} alt="証拠画像" />
               ))}
             </div>
           </div>

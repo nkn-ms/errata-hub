@@ -19,6 +19,7 @@ import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { storagePathFromPublicUrl } from "@/utils/report-images";
 import { routes } from "@/constants/routes";
+import type { ReportImageView } from "@/types/report";
 import { formatJstDateTime } from "@/utils/format";
 import { ReportType, Medium, Prisma } from "@/generated/prisma/client";
 
@@ -384,7 +385,7 @@ export type Addendum = {
   id: string;
   body: string;
   createdAt: string;
-  images: { id: string; imageUrl: string }[];
+  images: ReportImageView[];
 };
 type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: undefined; error: string };
 
@@ -508,7 +509,10 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
     return { error: "投稿が見つかりません" };
   }
 
-  await removeImageFiles(report.images.map((image) => image.imageUrl));
+  // 墓標のファイルは削除済みなので除く（投稿ごと消すのでここでは行の残し方を気にしなくてよい）
+  await removeImageFiles(
+    report.images.filter((image) => image.removedByOperatorAt === null).map((image) => image.imageUrl)
+  );
 
   // redirect は制御フロー例外を投げるため try の外で呼ぶ（catch に飲まれないように）
   redirect(routes.admin.reports);
@@ -522,20 +526,30 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
  * （docs/moderation-policy.md の「部分マスキング」と同じ系統の措置）。
  *
  * 投稿本文には触れない＝**投稿を消さずに済ませる**ための手段であることが要点。
+ *
+ * ⭐ **行は消さず `removedByOperatorAt` を立てる（墓標）**。Storage のファイルは実際に消すが、
+ * 行を残すことで公開ページに「運営者が削除しました」を出せる＝規約第6条3項の明示義務
+ * （黙って消すと読み手には最初から無かったのと区別が付かない）。投稿者自身の削除は
+ * この義務の対象外なので物理削除のまま = deleteOwnReportImage。
  */
 export async function deleteReportImage(imageId: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
   let image: Awaited<ReturnType<typeof prisma.reportImage.findUnique>>;
   try {
-    // deleteReport と同じ形: 行の削除と監査ログを1つの塊にする。
+    // deleteReport と同じ形: 行の書き込みと監査ログを1つの塊にする。
     // ⚠️ 権利者からの削除要請に応じた証跡なので、**記録が残せないなら削除も成立させない**方が正しい。
     // 「記録だけが無い」状態を作らないことが目的で、同じ DB であることは条件にすぎない。
     image = await prisma.$transaction(async (tx) => {
       const found = await tx.reportImage.findUnique({ where: { id: imageId } });
       if (!found) return null;
+      // 2回目は Storage のファイルが既に無い。墓標を新しい日時で上書きしても意味が無いので何もしない
+      if (found.removedByOperatorAt !== null) return found;
 
-      await tx.reportImage.delete({ where: { id: imageId } });
+      await tx.reportImage.update({
+        where: { id: imageId },
+        data: { removedByOperatorAt: new Date() },
+      });
       // 対象は投稿（画像は投稿の一部）なので targetId は reportId にし、消した画像を before に残す。
       await createAuditLog(
         {
@@ -559,7 +573,10 @@ export async function deleteReportImage(imageId: string): Promise<ReportActionSt
     return { error: "画像が見つかりません" };
   }
 
-  await removeImageFiles([image.imageUrl]);
+  // image は墓標を立てる**前**の行。既に立っていたならファイルは前回消しているので触らない
+  if (image.removedByOperatorAt === null) {
+    await removeImageFiles([image.imageUrl]);
+  }
 
   refresh();
   return {};
@@ -600,6 +617,10 @@ export async function deleteOwnReportImage(imageId: string): Promise<ReportActio
       }
       if (found.report.status !== "PENDING") {
         return { error: "出版社へ連絡した後は画像を削除できません。" };
+      }
+      // 墓標（運営者が削除済み）は消せない。消せると明示が消え、規約第6条3項の義務を満たせなくなる
+      if (found.removedByOperatorAt !== null) {
+        return { error: "この画像は運営者が削除しています" };
       }
 
       await tx.reportImage.delete({ where: { id: imageId } });

@@ -140,6 +140,9 @@ test.describe("画像添付つき投稿（書き込み）", () => {
       await adminPage.getByRole("button", { name: "更新する" }).click();
       await expect(adminPage.getByText("更新しました")).toBeVisible();
       await expect(adminPage.getByAltText("添付画像")).toHaveCount(1);
+      // 消した分は管理画面でも墓標として残る（もう一度消せてはいけないので × は付かない）
+      await expect(adminPage.getByText("運営者が削除しました")).toHaveCount(1);
+      await expect(adminPage.getByRole("button", { name: "この画像を削除" })).toHaveCount(1);
 
       // 操作ログに残る（権利者対応の証跡）
       await adminPage.goto("/admin/logs");
@@ -148,8 +151,17 @@ test.describe("画像添付つき投稿（書き込み）", () => {
       // 公開側も1枚に減り、投稿そのもの（本文）は残っている
       await page.goto(`/reports/${reportId}`);
       await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+      // ⚠️ **黙って消さない**。消したことを表示に出すのは規約第6条3項の運営者の義務で、
+      //    詰めてしまうと読み手には最初から無かったのと区別が付かない
+      await expect(page.getByText("運営者が削除しました")).toHaveCount(1);
       await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
       await expect(page.getByText("誤った文")).toBeVisible();
+
+      // 投稿者の編集画面には出さない。この画面でできるのは投稿者自身の追加・削除で、
+      // 墓標はどちらの対象でもない（消えたことは上の公開ページで伝わる）
+      await page.goto(`/reports/${reportId}/edit`);
+      await expect(page.getByAltText("証拠画像")).toHaveCount(1);
+      await expect(page.getByText("運営者が削除しました")).toHaveCount(0);
 
       // 後片付け: 投稿ごと削除してシードの前提（本Bは投稿0件）に戻す
       await adminPage.goto(`/admin/reports/${reportId}`);

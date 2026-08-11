@@ -1,5 +1,5 @@
 import type { Report as PrismaReport, Book, Publisher, ReportImage, ReportAddendum, Profile } from "@/generated/prisma/client";
-import type { Report } from "@/types/report";
+import type { Report, ReportImageView } from "@/types/report";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { formatJstDate, formatJstDateTime, shortId } from "@/utils/format";
 
@@ -12,6 +12,16 @@ type PrismaReportWithRelations = PrismaReport & {
   user?: Pick<Profile, "displayName" | "email"> | null;
   _count?: { upvotes: number };
 };
+
+/**
+ * 画像1枚を表示用に写す。運営者が削除したものは URL を落として墓標にする
+ * （型の説明は types/report.ts の ReportImageView）。
+ */
+export function toReportImageView(image: ReportImage): ReportImageView {
+  return image.removedByOperatorAt === null
+    ? { id: image.id, removedByOperator: false, imageUrl: image.imageUrl }
+    : { id: image.id, removedByOperator: true };
+}
 
 export function mapReport(f: PrismaReportWithRelations): Report {
   // 退会済み（メールが匿名化済み）なら投稿者欄は「退会済みユーザー」に。
@@ -54,10 +64,11 @@ export function mapReport(f: PrismaReportWithRelations): Report {
       id: a.id,
       body: a.body,
       createdAt: formatJstDateTime(a.createdAt),
-      images: a.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
+      images: a.images.map(toReportImageView),
     })),
     createdAtIso: f.createdAt.toISOString(),
     upvoteCount: f._count?.upvotes ?? 0,
-    imageUrls: f.images.map((image) => image.imageUrl),
+    // 追記に添えた画像は addenda の中に出す（混ぜると出版社が見た時点の中身が読めなくなる）
+    images: f.images.filter((image) => image.addendumId === null).map(toReportImageView),
   };
 }

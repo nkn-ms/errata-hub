@@ -40,9 +40,22 @@ export type Report = {
   // 表示側で日付だけ／日付＋時刻を選べるよう整形しないまま渡す
   editedAtIso: string | null;
   // 出版社へ連絡した後に投稿者が足した追記（古い順）。作成後は変えられない
-  addenda: { id: string; body: string; createdAt: string; images: { id: string; imageUrl: string }[] }[];
+  addenda: { id: string; body: string; createdAt: string; images: ReportImageView[] }[];
   // 相対表記（「3時間前」等）を出すための生タイムスタンプ（ISO）。新着フィードのカードで使う。
   createdAtIso: string;
   upvoteCount: number;
-  imageUrls: string[];
+  // 投稿本体の画像（古い順）。追記に添えた画像は addenda の中に入る
+  images: ReportImageView[];
 };
+
+/**
+ * 表示側に渡す画像1枚。
+ *
+ * ⭐ **運営者が削除した画像は `imageUrl` を持たない**。Storage のファイルは実際に消えるので、
+ * URL を渡せば壊れた画像になる。「表示できない」ことを型で保証し、表示側に墓標
+ * （「運営者が削除しました」）への分岐を強制するのが狙い（規約第6条3項の明示義務）。
+ * 行ごと消さない理由は schema.prisma の ReportImage.removedByOperatorAt を参照。
+ */
+export type ReportImageView =
+  | { id: string; removedByOperator: false; imageUrl: string }
+  | { id: string; removedByOperator: true; imageUrl?: undefined };
