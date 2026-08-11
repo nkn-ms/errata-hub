@@ -7,6 +7,38 @@ import { shortId } from "@/utils/format";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
 import { AUDIT_ACTION_LABELS, auditActionLabel } from "@/constants/audit";
+import type { Prisma } from "@/generated/prisma/client";
+
+/**
+ * 一覧では縮めて出し、**開くと全文を読める**セル。対象・変更前・変更後で共有する。
+ *
+ * ⚠️ 縮めるのをやめて出しっぱなしにはできない。「投稿削除」「投稿者による取り下げ」の変更前には
+ * **投稿1件が丸ごと（画像の配列を含めて）**入るので、常に全文だと1行が画面数個分になり一覧が成立しない。
+ *
+ * ⚠️ これは「縮めてあるから見えない」にしか効かない。**記録に入っていない値は開いても出てこない**
+ * （例: 出版社アクセスの付与・剥奪は対象ユーザーが `targetId` の UUID しかなく、メールを持っていない）。
+ *
+ * クライアント部品にしないのは `<details>` だけで開閉が成立するため（JS 無しで動き、キーボード操作も付いてくる）。
+ */
+function ExpandableCell({ summary, full }: { summary: string; full: string }) {
+  return (
+    <details>
+      {/* 三角の目印は残す（クリックできることの唯一の手掛かり）。省略は中の span で行う */}
+      <summary className="cursor-pointer hover:text-gray-700">
+        <span className="inline-block max-w-[160px] truncate align-bottom">{summary}</span>
+      </summary>
+      <pre className="mt-2 max-w-md whitespace-pre-wrap break-all rounded bg-gray-50 p-2 text-gray-700">
+        {full}
+      </pre>
+    </details>
+  );
+}
+
+function JsonCell({ value }: { value: Prisma.JsonValue | null }) {
+  if (!value) return <span className="text-gray-400">-</span>;
+
+  return <ExpandableCell summary={JSON.stringify(value)} full={JSON.stringify(value, null, 2)} />;
+}
 
 type Props = {
   searchParams: Promise<{
@@ -124,14 +156,19 @@ export default async function AdminLogsPage({ searchParams }: Props) {
                     {auditActionLabel(log.action)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500 text-xs font-mono">
-                  {log.targetType}:{shortId(log.targetId)}…
+                {/* こちらは CSS ではなく shortId で本当に切っている（全文が DOM に無い）ので、
+                    開いたときに初めて完全な ID が読める＝他の画面や DB と突き合わせられる */}
+                <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
+                  <ExpandableCell
+                    summary={`${log.targetType}:${shortId(log.targetId)}…`}
+                    full={`${log.targetType}:${log.targetId}`}
+                  />
                 </td>
-                <td className="px-4 py-3 text-gray-500 text-xs font-mono max-w-[160px] truncate">
-                  {log.before ? JSON.stringify(log.before) : "-"}
+                <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
+                  <JsonCell value={log.before} />
                 </td>
-                <td className="px-4 py-3 text-gray-500 text-xs font-mono max-w-[160px] truncate">
-                  {log.after ? JSON.stringify(log.after) : "-"}
+                <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
+                  <JsonCell value={log.after} />
                 </td>
               </tr>
             ))}

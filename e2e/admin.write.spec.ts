@@ -129,6 +129,25 @@ test.describe("出版社アクセスの付与・剥奪（管理者）", () => {
     // 付与者＝いま操作した管理者。付与の出所が行に残っていることを見る
     await expect(accessRow).toContainText(ADMIN.email);
 
+    // 操作ログの「変更後」は既定で1行に切ってあり、開くと全文が読める（表の形を保つため。
+    // 「投稿削除」の変更前には投稿1件が丸ごと入るので、常に全文だと一覧が成立しない）。
+    // ⚠️ 開いて読めるのは**記録に入っている値だけ**。出版社名は残しているので出るが、
+    //    付与した相手は targetId の UUID しか無く、この行からは誰に付けたのか読めないままである
+    await page.goto("/admin/logs?action=GRANT_PUBLISHER_ACCESS");
+    const logRow = page.getByRole("row").filter({ hasText: "出版社アクセス付与" }).first();
+
+    const changedTo = logRow.locator("details").last();
+    await expect(changedTo.locator("pre")).toBeHidden();
+    await changedTo.locator("summary").click();
+    await expect(changedTo.locator("pre")).toBeVisible();
+    await expect(changedTo.locator("pre")).toContainText(SEED_PUBLISHER);
+
+    // 対象列は CSS ではなく先頭8文字に切ってあるので、開いて初めて完全な ID が読める
+    // （＝他の画面や DB と突き合わせられる）
+    const target = logRow.locator("details").first();
+    await target.locator("summary").click();
+    await expect(target.locator("pre")).toHaveText(/^PublisherAccess:[0-9a-f-]{36}$/);
+
     // 剥奪（＝シードの初期状態に戻す）
     await page.goto(userEditUrl);
     await page.getByRole("button", { name: "削除" }).click();
