@@ -43,12 +43,23 @@ export default function AdminUserEditor({
   const [accessMessage, setAccessMessage] = useState("");
   const [accessError, setAccessError] = useState("");
   const [selectedPublisherId, setSelectedPublisherId] = useState("");
+  // アクセス権の追加・削除は**押した瞬間には送らない**（投稿の画像と同じ形 = report-edit-form.tsx）。
+  // 以前は「削除」を押した時点で消えていて、押し間違いを戻す手立ても、何が消えたかを知る手立ても
+  // 無かった（実際に、誰の権限が消えたのかを操作ログから逆引きする羽目になった）。
+  //   removedIds … 「アクセス権を更新する」で外す既存の権限。⚠️ 一覧からは外さず薄く出す
+  //   added      … 同じボタンで足す出版社（押すまでサーバーには行かない）
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [added, setAdded] = useState<Publisher[]>([]);
+  const [savingAccess, setSavingAccess] = useState(false);
   const [withdrawConfirmation, setWithdrawConfirmation] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
 
-  const grantedIds = new Set(access.map((a) => a.publisherId));
-  const ungrantedPublishers = publishers.filter((p) => !grantedIds.has(p.id));
+  // 選択肢に出さないのは「すでに持っている」＋「これから足す」の両方（同じ出版社を2回足させない）
+  const listedIds = new Set([...access.map((a) => a.publisherId), ...added.map((p) => p.id)]);
+  const ungrantedPublishers = publishers.filter((p) => !listedIds.has(p.id));
+  const isRemoved = (publisherId: string) => removedIds.includes(publisherId);
+  const hasAccessChanges = removedIds.length > 0 || added.length > 0;
 
   // 手入力を対象と突き合わせる（同じ判定をサーバー側でも行う。ここは押し間違いを止めるための前段）。
   const confirmationLabel = withdrawalConfirmationLabel(profile);
@@ -68,32 +79,54 @@ export default function AdminUserEditor({
     setSaving(false);
   }
 
-  async function handleAddPublisher() {
-    if (!selectedPublisherId) return;
+  // 選んだ出版社を「追加予定」として並べるだけ。送るのは「アクセス権を更新する」を押したとき
+  function markForAdd() {
+    const publisher = publishers.find((p) => p.id === selectedPublisherId);
+    if (!publisher) return;
     setAccessMessage("");
     setAccessError("");
-    const result = await grantPublisherAccess(profile.id, selectedPublisherId);
-    if (result.error !== undefined) {
-      setAccessError(result.error);
-      return;
-    }
-    // サーバーが成功を返したときだけ画面の一覧に足す
-    setAccess((prev) => [...prev, result.access]);
+    setAdded((prev) => [...prev, publisher]);
     setSelectedPublisherId("");
-    setAccessMessage("追加しました");
   }
 
-  async function handleRemovePublisher(publisherId: string) {
+  async function handleSaveAccess() {
+    setSavingAccess(true);
     setAccessMessage("");
     setAccessError("");
-    const result = await revokePublisherAccess(profile.id, publisherId);
-    if (result.error) {
-      setAccessError(result.error);
-      return;
+
+    // 途中で落ちたら、やり残した分だけを state に残してから知らせる
+    // ＝もう一度押せば続きからやり直せる（成功した分を二重に処理しない）= report-edit-form.tsx
+    const pendingRemovals = [...removedIds];
+    for (const publisherId of removedIds) {
+      const result = await revokePublisherAccess(profile.id, publisherId);
+      if (result.error) {
+        setRemovedIds(pendingRemovals);
+        setAccessError(result.error);
+        setSavingAccess(false);
+        return;
+      }
+      pendingRemovals.shift();
+      setAccess((prev) => prev.filter((a) => a.publisherId !== publisherId));
     }
-    // サーバーが成功を返したときだけ画面の一覧から消す
-    setAccess((prev) => prev.filter((a) => a.publisherId !== publisherId));
-    setAccessMessage("削除しました");
+    setRemovedIds([]);
+
+    const pendingAdds = [...added];
+    for (const publisher of added) {
+      const result = await grantPublisherAccess(profile.id, publisher.id);
+      if (result.error !== undefined) {
+        setAdded(pendingAdds);
+        setAccessError(result.error);
+        setSavingAccess(false);
+        return;
+      }
+      pendingAdds.shift();
+      // サーバーが返した行（付与日・付与者を持つ）を一覧に足す
+      setAccess((prev) => [...prev, result.access]);
+    }
+    setAdded([]);
+
+    setAccessMessage("更新しました");
+    setSavingAccess(false);
   }
 
   async function handleWithdraw() {
@@ -146,26 +179,55 @@ export default function AdminUserEditor({
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">出版社アクセス権限</h2>
 
-        {access.length === 0 ? (
-          <p className="text-sm text-gray-400">付与された出版社なし</p>
+        <p className="text-xs text-gray-500">
+          追加・削除はどちらも「アクセス権を更新する」で確定します。
+        </p>
+
+        {access.length === 0 && added.length === 0 ? (
+          <p className="text-sm text-gray-500">付与された出版社なし</p>
         ) : (
           <ul className="space-y-2">
+            {/* ⚠️ 外す印を付けた行を一覧から消さない。消すと「消えた」のか「壊れた」のか
+                区別が付かず、押し間違いも戻せない（投稿の画像で実機指摘を受けた形と同じ） */}
             {access.map((a) => (
-              <li key={a.publisherId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-800">{a.publisher.name}</span>
-                <button
-                  onClick={() => handleRemovePublisher(a.publisherId)}
-                  className="text-red-700 hover:text-red-900 text-xs"
-                >
-                  削除
-                </button>
+              <li key={a.publisherId} className="flex items-center justify-between gap-3 text-sm">
+                <span className={isRemoved(a.publisherId) ? "text-gray-500 line-through" : "text-gray-800"}>
+                  {a.publisher.name}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {isRemoved(a.publisherId) && <span className="text-xs text-gray-500">削除予定</span>}
+                  <button
+                    onClick={() =>
+                      setRemovedIds((prev) =>
+                        isRemoved(a.publisherId)
+                          ? prev.filter((id) => id !== a.publisherId)
+                          : [...prev, a.publisherId]
+                      )
+                    }
+                    className="text-xs text-red-700 hover:text-red-900"
+                  >
+                    {isRemoved(a.publisherId) ? "外すのをやめる" : "権限を外す"}
+                  </button>
+                </span>
+              </li>
+            ))}
+            {added.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-gray-800">{p.name}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="text-xs text-gray-500">追加予定</span>
+                  <button
+                    onClick={() => setAdded((prev) => prev.filter((x) => x.id !== p.id))}
+                    className="text-xs text-gray-700 hover:text-gray-900"
+                  >
+                    やめる
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
         )}
 
-        {accessError && <p className="text-sm text-red-700">{accessError}</p>}
-        {accessMessage && <p className="text-sm text-green-700">{accessMessage}</p>}
         {ungrantedPublishers.length > 0 && (
           <div className="flex gap-2 pt-2">
             <select
@@ -181,7 +243,7 @@ export default function AdminUserEditor({
               ))}
             </select>
             <button
-              onClick={handleAddPublisher}
+              onClick={markForAdd}
               disabled={!selectedPublisherId}
               className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
@@ -189,6 +251,16 @@ export default function AdminUserEditor({
             </button>
           </div>
         )}
+
+        <button
+          onClick={handleSaveAccess}
+          disabled={savingAccess || !hasAccessChanges}
+          className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+        >
+          {savingAccess ? "更新中..." : "アクセス権を更新する"}
+        </button>
+        {accessError && <p className="text-sm text-red-700">{accessError}</p>}
+        {accessMessage && <p className="text-sm text-green-700">{accessMessage}</p>}
       </div>
 
       {/* 代行退会（取り消せない操作なので、他のカードと見た目を分ける） */}

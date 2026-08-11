@@ -79,26 +79,51 @@ afterEach(() => {
 });
 
 describe("AdminUserEditor", () => {
+  // ⭐ **押した瞬間には送らない**（印を付けて「アクセス権を更新する」で確定する）。
+  //    以前は押した時点で反映され、押し間違いを戻す手立ても、何が変わったかを知る手立ても無かった。
   describe("出版社アクセスの削除", () => {
+    it("「権限を外す」を押しただけでは送らず、印だけが付く", () => {
+      renderEditor();
+
+      fireEvent.click(screen.getByRole("button", { name: "権限を外す" }));
+
+      expect(revokePublisherAccessMock).not.toHaveBeenCalled();
+      expect(screen.getByText("削除予定")).toBeTruthy();
+      // ⚠️ 印を付けた行は一覧から外さない（消えたのか壊れたのか区別が付かなくなる）
+      expect(screen.getByText(publisherA.name)).toBeTruthy();
+    });
+
+    it("印は「外すのをやめる」で戻せる（確定していないのだから戻せるべき）", () => {
+      renderEditor();
+
+      fireEvent.click(screen.getByRole("button", { name: "権限を外す" }));
+      fireEvent.click(screen.getByRole("button", { name: "外すのをやめる" }));
+
+      expect(screen.queryByText("削除予定")).toBeNull();
+      expect(revokePublisherAccessMock).not.toHaveBeenCalled();
+    });
+
     it("サーバーが失敗を返したら一覧から消さず、エラーを表示する", async () => {
       revokePublisherAccessMock.mockResolvedValue({ error: "削除に失敗しました" });
       renderEditor();
 
-      fireEvent.click(screen.getByRole("button", { name: "削除" }));
+      fireEvent.click(screen.getByRole("button", { name: "権限を外す" }));
+      fireEvent.click(screen.getByRole("button", { name: "アクセス権を更新する" }));
 
       await waitFor(() => expect(screen.getByText("削除に失敗しました")).toBeTruthy());
       // 権限は剥奪できていないので、画面にも残っていなければならない
       expect(screen.getByText(publisherA.name)).toBeTruthy();
-      expect(screen.queryByText("削除しました")).toBeNull();
+      expect(screen.queryByText("更新しました")).toBeNull();
     });
 
-    it("成功したら一覧から消える", async () => {
+    it("確定すると一覧から消える", async () => {
       revokePublisherAccessMock.mockResolvedValue({});
       renderEditor();
 
-      fireEvent.click(screen.getByRole("button", { name: "削除" }));
+      fireEvent.click(screen.getByRole("button", { name: "権限を外す" }));
+      fireEvent.click(screen.getByRole("button", { name: "アクセス権を更新する" }));
 
-      await waitFor(() => expect(screen.getByText("削除しました")).toBeTruthy());
+      await waitFor(() => expect(screen.getByText("更新しました")).toBeTruthy());
       // 付与一覧（li）から消える。※剥奪した出版社は「未付与」に戻るので select の選択肢には現れる
       expect(screen.queryAllByRole("listitem")).toHaveLength(0);
       expect(screen.getByText("付与された出版社なし")).toBeTruthy();
@@ -107,20 +132,29 @@ describe("AdminUserEditor", () => {
   });
 
   describe("出版社アクセスの追加", () => {
+    it("「追加」を押しただけでは送らず、追加予定として並ぶ", () => {
+      renderEditor();
+
+      fireEvent.change(screen.getByRole("combobox"), { target: { value: publisherB.id } });
+      fireEvent.click(screen.getByRole("button", { name: "追加" }));
+
+      expect(grantPublisherAccessMock).not.toHaveBeenCalled();
+      expect(screen.getByText("追加予定")).toBeTruthy();
+    });
+
     it("サーバーが失敗を返したら一覧に足さず、エラーを表示する", async () => {
       grantPublisherAccessMock.mockResolvedValue({ error: "追加に失敗しました" });
       renderEditor();
 
       fireEvent.change(screen.getByRole("combobox"), { target: { value: publisherB.id } });
       fireEvent.click(screen.getByRole("button", { name: "追加" }));
+      fireEvent.click(screen.getByRole("button", { name: "アクセス権を更新する" }));
 
       await waitFor(() => expect(screen.getByText("追加に失敗しました")).toBeTruthy());
-      // 付与できていないので、一覧（li）には現れない
-      expect(screen.queryByRole("listitem", { name: publisherB.name })).toBeNull();
-      expect(screen.queryByText("追加しました")).toBeNull();
+      expect(screen.queryByText("更新しました")).toBeNull();
     });
 
-    it("成功したら一覧に追加される", async () => {
+    it("確定すると一覧に追加される", async () => {
       grantPublisherAccessMock.mockResolvedValue({
         access: { id: "acc-2", profileId: profile.id, publisherId: publisherB.id, createdAt: now, publisher: publisherB },
       });
@@ -128,8 +162,9 @@ describe("AdminUserEditor", () => {
 
       fireEvent.change(screen.getByRole("combobox"), { target: { value: publisherB.id } });
       fireEvent.click(screen.getByRole("button", { name: "追加" }));
+      fireEvent.click(screen.getByRole("button", { name: "アクセス権を更新する" }));
 
-      await waitFor(() => expect(screen.getByText("追加しました")).toBeTruthy());
+      await waitFor(() => expect(screen.getByText("更新しました")).toBeTruthy());
       expect(screen.getAllByRole("listitem")).toHaveLength(2);
       expect(grantPublisherAccessMock).toHaveBeenCalledWith(profile.id, publisherB.id);
     });
