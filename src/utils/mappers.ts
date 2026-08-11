@@ -1,4 +1,4 @@
-import type { Report as PrismaReport, Book, Publisher, ReportImage, ReportAddendum, Profile } from "@/generated/prisma/client";
+import type { Report as PrismaReport, Book, Publisher, ReportImage, ReportAddendum, PublisherComment, Profile } from "@/generated/prisma/client";
 import type { Report } from "@/types/report";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { formatJstDate, formatJstDateTime, shortId } from "@/utils/format";
@@ -9,6 +9,8 @@ type PrismaReportWithRelations = PrismaReport & {
   // 必須。mapReport の呼び出し元はすべて reportInclude 経由なので必ず入る
   // （省略可にすると `?? []` という死んだ既定値を書くことになる）
   addenda: (ReportAddendum & { images: ReportImage[] })[];
+  // 同上（reportInclude 経由なので必ず入る）
+  publisherComments: (PublisherComment & { publisher: Pick<Publisher, "name"> })[];
   user?: Pick<Profile, "displayName" | "email"> | null;
   _count?: { upvotes: number };
 };
@@ -43,7 +45,14 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     correct: f.correct ?? undefined,
     content: f.content ?? undefined,
     note: f.note ?? undefined,
-    publisherComment: f.publisherComment ?? undefined,
+    publisherComments: f.publisherComments.map((c) => ({
+      id: c.id,
+      publisherName: c.publisher.name,
+      body: c.body,
+      byAdmin: c.byAdmin,
+      createdAt: formatJstDateTime(c.createdAt),
+    })),
+    statusNote: f.statusNote ?? undefined,
     status: f.status,
     fixedEdition: f.fixedEdition ?? undefined,
     fixedPrinting: f.fixedPrinting ?? undefined,

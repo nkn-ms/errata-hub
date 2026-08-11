@@ -14,6 +14,12 @@ export const reportInclude = {
   // 追記は古い順（読む順が 投稿 → 追記1 → 追記2 と時系列になる）。
   // 画像は追記に添えて足せるので一緒に引く（投稿本体の画像とは別扱い = schema.prisma）
   addenda: { orderBy: { createdAt: "asc" }, include: { images: true } },
+  // 出版社からの回答も古い順（やりとりの順に読める）。出版社名は行が持つ publisherId で引く
+  // ＝書籍の出版社を管理者が後から直しても、過去の回答の帰属が変わらない（schema.prisma）
+  publisherComments: {
+    orderBy: { createdAt: "asc" },
+    include: { publisher: { select: { name: true } } },
+  },
   // email は退会判定（匿名化メールか）にのみ使い、クライアントへは渡さない（mapReport で破棄）。
   user: { select: { displayName: true, email: true } },
   _count: { select: { upvotes: true } },

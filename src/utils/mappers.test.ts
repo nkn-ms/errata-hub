@@ -24,7 +24,7 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
     correct: "正",
     content: null,
     note: null,
-    publisherComment: null,
+    statusNote: null,
     fixedEdition: null,
     fixedPrinting: null,
     createdAt: new Date("2026-06-18T09:30:00.000Z"),
@@ -33,6 +33,8 @@ function buildPrismaReport(overrides: Partial<Record<string, unknown>> = {}): Ma
     // 省くとマッパー側に現実には要らない undefined の手当てを足すことになる（#178 と同じ型の罠）
     editedAt: null,
     addenda: [],
+    // addenda と同じ理由で省略できない（reportInclude で必ず入る）
+    publisherComments: [],
     book: {
       title: "テスト書籍",
       author: "著者名",

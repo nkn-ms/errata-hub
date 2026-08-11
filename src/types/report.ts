@@ -44,7 +44,10 @@ export type Report = {
   correct?: string;
   content?: string;
   note?: string;
-  publisherComment?: string;
+  // 出版社からの回答（古い順）。作成後は変えられない
+  publisherComments: PublisherCommentView[];
+  // ステータスに添える運営者の説明。出版社の発言ではないので上とは別に表示する
+  statusNote?: string;
   status: ReportStatus;
   fixedEdition?: number;
   fixedPrinting?: number;

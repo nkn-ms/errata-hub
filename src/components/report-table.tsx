@@ -20,6 +20,7 @@ import { STATUS_LABELS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { latestPublisherComment, publisherCommentLabel } from "@/utils/publisher-comment";
 import {
   Badge,
   ReportCard,
@@ -51,7 +52,9 @@ const columns: ColumnDef<Report>[] = [
         report.wrong,
         report.correct,
         report.content,
-        report.publisherComment,
+        // 表示は最新の1件だけだが、検索は**全件**を対象にする
+        // （列に出ていない古い回答で探せなくなるのを避ける＝この searchText の目的そのもの）
+        ...report.publisherComments.map((comment) => comment.body),
         report.userName,
       ]
         .filter(Boolean)
@@ -117,6 +120,8 @@ const columns: ColumnDef<Report>[] = [
       const rows = table.getRowModel().rows;
       // 最終行だけツールチップを上向きにする（下向きだと overflow-x-auto のコンテナに切られる）
       const isLastRow = rows[rows.length - 1]?.id === row.id;
+      // 出版社の回答は複数付きうるので、表には最新の1件だけ出す（全件は投稿詳細で）
+      const latestComment = latestPublisherComment(row.original.publisherComments);
       return (
         <div className="space-y-1">
           <StatusBadge
@@ -124,9 +129,9 @@ const columns: ColumnDef<Report>[] = [
             tooltipPlacement={isLastRow ? "top" : "bottom"}
             tooltipAlign="right"
           />
-          {row.original.publisherComment ? (
+          {latestComment ? (
             <div className="text-xs text-gray-600 line-clamp-2 max-w-48">
-              出版社: {row.original.publisherComment}
+              {publisherCommentLabel(latestComment)}: {latestComment.body}
             </div>
           ) : null}
         </div>
