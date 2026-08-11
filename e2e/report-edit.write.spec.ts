@@ -152,6 +152,57 @@ test.describe("投稿者による編集（未対応の間）", () => {
   });
 });
 
+test.describe("投稿の取り下げ（未対応の間）", () => {
+  test("自分の投稿を取り下げると消え、詳細ページは 404 になる", async ({ page }) => {
+    const title = `E2E取り下げテスト ${Date.now()}`;
+    await login(page, READER);
+    const reportId = await createReport(page, title);
+
+    await page.goto(`/reports/${reportId}/edit`);
+
+    // 押しただけでは消えない（取り消せない操作なので確認のダイアログを通す）
+    await page.getByRole("button", { name: "取り下げる" }).click();
+    await expect(page.getByRole("heading", { name: "この投稿を取り下げます" })).toBeVisible();
+    // 何を消すのかを名前で見せる（別の投稿を開いている取り違えを防ぐ）
+    await expect(page.getByRole("dialog").getByText(title)).toBeVisible();
+
+    await page.getByRole("button", { name: "キャンセル" }).click();
+    await page.goto(`/reports/${reportId}`);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+    // 確定すると投稿者のページへ送られる（元のページはもう無い）
+    await page.goto(`/reports/${reportId}/edit`);
+    await page.getByRole("button", { name: "取り下げる" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "取り下げる" }).click();
+    await page.waitForURL(/\/users\/[^/]+$/);
+
+    const response = await page.goto(`/reports/${reportId}`);
+    expect(response?.status()).toBe(404);
+  });
+
+  test("連絡後は取り下げられない（編集画面が開かない）", async ({ page, browser }) => {
+    const title = `E2E取り下げ不可テスト ${Date.now()}`;
+    await login(page, READER);
+    const reportId = await createReport(page, title);
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+      await forwardAsAdmin(adminPage, reportId);
+
+      // 取り下げのボタンは編集画面にしか無く、その編集画面が連絡後は開かない
+      await page.goto(`/reports/${reportId}/edit`);
+      await page.waitForURL(/\/reports\/[^/]+$/);
+      await expect(page.getByRole("button", { name: "取り下げる" })).toHaveCount(0);
+
+      await deleteReportAsAdmin(adminPage, reportId);
+    } finally {
+      await adminContext.close();
+    }
+  });
+});
+
 test.describe("投稿者による画像の追加・削除（編集画面）", () => {
   test("画像の追加も削除も「更新する」で確定する", async ({ page, browser }) => {
     const title = `E2E画像追加 ${Date.now()}`;
