@@ -10,7 +10,12 @@ import { AUDIT_ACTION_LABELS, auditActionLabel, targetTypeLabel } from "@/consta
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
- * 一覧では縮めて出し、**開くと全文を読める**セル。対象・変更前・変更後で共有する。
+ * 一覧では縮めて出し、**開くと全文を読める**部品。対象・変更前・変更後の3列で共有する。
+ *
+ * ⭐ 名前に `Cell` を付けていないのは**列ではないから**。この画面では
+ * 「`Cell` が付くものは表の列・付かないものはその中で使う部品」で揃えてある。
+ * `Disclosure` は `<details>` / `<summary>` の一般名（W3C ARIA Authoring Practices の
+ * "Disclosure (Show/Hide)" パターン）。
  *
  * ⚠️ 縮めるのをやめて出しっぱなしにはできない。「投稿削除」「投稿者による取り下げ」の変更前には
  * **投稿1件が丸ごと（画像の配列を含めて）**入るので、常に全文だと1行が画面数個分になり一覧が成立しない。
@@ -20,7 +25,7 @@ import type { Prisma } from "@/generated/prisma/client";
  *
  * クライアント部品にしないのは `<details>` だけで開閉が成立するため（JS 無しで動き、キーボード操作も付いてくる）。
  */
-function ExpandableCell({ summary, full }: { summary: string; full: string }) {
+function Disclosure({ summary, full }: { summary: string; full: string }) {
   return (
     <details>
       {/* 三角の目印は残す（クリックできることの唯一の手掛かり）。省略は中の span で行う */}
@@ -51,12 +56,26 @@ function targetEmailOf(before: Prisma.JsonValue | null, after: Prisma.JsonValue 
   return null;
 }
 
-function JsonCell({ value }: { value: Prisma.JsonValue | null }) {
+/**
+ * 記録に載せた中身（`AuditLog.before` / `after`）を出す列。どちらの側かは呼び出し側が渡す。
+ *
+ * ⭐ 名前は中身の形式（JSON）ではなく**何の列か**で付けている。この列は将来
+ * 操作ごとの読める文へ変えていく方針なので（記録には値を残し、文は表示側で組み立てる）、
+ * 出し方で名付けると名前が先に嘘になる。
+ */
+function PayloadCell({ value }: { value: Prisma.JsonValue | null }) {
   if (!value) return <span className="text-gray-400">-</span>;
 
-  return <ExpandableCell summary={JSON.stringify(value)} full={JSON.stringify(value, null, 2)} />;
+  return <Disclosure summary={JSON.stringify(value)} full={JSON.stringify(value, null, 2)} />;
 }
 
+/**
+ * 「操作の**対象**」の列（`AuditLog.targetType` / `targetId` を出す）。
+ *
+ * ⚠️ `Target` は英語では動詞にも読めるが、**列名がそのまま `targetType` / `targetId`** なので
+ * この名前のままにしてある（`Subject` は監査の語彙では**操作した人**を指し逆の意味になる、
+ * `Object` はプログラミングの語と衝突する、`Resource` は列名との対応が切れる）。
+ */
 function TargetCell({
   targetType,
   targetId,
@@ -70,7 +89,7 @@ function TargetCell({
   const stored = `${targetType}:${targetId}`;
 
   return (
-    <ExpandableCell
+    <Disclosure
       summary={email ? `${label}:${email}` : `${label}:${shortId(targetId)}…`}
       full={email ? `${label}:${email}\n${stored}` : stored}
     />
@@ -206,10 +225,10 @@ export default async function AdminLogsPage({ searchParams }: Props) {
                   />
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
-                  <JsonCell value={log.before} />
+                  <PayloadCell value={log.before} />
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono align-top">
-                  <JsonCell value={log.after} />
+                  <PayloadCell value={log.after} />
                 </td>
               </tr>
             ))}
