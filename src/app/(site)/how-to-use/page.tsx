@@ -29,8 +29,8 @@ const STEPS = [
     body: "誤りの位置（ページ・行や Kindle 位置）と、正誤情報なら「誤 → 正」、それ以外は内容・提案を記入します。",
   },
   {
-    title: "投稿",
-    body: "投稿すると一覧に公開され、管理者が確認します。状況はステータスで追えます。",
+    title: "確認して投稿",
+    body: "「確認する」で送信内容をそのまま表示します。見直して「投稿する」を押すと一覧に公開され、管理者が確認します。状況はステータスで追えます。",
   },
 ] as const;
 
@@ -50,12 +50,22 @@ const TYPES = [
   },
 ] as const;
 
-// 投稿のルール（要約。正文は利用規約 第7条）
+// 投稿のルール（要約。正文は利用規約の「禁止事項」）
+// ⚠️ 条番号はここに書かない。規約は条が増えるたびに以降が繰り下がり、この手の参照だけが取り残される
+//    （実際に禁止事項は 第7条 → 第8条 → 第9条 と2回ずれ、ここは第7条のまま残っていた）。
 const RULES = [
   "批判は内容へ。著者・出版社など人への攻撃（誹謗中傷）は禁止です。",
   "本文の転載は、誤りの指摘に必要な最小限の引用にとどめてください。",
   "事実に基づかない断定、なりすまし、スパム・宣伝は禁止です。",
   "投稿の前に出版社の公式な正誤表を確認してください（掲載済みの誤りは投稿不要です）。",
+] as const;
+
+// 出版社からの回答の説明（要約。正文は利用規約の「出版社等による回答」）
+const PUBLISHER_ANSWERS = [
+  "回答できるのは、運営者から出版社へ連絡した後の投稿だけです。「未対応」の間は投稿者が本文を修正できるため、回答が宙に浮かないようにしています。",
+  "回答は投稿の詳細ページに、付いた順にすべて表示されます。一覧やトップには最新の1件だけを出します。",
+  "回答は書いた本人も取り消せません。掲載後に消せるのは、ルールに反する場合の運営者による削除だけです。",
+  "運営者が出版社に代わって記載した場合は、「運営者が代理で記載」と回答に表示します。",
 ] as const;
 
 // ステータスは constants/report-status.ts の定義順で列挙する
@@ -109,7 +119,7 @@ export default function HowToUsePage() {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">ステータスの意味</h2>
           <p className="text-sm text-gray-500 mb-4">
-            投稿は管理者・出版社のやり取りに応じて、次のステータスへ移っていきます。
+            投稿は運営者と出版社のやり取りに応じて、次のステータスへ移っていきます。
             「未対応」の間は投稿者が内容を修正でき、投稿を取り下げる（削除する）こともできます。出版社へ連絡した後は、内容を変えずに追記と画像の追加ができます。
           </p>
           <ul className="space-y-2">
@@ -124,6 +134,22 @@ export default function HowToUsePage() {
                   {STATUS_LABELS[key]}
                 </span>
                 <span className="text-sm text-gray-600">{STATUS_TOOLTIPS[key]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* 出版社からの回答 */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">出版社からの回答</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            出版社の担当者は、自社の書籍への投稿にこのサイトから直接回答できます。
+          </p>
+          <ul className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
+            {PUBLISHER_ANSWERS.map((item) => (
+              <li key={item} className="flex gap-2 text-sm text-gray-600">
+                <span className="shrink-0 text-gray-400">•</span>
+                {item}
               </li>
             ))}
           </ul>
