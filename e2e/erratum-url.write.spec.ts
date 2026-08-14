@@ -126,4 +126,99 @@ test.describe("正誤表URLの申告と採用", () => {
       await adminContext.close();
     }
   });
+
+  // 既に登録済みの URL がある本への採用は「上書き＝元の URL を画面から失う」操作なので、
+  // 確定ボタンだけでなく確認を挟む（摩擦は取り消せなさに比例させる）。
+  // ⚠️ 上のテストは採用前に URL を空にするので、この経路は通らない＝ここでしか検査されない。
+  test("既存の正誤表URLを上書きする採用は、確認してからでないと反映されない", async ({
+    page,
+    browser,
+  }) => {
+    const reportTitle = `E2E正誤表URL上書き ${Date.now()}`;
+    const reportedUrl = `https://example.com/errata-new/${Date.now()}`;
+    const existingUrl = `https://example.com/errata-old/${Date.now()}`;
+
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    try {
+      await login(adminPage, ADMIN);
+
+      // 申告欄を出すために、まず本の正誤表URLを空にする（元の値は最後に戻す）
+      await openBookEditor(adminPage, BOOK_B.isbn);
+      const originalErratumUrl = await adminPage.getByLabel("正誤表URL").inputValue();
+      if (originalErratumUrl) await saveErratumUrl(adminPage, "");
+
+      // --- 読者として申告つきで投稿する ---
+      await login(page, READER);
+      await mockBookApis(page);
+      await page.goto("/submit");
+      await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+      await page.getByRole("button", { name: "検索", exact: true }).click();
+      await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+      await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
+      await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
+      await page
+        .getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true })
+        .fill(reportTitle);
+      await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
+      await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
+      await page.getByPlaceholder("https://...").fill(reportedUrl);
+      await confirmAndSubmit(page);
+      await page.waitForURL(/\/$/);
+
+      const reportId = await openReportByTitle(page, reportTitle);
+
+      // --- 申告の後に、管理者が別の URL を本へ登録する（＝採用が上書きになる状況を作る） ---
+      // 実際にこの状況が起きるのは「申告が先・登録が後」のとき。投稿フォームは登録済みの本に
+      // 再申告させないので、逆順では上書きにならない
+      await openBookEditor(adminPage, BOOK_B.isbn);
+      await saveErratumUrl(adminPage, existingUrl);
+
+      await adminPage.goto(`/admin/reports/${reportId}`);
+      await expect(adminPage.getByText(/既に別の正誤表URL/)).toBeVisible();
+      await adminPage.getByRole("button", { name: "この本の正誤表として採用" }).click();
+
+      // ⚠️ ページ全体で本文を探さない。閉じた <dialog> の中身も DOM に残るため、
+      //    開いているダイアログに絞らないと「まだ押していないのに通る」検査になる
+      const confirmDialog = adminPage.locator("dialog[open]");
+      await expect(confirmDialog).toBeVisible();
+      // 何が何に変わるのかを、押す前にこの場で見せている
+      await expect(confirmDialog.getByText(existingUrl)).toBeVisible();
+      await expect(confirmDialog.getByText(reportedUrl)).toBeVisible();
+
+      // --- キャンセルすると何も起きない ---
+      await confirmDialog.getByRole("button", { name: "キャンセル" }).click();
+      await expect(confirmDialog).toBeHidden();
+      await expect(adminPage.getByText("この本の正誤表として採用しました")).toHaveCount(0);
+      // 画面の状態だけでなく、本の値が変わっていないことを見る
+      await page.goto(`/books/${BOOK_B.isbn}`);
+      await expect(page.getByRole("link", { name: /出版社の正誤表を見る/ })).toHaveAttribute(
+        "href",
+        existingUrl
+      );
+
+      // --- 確認して採用すると上書きされる ---
+      await adminPage.getByRole("button", { name: "この本の正誤表として採用" }).click();
+      await adminPage.locator("dialog[open]").getByRole("button", { name: "採用する" }).click();
+      await expect(adminPage.getByText("この本の正誤表として採用しました")).toBeVisible();
+
+      await page.goto(`/books/${BOOK_B.isbn}`);
+      await expect(page.getByRole("link", { name: /出版社の正誤表を見る/ })).toHaveAttribute(
+        "href",
+        reportedUrl
+      );
+
+      // --- 後片付け ---
+      await adminPage.goto(`/admin/reports/${reportId}`);
+      adminPage.once("dialog", (dialog) => dialog.accept());
+      await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+      await adminPage.waitForURL(/\/admin\/reports$/);
+
+      await openBookEditor(adminPage, BOOK_B.isbn);
+      await saveErratumUrl(adminPage, originalErratumUrl);
+    } finally {
+      await adminContext.close();
+    }
+  });
 });
