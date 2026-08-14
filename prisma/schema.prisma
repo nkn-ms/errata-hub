@@ -170,15 +170,11 @@ model Report {
   correct          String?
   content          String?
   note             String?
-  // ⚠️ **死んだ列。読み書きしていない。** 出版社の回答は PublisherComment テーブルへ、
-  // 「その他」の事情説明は下の statusNote へ移した（migration で値も振り分け済み）。
-  // 切り戻せるように1回のリリースでは消していないだけなので、次の掃除で DROP すること
-  publisherComment String?
   // ステータスに添える運営者の説明。「その他」は説明が無いと読者に何も伝わらないため必須にしている
   // （検査は actions/report.ts の ReportUpdateSchema）。
-  // ⚠️ **出版社の発言ではない**ので PublisherComment とは別。公開ページでも別の場所に出す。
-  // 元は publisherComment 列がこの役割を兼ねており、運営者の説明が「出版社コメント」として
-  // 表示されていた（例:「出版社が廃業しており連絡が取れません」）
+  // ⚠️ **出版社の発言ではない**ので PublisherComment とは別に持つ。公開ページでも別の場所に出す。
+  // 一緒くたにすると「出版社が廃業しており連絡が取れません」という運営者の説明が、
+  // その出版社の発言として掲示されることになる
   statusNote       String?
   status           ReportStatus @default(PENDING)
   // その誤りが「どの版・刷で直ったか」の出版社側の記録（投稿者が見つけた版 = edition とは別物）。
@@ -247,8 +243,8 @@ model PublisherComment {
   body        String
   // 書いた人。**公開ページには出さない**（発言の主体は個人ではなく出版社）。
   // ⚠️ メールは持たせない。AuditLog と違いこの行は消えないので、退会後も残る PII になる。
-  // ⚠️ null は「記録が無い」＝ publisherComment 列から移した行だけがこれに当たる
-  //    （列には誰が書いたかが入っていなかった）。PublisherAccess.grantedById と同じ扱い
+  // ⚠️ null は「記録が無い」＝ #200 のデータ移行で作られた行だけがこれに当たる
+  //    （移行元は誰が書いたかを持っていなかった）。PublisherAccess.grantedById と同じ扱い
   authorId    String?
   author      Profile?  @relation(fields: [authorId], references: [id])
   // 運営者が出版社に代わって記載したか。true なら公開ページに「運営者が代理で記載」と出す

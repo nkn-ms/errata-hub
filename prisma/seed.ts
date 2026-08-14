@@ -93,7 +93,7 @@ async function main() {
   //    ステータスや本文を手で変えた場合も update で初期状態へ戻る。
   await prisma.report.upsert({
     where: { id: SAMPLE_REPORT_ID },
-    update: { status: "PENDING", publisherComment: null, fixedEdition: null, fixedPrinting: null },
+    update: { status: "PENDING", statusNote: null, fixedEdition: null, fixedPrinting: null },
     create: { id: SAMPLE_REPORT_ID, userId, bookId: bookA.id, title: "サンプル投稿", type: "ERRATA", medium: "PAPER", edition: 1, page: 12, wrong: "誤りの例", correct: "正しい例" },
   });
 

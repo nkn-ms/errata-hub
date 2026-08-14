@@ -1,0 +1,12 @@
+-- expand-contract の contract 側。#200 で値を移し終えた列を消す。
+--
+-- 移し先は2つで、どちらも #200 の migration が status を見て振り分けている:
+--   ①「その他」の投稿 → Report.statusNote（運営者の事情説明だった分）
+--   ②それ以外        → PublisherComment テーブル（出版社の回答だった分。
+--                        ⚠️ 書籍に出版社が無い投稿は帰属先が作れないので①へ倒してある）
+--
+-- ⚠️ **取り消せない。** 適用前に、移し漏れが無いことを本番で確認すること
+-- （publisherComment が非 NULL なのに statusNote も PublisherComment も無い行が 0 件であること）。
+-- #200 のマージから間があるので、その後に**旧コードで書かれた値は存在しない**
+-- （書き込む経路をあの PR で全部消してある）。
+ALTER TABLE "Report" DROP COLUMN "publisherComment";
