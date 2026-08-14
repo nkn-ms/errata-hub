@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { site } from "@/constants/site";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
@@ -28,8 +29,36 @@ const TECHS = [
     why: "スキーマからの型生成でモデルを型安全に扱える。v7 では接続URLを prisma.config.ts に分離する構成へ移行し、マイグレーション用の直結URLとアプリ用のプーラーURLを使い分けている。",
   },
   {
-    name: "Google Books API",
-    why: "ISBN を本の同一性の基準とするため、書籍メタデータを外部から取得。APIキーはサーバーサイド（/api/books/search）に隠蔽し、クライアントへ露出させない。",
+    name: "OpenBD / Google Books API",
+    why: "書誌データは OpenBD を正とし、ISBN で本を引く。タイトル検索と書影の補完には Google Books を使う。どちらもサーバー経由（/api/books/openbd・/api/books/search）で、API キーは隠蔽し、閲覧者の IP を外部サービスへ渡さない。",
+  },
+  {
+    name: "Vitest / Playwright",
+    why: "単体テストで種別・ステータスの分岐やマッピングを、e2e で認可・投稿・管理操作の一連を実ブラウザで検証する。表示の検証（コントラスト比・CSP 違反の有無）も e2e で機械的に測っている。",
+  },
+  {
+    name: "GitHub Actions / CodeQL / Dependabot",
+    why: "lint・型チェック・テスト・ビルドを push ごとに実行し、main への直接の変更を塞いでいる。CodeQL が脆弱性を、Dependabot が依存の更新を継続的に見る。",
+  },
+] as const;
+
+// セキュリティ・運用面の実装（技術スタックとは別立てにする）
+const PRACTICES = [
+  {
+    name: "CSP（nonce + strict-dynamic）",
+    why: "リクエストごとに nonce を発行し、script-src に 'unsafe-inline' を置かない。全ページが動的レンダリングになる代償と引き換えに、注入されたスクリプトが動かない状態を保っている。",
+  },
+  {
+    name: "レート制限（Postgres）",
+    why: "投稿・画像アップロード・書籍検索に、ユーザー単位の固定ウィンドウ制限をかけている。カウンタは専用のミドルウェアを増やさず Postgres に置き、1文で原子的に数える。",
+  },
+  {
+    name: "認可はサーバー側で判定",
+    why: "管理操作は実行のたびにサーバーでロールを確認する。画面の出し分けは補助であって、権限の保証はしていない。DB 側は公開経路を全拒否で塞いでいる。",
+  },
+  {
+    name: "操作ログ（監査ログ）",
+    why: "削除・退会・権限変更といった取り消せない操作は、変更前後の内容とあわせて記録する。記録と操作は1つのトランザクションで束ね、片方だけが残らないようにしている。",
   },
 ] as const;
 
@@ -56,6 +85,19 @@ export default function TechPage() {
           </div>
         </section>
 
+        {/* セキュリティ・運用 */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">セキュリティと運用</h2>
+          <div className="space-y-3">
+            {PRACTICES.map((p) => (
+              <div key={p.name} className="bg-white rounded-lg border border-gray-200 p-4">
+                <h3 className="text-sm font-semibold text-gray-900">{p.name}</h3>
+                <p className="mt-1 text-sm text-gray-600">{p.why}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* システム構成 */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">システム構成</h2>
@@ -66,17 +108,34 @@ export default function TechPage() {
               <Box label="Vercel" sub="Next.js 16（サーバーコンポーネント / API Route）" highlight />
               <Arrow />
               <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-                <Box label="Supabase" sub="Auth + Postgres" />
-                <Box label="Google Books API" sub="書籍メタデータ" />
+                <Box label="Supabase" sub="Auth + Postgres + Storage" />
+                <Box label="OpenBD / Google Books" sub="書誌データ・書影" />
               </div>
             </div>
             <p className="mt-6 text-xs text-gray-500 leading-relaxed">
-              ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや API Route が
-              Supabase（認証・データ永続化）と Google Books API（書籍情報）に問い合わせます。
+              ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや Server Action が
+              Supabase（認証・データ永続化・画像の保存）と書誌 API に問い合わせます。
               認証は PKCE の code フロー、外部 API キーはサーバー側に隠蔽しています。
+              書誌 API へはブラウザから直接アクセスせず、サーバーが代理で取得します（閲覧者の IP を外部へ渡さないため）。
             </p>
           </div>
         </section>
+
+        {/* ⚠️ この節がこのページの役割の線引き。設計判断の詳細（何を選び何を捨てたか）は
+            README とリポジトリの docs/ に置き、このページでは繰り返さない。
+            2か所に同じ説明を持つと、実装を変えたときに片方だけ古くなる。 */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+          それぞれの選定でどんな代償を受け入れたか、なぜ採らなかった選択肢があるかは、
+          リポジトリの README と設計ドキュメントに書いています。
+          <a
+            href={site.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-1 text-blue-600 hover:underline"
+          >
+            GitHub でソースを見る
+          </a>
+        </div>
     </div>
   );
 }
