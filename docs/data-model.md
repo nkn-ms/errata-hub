@@ -5,12 +5,14 @@
 | テーブル | 役割（1行） |
 |---|---|
 | **Profile** | ユーザーのアプリ側プロフィール（表示名・ロール・メール記録）。id は Supabase `auth.users` の UUID と一致 |
-| **Publisher** | 出版社マスタ。管理画面で CRUD。`emailDomain` はログイン時の自動権限付与に使用（ドメイン一致で PublisherAccess を自動付与・実装済み。ただし現状 access は表示のみで権限はゲートしない） |
-| **PublisherAccess** | 「どのユーザーがどの出版社の中の人か」の多対多。出版社ユーザーかは Role でなくこのテーブルから導出 |
+| **Publisher** | 出版社マスタ。管理画面で CRUD。⚠️ `emailDomain` は**ただのメモ**（ドメイン一致による PublisherAccess の自動付与は 2026-08-01 に廃止＝判断に使われない） |
+| **PublisherAccess** | 「どのユーザーがどの出版社の中の人か」の多対多。出版社ユーザーかは Role でなくこのテーブルから導出。**付与は管理者による個別付与の1経路だけ**で、誰が付けたかを行に持つ（`grantedById`/`grantedByEmail`）。⚠️ この行は**公開ページへの書き込み権限そのもの**（PublisherComment を書ける） |
 | **Book** | 書籍マスタ。**ISBN-13 が同一性の基準**（`@unique`）。投稿時に upsert で名寄せ |
-| **Report** | 投稿の本体（正誤情報/改善提案/その他）。位置情報・誤/正・ステータス・運営者の補足（statusNote）を持つ。出版社からの回答は PublisherComment |
+| **Report** | 投稿の本体（正誤情報/改善提案/その他）。位置情報・誤/正・ステータス・運営者の補足（statusNote）を持つ。**本文が可変なのは PENDING の間だけ**（連絡後は ReportAddendum で足す） |
+| **ReportAddendum** | 投稿への追記。**出版社へ連絡した後は本文を編集できず、ここに足す**。列1本でなくテーブルなのは、列だと2回目の追記が1回目を書き換えてしまうため。**作った時点で不変** |
+| **PublisherComment** | 出版社からの回答（規約 第8条）。書けるのは対象書籍の PublisherAccess を持つ人と、代理記載する管理者（`byAdmin` で画面に明示）。**作った時点で不変**で、消せるのは運営者のモデレーションだけ。⭐ 列でなくテーブルなのは、列だとステータス更新のフォームが回答を丸ごと上書きしてしまうため |
 | **Upvote** | 賛同（「自分も見つけた」）。`reportId × profileId` で一意＝1ユーザー1投稿1回 |
-| **ReportImage** | 投稿の証拠画像。実体は Supabase Storage バケット `report-images`（公開読み取り・書き込みはサーバー経由のみ）、`imageUrl` に公開 URL を保存。投稿削除時に Storage のファイルも削除 |
+| **ReportImage** | 投稿の証拠画像。実体は Supabase Storage バケット `report-images`（公開読み取り・書き込みはサーバー経由のみ）、`imageUrl` に公開 URL を保存。投稿削除時に Storage のファイルも削除。`addendumId` が非 null なら追記に添えた画像（null = 投稿本体）で、**枚数の枠は本体と追記で別**（各5枚） |
 | **AuditLog** | 操作ログ。誰が・いつ・何を・どう変えたか（before/after の JSON）。90日で pg_cron が削除（本番に手動登録済み・リポジトリ管理外。登録SQLは [dev-environment.md §9](./dev-environment.md) 参照） |
 | **RateLimit** | レート制限のカウンタ（固定ウィンドウ）。`key`（`"<動作>:<ユーザーID>"`）× `windowStart` で1行。他モデルから参照しない運用テーブルで、消えても投稿は壊れない。期限切れ行は pg_cron が削除（[dev-environment.md §9](./dev-environment.md)） |
 

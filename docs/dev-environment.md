@@ -16,6 +16,12 @@ env で迷ったらここを見る。
 - **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma migrate deploy` が必要**。
   コードのデプロイでは DB は変わらない（§7 の反映手順で行う）。**本番の初回だけ `migrate resolve --applied 0_init`
   でベースラインを切る**（2026-07-22 に Prisma Migrate へ移行。それ以前は `db push` 運用だった＝§7-0）。
+- **`prisma/schema.prisma` を変えたら `npx prisma generate` を回して `docs/erd.svg` を更新する**（`--generator client`
+  を付けない素の generate）。**普段の開発では ERD は再生成されない**——`npm run build` も CI も
+  `--generator client` で ERD ジェネレータをスキップしており、ERD だけ Chromium を要して遅いためこれは意図的。
+  つまり**手で回さない限り必ず古くなる**（実績: 2026-08-02 で止まり、`ReportAddendum`・`PublisherComment` の
+  2テーブルが欠け、DROP 済みの `Report.publisherComment` 列が残ったまま 2026-08-15 まで放置された）。
+  README が「データモデルの全体像」として案内している図なので、古いと**嘘の設計図を配ることになる**。
 - **DBパスワードのリセットは「押した瞬間に本番が 500 になる」作業**（Vercel の env が旧パスワードのままになるため）。
   リセット〜env 更新〜**Redeploy** までを一息にやる。手順と落とし穴は §7-2（実績: 2026-07-14 に本番ダウン）。
 - **本番反映は feature ブランチ → Vercel Preview で実機確認 → PR マージ**。CI が緑でも直マージしない。

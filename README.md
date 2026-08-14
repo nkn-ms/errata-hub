@@ -217,7 +217,7 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 | [docs/dev-environment.md](docs/dev-environment.md) | **env・環境・運用の要注意事項**。開発で迷ったらここが起点 |
 | [docs/design.md](docs/design.md) | 設計方針（将来像と確定済みポリシー） |
 | [docs/data-model.md](docs/data-model.md) | データモデルの解説 |
-| [docs/erd.svg](docs/erd.svg) | ER 図（`prisma generate` で自動更新） |
+| [docs/erd.svg](docs/erd.svg) | ER 図。⚠️ **スキーマを変えたら `npx prisma generate` を手で回す**（`npm run build` はスキップする） |
 | [docs/learnings.md](docs/learnings.md) | 開発中の学習メモ |
 | [docs/legal/](docs/legal/) | 利用規約・プライバシーポリシー（ドラフト） |
 | [docs/moderation-policy.md](docs/moderation-policy.md) | 投稿モデレーション方針（運用内規） |
