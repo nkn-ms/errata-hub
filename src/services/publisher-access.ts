@@ -17,9 +17,16 @@ export type PublisherCommentPermission =
  * `updateOwnReport` が持つ「その投稿の投稿者」）。ここだけ services/auth.ts に置いていないのは、
  * あちらが管理操作の入口のための2本だと自分で宣言しているため。
  *
- * ⚠️ **`client` に `tx` を渡せる形にしてあるのは、書き込みと同じ塊の中で判定するため。**
- * 画面を出した時点の判定では、開いている間に管理者が権限を剥奪しても書けてしまう
- * （`updateOwnReport` がステータスの確認をトランザクションの中で行っているのと同じ理由）。
+ * **判定は送信のたびにサーバーでやり直す。** 画面を出した時点の判定だけだと、開いている間に
+ * 管理者が権限を剥奪しても書けてしまうため。
+ *
+ * ⚠️ **`client` に `tx` を渡せるが、それで競合が閉じるわけではない。** Postgres の既定は
+ * READ COMMITTED ＝文ごとにスナップショットを取り直すので、この判定と後続の INSERT の間に
+ * 剥奪がコミットされても、行をロックしていないこちらは気づかない。閉じるなら
+ * `PublisherAccess` を `FOR SHARE` でロックするか SERIALIZABLE が要る。
+ * **閉じていないのは意図的**で、負けたときの被害が「剥奪の直後に回答が1件残る」＝運営者が
+ * 削除できる範囲だから（画像枚数の TOCTOU は Storage 課金に直結するので、あちらは
+ * `FOR UPDATE` で直列化してある = api/reports/[id]/images/route.ts）。
  */
 export async function checkPublisherCommentPermission(
   profileId: string,

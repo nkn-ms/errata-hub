@@ -132,8 +132,9 @@ describe("addPublisherComment（出版社として回答する）", () => {
     );
   });
 
-  // 認可は「画面を出した時点」ではなく書き込みと同じ塊の中でやり直す
-  it("権限の判定は書き込みと同じトランザクションの中で行う", async () => {
+  // 見ているのは「判定を送信のたびにやり直しているか」であって、競合に勝てることではない
+  // （READ COMMITTED では閉じない＝ services/publisher-access.ts のコメント）
+  it("権限の判定は画面ではなくサーバー側でやり直す", async () => {
     await addPublisherComment(REPORT_ID, { body: "回答" });
 
     expect(prismaMock.$transaction).toHaveBeenCalled();

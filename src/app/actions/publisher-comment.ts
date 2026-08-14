@@ -63,7 +63,9 @@ export async function addPublisherComment(
       return { error: rateLimitMessage(limit.retryAfterSec) };
     }
 
-    // 判定を塊の中で行う理由は checkPublisherCommentPermission のコメント
+    // 追記（addReportAddendum）と同じ形。⚠️ 書き込みは1本なので原子性のためではない。
+    // 判定を送信のたびにやり直すのが目的で、**競合は閉じていない**（READ COMMITTED なので、
+    // 判定と INSERT の間に権限を剥奪されても気づかない）＝理由は checkPublisherCommentPermission
     return await prisma.$transaction(async (tx): Promise<AddResult> => {
       const permission = await checkPublisherCommentPermission(user.id, reportId, tx);
       if (permission.error !== undefined) {
