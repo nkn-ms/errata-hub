@@ -15,6 +15,11 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { BookCover } from "@/components/book-cover";
 import { ReportAddenda } from "@/components/report-addenda";
+import { PublisherComments } from "@/components/publisher-comments";
+import {
+  checkPublisherCommentPermission,
+  type PublisherCommentPermission,
+} from "@/services/publisher-access";
 import { formatJstDateTime } from "@/utils/format";
 
 type Props = {
@@ -62,6 +67,11 @@ export default async function ReportDetailPage({ params }: Props) {
         select: { id: true },
       })) !== null
     : false;
+  // 出版社として回答できるかは閲覧者ごとに変わる。⚠️ ここで通しても書けるとは限らない
+  // （送信時にアクション側が同じ判定をやり直す＝画面を開いている間の権限の剥奪に追随する）
+  const commentPermission: PublisherCommentPermission = user
+    ? await checkPublisherCommentPermission(user.id, report.id)
+    : { error: "認証が必要です" };
 
   return (
     <>
@@ -261,6 +271,26 @@ export default async function ReportDetailPage({ params }: Props) {
           canAdd={viewer === "owner" && report.status !== "PENDING"}
         />
 
+        {/* 出版社からの回答。追記の直後に置き、「指摘 → 訂正 → 回答」が1画面で読める並びにする */}
+        <PublisherComments
+          reportId={report.id}
+          initialComments={report.publisherComments}
+          commentAs={
+            commentPermission.error === undefined
+              ? { publisherName: report.publisher, byAdmin: commentPermission.byAdmin }
+              : undefined
+          }
+        />
+
+        {/* 運営者からの補足。**出版社の発言ではない**ので上とは色も場所も分ける
+            （ステータスに添える説明なので、同じくステータス由来の「修正済み情報」の隣に置く） */}
+        {report.statusNote && (
+          <div className="rounded-md bg-gray-50 border border-gray-200 px-4 py-3">
+            <p className="text-xs text-gray-500 mb-1 font-medium">運営者からの補足</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.statusNote}</p>
+          </div>
+        )}
+
         {/* 修正済み情報 */}
         {report.status === "FIXED" && (report.fixedEdition || report.fixedPrinting) && (
           <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -283,13 +313,6 @@ export default async function ReportDetailPage({ params }: Props) {
           <span className="text-xs text-gray-500">{UPVOTE_HINTS[report.type]}</span>
         </div>
 
-        {/* 出版社コメント */}
-        {report.publisherComment && (
-          <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3">
-            <p className="text-xs text-blue-600 mb-1 font-medium">出版社コメント</p>
-            <p className="text-sm text-blue-900 whitespace-pre-wrap">{report.publisherComment}</p>
-          </div>
-        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between">

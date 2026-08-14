@@ -6,6 +6,7 @@ import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
+import { latestPublisherComment, publisherCommentLabel } from "@/utils/publisher-comment";
 import { cn } from "@/lib/utils";
 
 export function Badge({ label, className }: { label: string; className: string }) {
@@ -79,6 +80,8 @@ function getEditionLabel(report: Report): string {
 export function ReportCard({ report }: { report: Report }) {
   const editionLabel = getEditionLabel(report);
   const locationLabel = getLocationLabel(report);
+  // 出版社の回答は複数付きうるので、カードには最新の1件だけ出す（全件は投稿詳細で）
+  const latestComment = latestPublisherComment(report.publisherComments);
 
   return (
     <Link
@@ -141,9 +144,9 @@ export function ReportCard({ report }: { report: Report }) {
         {/* ② 何が間違っているか＝カードの主役 */}
         <ErrataSummary report={report} />
 
-        {report.publisherComment && (
+        {latestComment && (
           <div className="text-xs text-gray-600 line-clamp-2 border-l-2 border-gray-200 pl-2">
-            出版社: {report.publisherComment}
+            {publisherCommentLabel(latestComment)}: {latestComment.body}
           </div>
         )}
 

@@ -59,9 +59,9 @@ test.describe("現在地の表示（管理画面のナビ）", () => {
 });
 
 test.describe("投稿のステータス更新（管理者）", () => {
-  test("ステータスと出版社コメントを更新すると、公開ページに反映される", async ({ page }) => {
+  test("ステータスと運営者の補足を更新すると、公開ページに反映される", async ({ page }) => {
     const title = `E2E管理更新テスト ${Date.now()}`;
-    const comment = `E2E 出版社コメント ${Date.now()}`;
+    const note = `E2E 運営者の補足 ${Date.now()}`;
     await login(page, ADMIN);
 
     // 使い捨ての投稿を自分で作る（シードの投稿は借りない = e2e/throwaway-report.ts）
@@ -69,25 +69,25 @@ test.describe("投稿のステータス更新（管理者）", () => {
 
     await page.goto(`/admin/reports/${reportId}`);
     await page.getByRole("button", { name: "修正済み", exact: true }).click();
-    await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill(comment);
+    await page.getByLabel("運営者の補足").fill(note);
     await page.getByRole("button", { name: "更新する" }).click();
     await expect(page.getByText("更新しました")).toBeVisible();
 
     // 公開側の投稿詳細に反映されている（更新系が Server Action 経由でも読み取りに載ること）
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByText("修正済み")).toBeVisible();
-    await expect(page.getByText(comment)).toBeVisible();
+    await expect(page.getByText(note)).toBeVisible();
 
     // 戻せることも見る（一本道のステータスを画面から巻き戻す操作は、実運用でも打ち間違いの訂正で使う）
     await page.goto(`/admin/reports/${reportId}`);
     await page.getByRole("button", { name: "未対応", exact: true }).click();
-    await page.getByPlaceholder("出版社からの回答や対応内容を記載してください").fill("");
+    await page.getByLabel("運営者の補足").fill("");
     await page.getByRole("button", { name: "更新する" }).click();
     await expect(page.getByText("更新しました")).toBeVisible();
 
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByText("未対応")).toBeVisible();
-    await expect(page.getByText(comment)).toBeHidden();
+    await expect(page.getByText(note)).toBeHidden();
 
     await deleteReportAsAdmin(page, reportId);
   });

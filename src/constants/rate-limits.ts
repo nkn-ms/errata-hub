@@ -35,6 +35,11 @@ export const RATE_LIMITS = {
   // 無料枠は公表されていないが、相手は実在の公共 API なので dev からの分も本物のアクセスになる
   booksOpenbd: { limit: 60, windowSec: 60, guardsExternalQuota: true },
 
+  // 出版社からの回答。回答は取り消せない＝**押し間違いの連打が一番の害**なので、
+  // 外部コストではなく「誤って何件も残す」ことを抑えるための枠。
+  // まっとうな使い方（1つの投稿に1〜2件・複数の投稿にまとめて回答）はぶつからない値にしてある
+  addPublisherComment: { limit: 30, windowSec: 60 * 60 },
+
   // 賛同。1人1票は @@unique で担保済みなのでリスクは低いが、連打での書き込みは抑える
   toggleUpvote: { limit: 60, windowSec: 60 },
 } as const;

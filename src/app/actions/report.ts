@@ -219,17 +219,19 @@ export async function createReport(input: ReportInput): Promise<CreateReportResu
 
 const ReportUpdateSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),
-  publisherComment: limited(REPORT_LIMITS.publisherComment, "出版社コメント").nullable().optional(),
+  // ⚠️ 出版社からの回答はここでは受けない（PublisherComment テーブル＝ actions/publisher-comment.ts）。
+  //    この欄は**運営者自身の説明**で、書き手が管理者ひとりだから列のままでよい
+  statusNote: limited(REPORT_LIMITS.statusNote, "運営者の補足").nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),
   fixedPrinting: z.number().int().positive().nullable().optional(),
 }).superRefine((data, ctx) => {
   // OTHER（その他）は「上記で表せない事情」を意味するので、説明が無いと読者に何も伝わらない。
   // 空の OTHER を作れなくすることで、迷ったときの掃きだめになるのを防ぐ。
-  if (data.status === "OTHER" && !data.publisherComment?.trim()) {
+  if (data.status === "OTHER" && !data.statusNote?.trim()) {
     ctx.addIssue({
       code: "custom",
-      path: ["publisherComment"],
-      message: "「その他」を選んだときは、出版社コメント欄に事情を記載してください",
+      path: ["statusNote"],
+      message: "「その他」を選んだときは、運営者の補足欄に事情を記載してください",
     });
   }
 }).transform((data) => {
@@ -273,13 +275,13 @@ export async function updateReport(id: string, input: ReportUpdateInput): Promis
           // ReportUpdateSchema が受ける4項目すべてを記録する（fixedEdition/fixedPrinting は FIXED 運用の要）
           before: {
             status: before?.status,
-            publisherComment: before?.publisherComment,
+            statusNote: before?.statusNote,
             fixedEdition: before?.fixedEdition,
             fixedPrinting: before?.fixedPrinting,
           },
           after: {
             status: report.status,
-            publisherComment: report.publisherComment,
+            statusNote: report.statusNote,
             fixedEdition: report.fixedEdition,
             fixedPrinting: report.fixedPrinting,
           },

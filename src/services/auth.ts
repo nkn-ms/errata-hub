@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 // 認可ヘルパは Server Action 用と サーバーコンポーネント用の2つ。管理操作の入口がこの2つだけのため。
 // Route Handler 用（判定結果を Response で返す版）が要るときは checkAdmin から書き足す。
+//
+// ⚠️ **管理者以外の認可はここには置かない**（このファイルは ADMIN 判定のためのもの）。
+// 「その投稿の投稿者か」は actions/report.ts の updateOwnReport に、
+// 「その出版社として回答できるか」は services/publisher-access.ts にある。
 
 /**
  * 認可判定のコア。Supabase の認証ユーザーと ADMIN ロールを確認する。

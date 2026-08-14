@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/components/admin/report-editor";
+import { AdminPublisherCommentList } from "@/components/admin/publisher-comment-list";
 import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
 import { TYPE_LABELS } from "@/constants/report-labels";
-import { formatJstDate } from "@/utils/format";
+import { formatJstDate, formatJstDateTime } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
 
 // 位置の1行表示。媒体ごとに入力される項目が違う（紙=ページ/行、電子=位置、その他=メモ）
@@ -27,6 +28,11 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
     include: {
       book: { include: { publisher: true } },
       images: true,
+      // 出版社からの回答（古い順）。ここではモデレーションの削除だけを行う
+      publisherComments: {
+        orderBy: { createdAt: "asc" },
+        include: { publisher: { select: { name: true } } },
+      },
     },
   });
 
@@ -134,11 +140,21 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
         </div>
       )}
 
-      {/* ステータス・出版社コメント編集 */}
+      <AdminPublisherCommentList
+        comments={report.publisherComments.map((comment) => ({
+          id: comment.id,
+          publisherName: comment.publisher.name,
+          body: comment.body,
+          byAdmin: comment.byAdmin,
+          createdAt: formatJstDateTime(comment.createdAt),
+        }))}
+      />
+
+      {/* ステータス・運営者の補足の編集 */}
       <AdminReportEditor
         id={report.id}
         currentStatus={report.status}
-        currentComment={report.publisherComment ?? ""}
+        currentStatusNote={report.statusNote ?? ""}
         currentFixedEdition={report.fixedEdition}
         currentFixedPrinting={report.fixedPrinting}
         images={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
