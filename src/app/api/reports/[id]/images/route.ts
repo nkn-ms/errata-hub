@@ -137,10 +137,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       });
       return NextResponse.json(image, { status: 201 });
     } catch (e) {
+      // 行の作成に失敗した＝先にアップロード済みのファイルは DB 行を持たない孤児になるため、
+      // **失敗の理由に関わらず**掃除する。トランザクションなので「行はできたのに例外」は
+      // 起こり得ず、ここに来た時点で残ったファイルが孤児であることは確定している。
+      // ⚠️ 掃除自体が失敗したときはもう手掛かりを残す先が無い（DB 行が無いので監査ログにも
+      //    載らない）ので、パスを添えて記録する。
+      const { error: cleanupError } = await admin.storage
+        .from(REPORT_IMAGE_BUCKET)
+        .remove([path]);
+      if (cleanupError) {
+        console.error("アップロード失敗後の画像ファイル削除に失敗:", path, cleanupError);
+      }
       if (e instanceof ImageLimitReached) {
-        // 競合に負けて上限に達していた: 先にアップロード済みのファイルは DB 行を持たない孤児に
-        // なるため、掃除してから 400 を返す。
-        await admin.storage.from(REPORT_IMAGE_BUCKET).remove([path]);
+        // 競合に負けて上限に達していた
         return NextResponse.json({ error: pool.message }, { status: 400 });
       }
       throw e; // 想定外は下の catch で 500

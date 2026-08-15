@@ -521,7 +521,11 @@ function findReportWithImages(client: Prisma.TransactionClient, id: string) {
  * Storage は外部サービスでトランザクションに入れられない＝原子性は諦め、「どちらに倒すか」を
  * 決めている: DB を先に消す＝**ファイルだけ残る（孤児）**。逆（ファイルを先に消す）だと
  * 画像が壊れて表示されるので、利用者に見える分だけ実害が大きい。
- * 残った孤児はパスをログに出して後から掃除できるようにする。
+ *
+ * 残った孤児を後から辿る手段は **`AuditLog` の `before`**（呼び出し元が消した画像の `imageUrl` を
+ * そこに残している）。⚠️ `console.error` は手段にならない — Vercel Hobby の Runtime Logs は
+ * 保持1時間で、気づかなければ消える（出典: https://vercel.com/docs/logs/runtime の Limits）。
+ * 監査ログは DB にあり90日残るので、この記録だけが実用的な手掛かりになる。
  */
 async function removeImageFiles(imageUrls: string[]) {
   const paths = imageUrls
