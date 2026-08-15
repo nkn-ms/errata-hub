@@ -298,7 +298,7 @@ model AuditLog {
 // 上限チェックはフォームと API の両方で行う）。投稿の作成後にクライアントが別途アップロードする
 // （Server Actions のボディ上限 1MB を超えるため、ここだけ Route Handler = api/reports/[id]/images）。
 // 投稿削除時は DB の行を先に消し、Storage のファイル削除が失敗しても投稿削除は成立させる
-// （孤児ファイルはログで追う = actions/report.ts）
+// （残った孤児ファイルは AuditLog の before に残る imageUrl から辿る = actions/report.ts）
 model ReportImage {
   id         String   @id @default(uuid())
   reportId String
