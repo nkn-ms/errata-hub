@@ -31,6 +31,11 @@ type Props = {
 
 type Mode = "api" | "isbn";
 
+// 上流（Google Books）の一時障害でも出るので、原因ではなく**次に何をすればよいか**を書く。
+// ISBN 検索側の「検索中にエラーが発生しました。」と揃えず一歩踏み込んでいるのは、
+// タイトル検索が 503 で実際に落ちるのを観測したため（route.ts のコメント参照）。
+const SEARCH_FAILED_MESSAGE = "検索に失敗しました。しばらくしてからお試しください。";
+
 // Google Books の書影 URL は http で返ることがある。https のページから http 画像は
 // 混在コンテンツとしてブラウザにブロックされるため、https に揃える（books.google.com は https 対応）。
 function toHttpsUrl(url: string | undefined): string {
@@ -98,6 +103,11 @@ export function BookSearch({ onSelect }: Props) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<BookResult | null>(null);
+  // タイトル検索が失敗したことを伝えるための状態。
+  // ⚠️ 「0件」と「失敗」を同じ表示にしてはいけない。上流（Google Books）が 503 を返しても
+  //    fetch は成功扱いで data.items が undefined になるだけなので、区別しないと
+  //    **検索が壊れているのに「見つかりません」と表示される**（＝その本が無いと読める）。
+  const [searchError, setSearchError] = useState("");
   const [isbnQuery, setIsbnQuery] = useState("");
   const [isbnLoading, setIsbnLoading] = useState(false);
   const [isbnError, setIsbnError] = useState("");
@@ -109,6 +119,7 @@ export function BookSearch({ onSelect }: Props) {
     setSelected(null);
     setOpen(false);
     setIsbnError("");
+    setSearchError("");
   }
 
   async function handleIsbnSearch() {
@@ -161,6 +172,7 @@ export function BookSearch({ onSelect }: Props) {
     const value = e.target.value;
     setQuery(value);
     setSelected(null);
+    setSearchError("");
 
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!value.trim()) { setResults([]); setOpen(false); return; }
@@ -171,6 +183,14 @@ export function BookSearch({ onSelect }: Props) {
         const res = await fetch(
           `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`
         );
+        // ⚠️ fetch は 4xx/5xx でも例外にならないので、ここで明示的に見る。
+        //    見ないと data.items が undefined ＝ 0件と見分けが付かなくなる。
+        if (!res.ok) {
+          setSearchError(SEARCH_FAILED_MESSAGE);
+          setResults([]);
+          setOpen(false);
+          return;
+        }
         const data = await res.json();
         const items: GoogleBooksItem[] = data.items ?? [];
         const books: BookResult[] = items
@@ -196,7 +216,9 @@ export function BookSearch({ onSelect }: Props) {
         setResults(enriched);
         setOpen(true);
       } catch {
+        setSearchError(SEARCH_FAILED_MESSAGE);
         setResults([]);
+        setOpen(false);
       } finally {
         setLoading(false);
       }
@@ -214,6 +236,7 @@ export function BookSearch({ onSelect }: Props) {
     setSelected(null);
     setQuery("");
     setResults([]);
+    setSearchError("");
   }
 
   return (
@@ -301,6 +324,8 @@ export function BookSearch({ onSelect }: Props) {
               </div>
             )}
           </div>
+
+          {searchError && <p className="text-xs text-red-700">{searchError}</p>}
 
           <p className="text-xs text-gray-400">
             目的の本が見つからない場合は
