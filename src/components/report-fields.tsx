@@ -358,9 +358,14 @@ export function ReportContentFields({ value, onChange }: Props) {
             />
             複数ページにまたがる
           </label>
+          {/* 例に `p.` を付けているのは体裁ではなく、位置備考が表示側で「位置」と切り離されて
+              別の枠に出るため（詳細ページ・確認画面とも）。裸の数字を書かせると、読み手には
+              「171」が何を指すか分からなくなる。離れた2か所も書けると示すため列挙の例も併記する。
+              この案内と下の placeholder は同じ文言で揃える（placeholder は入力を始めると消えるので、
+              実際に効き続けるのはこちら）。 */}
           {value.hasMultiplePages && (
             <p className="text-xs text-blue-600 -mt-1">
-              ページ範囲を位置備考に入力してください（例: 42〜44、または 42, 43, 44）
+              ページ範囲を位置備考に入力してください（例: p.42〜44、または p.70, p.101）
             </p>
           )}
           <div>
@@ -371,7 +376,7 @@ export function ReportContentFields({ value, onChange }: Props) {
               value={value.locationNote}
               onChange={(e) => onChange({ locationNote: e.target.value })}
               maxLength={REPORT_LIMITS.locationNote}
-              placeholder={value.hasMultiplePages ? "例: 42〜44、または 42, 43, 44" : "例: ページ中央の図、p.102にも同様の誤りあり"}
+              placeholder={value.hasMultiplePages ? "例: p.42〜44、または p.70, p.101" : "例: ページ中央の図、p.102にも同様の誤りあり"}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
