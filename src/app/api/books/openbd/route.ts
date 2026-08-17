@@ -46,15 +46,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
+  // ⚠️ 空配列は「その ISBN に該当が無い」の意味だけに使い、**上流の失敗には使わない**。
+  //    ISBN 検索では返り値がそのまま答えなので、失敗を空配列にすると画面が
+  //    「該当する書籍が見つかりませんでした。ISBNをご確認ください。」＝利用者の入力が
+  //    悪いことにしてしまう（実際は OpenBD が落ちている）。
+  //    タイトル検索の書誌補正（book-search.tsx の enrichWithOpenBD）は !res.ok を
+  //    「Google の値をそのまま使う」で扱うので、502 にしても壊れず degrade する。
   try {
-    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`);
+    // 応答が返らない相手を待ち続けない（理由は books/search/route.ts の UPSTREAM_TIMEOUT_MS）
+    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`, {
+      signal: AbortSignal.timeout(5_000),
+    });
     if (!res.ok) {
-      return NextResponse.json([]);
+      console.error("OpenBD API error:", res.status);
+      return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error("OpenBD API error:", error);
-    return NextResponse.json([]);
+    return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
   }
 }

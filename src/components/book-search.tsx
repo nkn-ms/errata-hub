@@ -31,6 +31,28 @@ type Props = {
 
 type Mode = "api" | "isbn";
 
+// 上流（Google Books）の一時障害でも出るので、原因ではなく**次に何をすればよいか**を書く。
+// ISBN 検索側の「検索中にエラーが発生しました。」と揃えず一歩踏み込んでいるのは、
+// タイトル検索が 503 で実際に落ちるのを観測したため（route.ts のコメント参照）。
+const SEARCH_FAILED_MESSAGE = "検索に失敗しました。しばらくしてからお試しください。";
+
+/**
+ * 失敗レスポンスから画面に出す文言を作る。
+ *
+ * サーバーが返した文言を優先する。こちらで汎用化すると情報が落ちるため
+ * （レート制限は「あと何秒待てばよいか」まで書いてある／未ログインは「認証が必要です」）。
+ * JSON でない（Vercel のエラーページなど）ときだけ汎用の文言に落とす。
+ */
+async function failureMessage(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.error === "string" && body.error) return body.error;
+  } catch {
+    // 本文が読めないケースは汎用文言でよい
+  }
+  return SEARCH_FAILED_MESSAGE;
+}
+
 // Google Books の書影 URL は http で返ることがある。https のページから http 画像は
 // 混在コンテンツとしてブラウザにブロックされるため、https に揃える（books.google.com は https 対応）。
 function toHttpsUrl(url: string | undefined): string {
@@ -63,11 +85,11 @@ type OpenBdSummary = {
 // 和書は Google だと書名がローマ字化・出版社が欠落しがちなため、書誌(title/author/publisher)は
 // OpenBD を正とする。書影は OpenBD がほぼ持たないため Google のものを維持する。
 // OpenBD は ISBN をカンマ区切りで 1 リクエストにまとめられる（順序保持・無ければ null）。
-async function enrichWithOpenBD(books: BookResult[]): Promise<BookResult[]> {
+async function enrichWithOpenBD(books: BookResult[], signal: AbortSignal): Promise<BookResult[]> {
   const isbns = books.map((b) => b.isbn).filter(Boolean);
   if (isbns.length === 0) return books;
   try {
-    const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`);
+    const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`, { signal });
     if (!res.ok) return books;
     const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
     const byIsbn = new Map<string, OpenBdSummary>();
@@ -98,17 +120,29 @@ export function BookSearch({ onSelect }: Props) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<BookResult | null>(null);
+  // タイトル検索が失敗したことを伝えるための状態。
+  // ⚠️ 「0件」と「失敗」を同じ表示にしてはいけない。上流（Google Books）が 503 を返しても
+  //    fetch は成功扱いで data.items が undefined になるだけなので、区別しないと
+  //    **検索が壊れているのに「見つかりません」と表示される**（＝その本が無いと読める）。
+  const [searchError, setSearchError] = useState("");
   const [isbnQuery, setIsbnQuery] = useState("");
   const [isbnLoading, setIsbnLoading] = useState(false);
   const [isbnError, setIsbnError] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 飛んでいるタイトル検索を打ち切るための入れ物。
+  // ⚠️ デバウンスのタイマーを張り直すだけでは足りない。**送信済みのリクエストは走り続ける**ので、
+  //    古い応答が新しい応答より後に届くと、いま打っている語と候補リストの中身がズレる
+  //    （上流が遅いときや再試行が入ったときに起きる）。新しい入力が来たら前を止める。
+  const abortRef = useRef<AbortController | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   function switchMode(next: Mode) {
+    abortRef.current?.abort();
     setMode(next);
     setSelected(null);
     setOpen(false);
     setIsbnError("");
+    setSearchError("");
   }
 
   async function handleIsbnSearch() {
@@ -119,6 +153,12 @@ export function BookSearch({ onSelect }: Props) {
     setSelected(null);
     try {
       const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbn}`);
+      // ⚠️ 「取得に失敗した」と「その ISBN の本が無い」を必ず分ける。
+      //    混ぜると上流の障害を「ISBNをご確認ください」＝利用者の入力ミスとして表示してしまう。
+      if (!res.ok) {
+        setIsbnError(await failureMessage(res));
+        return;
+      }
       const data = await res.json();
       if (!data?.[0]) {
         setIsbnError("該当する書籍が見つかりませんでした。ISBNをご確認ください。");
@@ -161,16 +201,29 @@ export function BookSearch({ onSelect }: Props) {
     const value = e.target.value;
     setQuery(value);
     setSelected(null);
+    setSearchError("");
 
     if (timerRef.current) clearTimeout(timerRef.current);
+    abortRef.current?.abort();
     if (!value.trim()) { setResults([]); setOpen(false); return; }
 
     timerRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       setLoading(true);
       try {
         const res = await fetch(
-          `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`
+          `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`,
+          { signal: controller.signal }
         );
+        // ⚠️ fetch は 4xx/5xx でも例外にならないので、ここで明示的に見る。
+        //    見ないと data.items が undefined ＝ 0件と見分けが付かなくなる。
+        if (!res.ok) {
+          setSearchError(await failureMessage(res));
+          setResults([]);
+          setOpen(false);
+          return;
+        }
         const data = await res.json();
         const items: GoogleBooksItem[] = data.items ?? [];
         const books: BookResult[] = items
@@ -192,13 +245,19 @@ export function BookSearch({ onSelect }: Props) {
           // ISBN を本の同一性の基準にするため、ISBN の無い結果は選択させない
           .filter((b) => b.isbn);
         // 書誌情報は OpenBD を正として補正（書影は Google を維持）
-        const enriched = await enrichWithOpenBD(books);
+        const enriched = await enrichWithOpenBD(books, controller.signal);
         setResults(enriched);
         setOpen(true);
       } catch {
+        // 新しい入力で打ち切っただけなら失敗ではない。ここで文言を出すと、
+        // 打っている途中に「検索に失敗しました」が点滅する
+        if (controller.signal.aborted) return;
+        setSearchError(SEARCH_FAILED_MESSAGE);
         setResults([]);
+        setOpen(false);
       } finally {
-        setLoading(false);
+        // 後から来た入力に追い越されていたら、そちらの読み込み中表示を消してしまわない
+        if (abortRef.current === controller) setLoading(false);
       }
     }, 400);
   }
@@ -211,9 +270,11 @@ export function BookSearch({ onSelect }: Props) {
   }
 
   function handleClear() {
+    abortRef.current?.abort();
     setSelected(null);
     setQuery("");
     setResults([]);
+    setSearchError("");
   }
 
   return (
@@ -301,6 +362,8 @@ export function BookSearch({ onSelect }: Props) {
               </div>
             )}
           </div>
+
+          {searchError && <p className="text-xs text-red-700">{searchError}</p>}
 
           <p className="text-xs text-gray-400">
             目的の本が見つからない場合は

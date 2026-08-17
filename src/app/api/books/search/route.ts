@@ -5,6 +5,41 @@ import { checkRateLimits, rateLimitKey, rateLimitMessage } from "@/lib/rate-limi
 
 const MAX_QUERY_LENGTH = 100;
 
+// Google Books は散発的に 503 "Service temporarily unavailable." を返す
+// （2026-08-17 に本番で 30分に4件。同じ時間帯の別のクエリは 200 なので入力には依存しない）。
+// もう一度投げれば通る種類なので、ここで1回だけやり直して利用者に見せない。
+const UPSTREAM_RETRY_DELAY_MS = 300;
+
+// 応答が返らない相手を待ち続けないための上限。タイプアヘッドから呼ばれるので、
+// 「待たされるより早く失敗を伝える」方が体感が良い（失敗時の文言は次の行動を書いてある）。
+const UPSTREAM_TIMEOUT_MS = 5_000;
+
+/**
+ * Google Books を叩く。**5xx と通信エラーのときだけ1回やり直す。**
+ *
+ * ⚠️ 429（バースト制限）と 4xx は再試行しない: 前者は待たないと意味がなく、
+ *    後者（403 の枠切れ・400 の不正なクエリ）は何度投げても同じ結果になる。
+ *
+ * ⚠️ やり直しはこの層でしかできない。呼び出し元は上流の失敗を**すべて 502 に潰して**返すので
+ *    （503 を透過すると「このサービスが落ちている」の意味になってしまうため）、
+ *    クライアントからは「再試行すれば通るのか」を区別できない。
+ */
+async function fetchGoogleBooks(url: string): Promise<Response> {
+  const options = { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) };
+  try {
+    const res = await fetch(url, options);
+    if (res.status < 500) return res;
+    console.warn("Google Books API retrying after", res.status);
+  } catch (error) {
+    // ⚠️ タイムアウトでは再試行しない。相手が遅いときに2回待つと待ち時間が倍になり、
+    //    「早く失敗を伝える」というタイムアウトの目的を自分で打ち消す。
+    if (error instanceof Error && error.name === "TimeoutError") throw error;
+    console.warn("Google Books API retrying after network error:", error);
+  }
+  await new Promise((resolve) => setTimeout(resolve, UPSTREAM_RETRY_DELAY_MS));
+  return fetch(url, { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
+}
+
 export async function GET(request: NextRequest) {
   // 認証必須: 未ログインでも叩けると Google Books API キーの quota を悪用される。
   // 書籍検索を使う /submit はログイン必須なので正規フローには影響しない。
@@ -50,16 +85,18 @@ export async function GET(request: NextRequest) {
   const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=20&printType=books&country=JP&key=${apiKey}`;
 
   try {
-    const res = await fetch(url);
+    const res = await fetchGoogleBooks(url);
     if (!res.ok) {
       // Google 側のエラーJSON（キー情報を含み得る）はそのまま返さない。
       console.error("Google Books API error:", res.status, await res.text());
-      return NextResponse.json({ error: "書籍検索に失敗しました" }, { status: 502 });
+      // ⚠️ 502（Bad Gateway＝上流から無効な応答を受けた）に**意図的に置き換えている**。
+      //    Google の 503 をそのまま返すと「Errata Hub 自身が使えない」の意味になってしまう。
+      return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "書籍検索に失敗しました" }, { status: 502 });
+    return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
   }
 }
