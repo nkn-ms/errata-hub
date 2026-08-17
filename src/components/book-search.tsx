@@ -85,11 +85,11 @@ type OpenBdSummary = {
 // 和書は Google だと書名がローマ字化・出版社が欠落しがちなため、書誌(title/author/publisher)は
 // OpenBD を正とする。書影は OpenBD がほぼ持たないため Google のものを維持する。
 // OpenBD は ISBN をカンマ区切りで 1 リクエストにまとめられる（順序保持・無ければ null）。
-async function enrichWithOpenBD(books: BookResult[]): Promise<BookResult[]> {
+async function enrichWithOpenBD(books: BookResult[], signal: AbortSignal): Promise<BookResult[]> {
   const isbns = books.map((b) => b.isbn).filter(Boolean);
   if (isbns.length === 0) return books;
   try {
-    const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`);
+    const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`, { signal });
     if (!res.ok) return books;
     const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
     const byIsbn = new Map<string, OpenBdSummary>();
@@ -129,9 +129,15 @@ export function BookSearch({ onSelect }: Props) {
   const [isbnLoading, setIsbnLoading] = useState(false);
   const [isbnError, setIsbnError] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 飛んでいるタイトル検索を打ち切るための入れ物。
+  // ⚠️ デバウンスのタイマーを張り直すだけでは足りない。**送信済みのリクエストは走り続ける**ので、
+  //    古い応答が新しい応答より後に届くと、いま打っている語と候補リストの中身がズレる
+  //    （上流が遅いときや再試行が入ったときに起きる）。新しい入力が来たら前を止める。
+  const abortRef = useRef<AbortController | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   function switchMode(next: Mode) {
+    abortRef.current?.abort();
     setMode(next);
     setSelected(null);
     setOpen(false);
@@ -198,13 +204,17 @@ export function BookSearch({ onSelect }: Props) {
     setSearchError("");
 
     if (timerRef.current) clearTimeout(timerRef.current);
+    abortRef.current?.abort();
     if (!value.trim()) { setResults([]); setOpen(false); return; }
 
     timerRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       setLoading(true);
       try {
         const res = await fetch(
-          `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`
+          `${routes.api.booksSearch}?q=${encodeURIComponent(value)}`,
+          { signal: controller.signal }
         );
         // ⚠️ fetch は 4xx/5xx でも例外にならないので、ここで明示的に見る。
         //    見ないと data.items が undefined ＝ 0件と見分けが付かなくなる。
@@ -235,15 +245,19 @@ export function BookSearch({ onSelect }: Props) {
           // ISBN を本の同一性の基準にするため、ISBN の無い結果は選択させない
           .filter((b) => b.isbn);
         // 書誌情報は OpenBD を正として補正（書影は Google を維持）
-        const enriched = await enrichWithOpenBD(books);
+        const enriched = await enrichWithOpenBD(books, controller.signal);
         setResults(enriched);
         setOpen(true);
       } catch {
+        // 新しい入力で打ち切っただけなら失敗ではない。ここで文言を出すと、
+        // 打っている途中に「検索に失敗しました」が点滅する
+        if (controller.signal.aborted) return;
         setSearchError(SEARCH_FAILED_MESSAGE);
         setResults([]);
         setOpen(false);
       } finally {
-        setLoading(false);
+        // 後から来た入力に追い越されていたら、そちらの読み込み中表示を消してしまわない
+        if (abortRef.current === controller) setLoading(false);
       }
     }, 400);
   }
@@ -256,6 +270,7 @@ export function BookSearch({ onSelect }: Props) {
   }
 
   function handleClear() {
+    abortRef.current?.abort();
     setSelected(null);
     setQuery("");
     setResults([]);

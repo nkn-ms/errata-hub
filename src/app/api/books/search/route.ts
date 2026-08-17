@@ -10,6 +10,10 @@ const MAX_QUERY_LENGTH = 100;
 // もう一度投げれば通る種類なので、ここで1回だけやり直して利用者に見せない。
 const UPSTREAM_RETRY_DELAY_MS = 300;
 
+// 応答が返らない相手を待ち続けないための上限。タイプアヘッドから呼ばれるので、
+// 「待たされるより早く失敗を伝える」方が体感が良い（失敗時の文言は次の行動を書いてある）。
+const UPSTREAM_TIMEOUT_MS = 5_000;
+
 /**
  * Google Books を叩く。**5xx と通信エラーのときだけ1回やり直す。**
  *
@@ -21,15 +25,19 @@ const UPSTREAM_RETRY_DELAY_MS = 300;
  *    クライアントからは「再試行すれば通るのか」を区別できない。
  */
 async function fetchGoogleBooks(url: string): Promise<Response> {
+  const options = { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) };
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, options);
     if (res.status < 500) return res;
     console.warn("Google Books API retrying after", res.status);
   } catch (error) {
+    // ⚠️ タイムアウトでは再試行しない。相手が遅いときに2回待つと待ち時間が倍になり、
+    //    「早く失敗を伝える」というタイムアウトの目的を自分で打ち消す。
+    if (error instanceof Error && error.name === "TimeoutError") throw error;
     console.warn("Google Books API retrying after network error:", error);
   }
   await new Promise((resolve) => setTimeout(resolve, UPSTREAM_RETRY_DELAY_MS));
-  return fetch(url);
+  return fetch(url, { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
 }
 
 export async function GET(request: NextRequest) {

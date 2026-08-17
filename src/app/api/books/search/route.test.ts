@@ -85,6 +85,19 @@ describe("GET /api/books/search の上流リトライ", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("タイムアウトは再試行しない（遅い相手に2回待つと待ち時間が倍になる）", async () => {
+    const timeout = new Error("The operation was aborted due to timeout");
+    timeout.name = "TimeoutError";
+    const fetchMock = vi.fn().mockRejectedValue(timeout);
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("通信エラーも1回やり直す", async () => {
     const fetchMock = vi
       .fn()

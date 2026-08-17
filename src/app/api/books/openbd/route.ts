@@ -53,7 +53,10 @@ export async function GET(request: NextRequest) {
   //    タイトル検索の書誌補正（book-search.tsx の enrichWithOpenBD）は !res.ok を
   //    「Google の値をそのまま使う」で扱うので、502 にしても壊れず degrade する。
   try {
-    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`);
+    // 応答が返らない相手を待ち続けない（理由は books/search/route.ts の UPSTREAM_TIMEOUT_MS）
+    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`, {
+      signal: AbortSignal.timeout(5_000),
+    });
     if (!res.ok) {
       console.error("OpenBD API error:", res.status);
       return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });

@@ -67,4 +67,50 @@ test.describe("タイトル検索の候補リスト（書き込み・ログイ�
     );
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  // 打鍵の追い越し。デバウンスのタイマーを張り直すだけでは**送信済みのリクエストは走り続ける**ので、
+  // 古い応答が新しい応答より後に届くと候補リストが古い語のものに上書きされる（上流が遅いときに起きる）。
+  // AbortController で前を打ち切っているかを、遅い応答をわざと作って確かめる。
+  test("古い応答が後から届いても、候補リストは最新の入力のものになる", async ({ page }) => {
+    const stub = (title: string) => ({
+      items: [
+        {
+          id: `stub-${title}`,
+          volumeInfo: {
+            title,
+            authors: ["著者"],
+            publisher: "出版社",
+            industryIdentifiers: [{ type: "ISBN_13", identifier: "9784873116860" }],
+          },
+        },
+      ],
+    });
+
+    await page.route("**/api/books/search*", async (route) => {
+      const q = new URL(route.request().url()).searchParams.get("q") ?? "";
+      // 先に投げた「web」の応答だけを遅らせる＝後発に追い越させる
+      if (q === "web") await new Promise((resolve) => setTimeout(resolve, 2_000));
+      try {
+        await route.fulfill({ json: stub(q === "web" ? "古い応答の本" : "新しい応答の本") });
+      } catch {
+        // 打ち切られた（＝期待どおり）リクエストへの fulfill は失敗する
+      }
+    });
+
+    await page.goto("/submit");
+    await page.getByRole("button", { name: "タイトルで検索" }).click();
+
+    const input = page.getByPlaceholder("書籍名・著者名で検索...");
+    await input.fill("web");
+    // デバウンス（400ms）を越えさせて「web」を実際に飛ばしてから、続きを打つ
+    await page.waitForTimeout(700);
+    await input.fill("webあ");
+
+    await expect(page.getByText("新しい応答の本")).toBeVisible();
+
+    // 遅い方が届く時刻を過ぎても、古い語の結果に化けないこと（ここが本題）
+    await page.waitForTimeout(2_500);
+    await expect(page.getByText("古い応答の本")).toHaveCount(0);
+    await expect(page.getByText("新しい応答の本")).toBeVisible();
+  });
 });
