@@ -50,8 +50,8 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1"); // 版
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42"); // ページ
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42"); // ページ
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
 
@@ -98,8 +98,8 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
 
@@ -181,8 +181,8 @@ test.describe("画像添付つき投稿（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
     await page.locator('input[type="file"]').setInputFiles({
@@ -305,8 +305,8 @@ test.describe("画像の圧縮", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
 

@@ -101,8 +101,8 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     await page.getByPlaceholder("例: 1", { exact: true }).fill("2"); // 版
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42"); // ページ番号
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2E確認画面");
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42"); // ページ番号
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill("E2E確認画面");
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("正字コード");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
 
@@ -110,7 +110,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByRole("heading", { name: "この内容で投稿します" })).toBeVisible();
 
     // フォームは畳まれている（＝確認中に入力が変わることがない）
-    await expect(page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true })).toHaveCount(0);
+    await expect(page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true })).toHaveCount(0);
 
     // 入力した値が並ぶ。版・刷とページは組み立てて出すので、組み立てた形で見る
     const summary = page.getByRole("definition");
@@ -129,7 +129,7 @@ test.describe("投稿フォーム（書き込み）", () => {
 
     // 「修正する」でフォームへ戻る。打ち込んだ内容は残っている（確認のたびに書き直させない）
     await page.getByRole("button", { name: "修正する" }).click();
-    await expect(page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true })).toHaveValue(
+    await expect(page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true })).toHaveValue(
       "E2E確認画面"
     );
     await expect(page.getByPlaceholder("例: 1", { exact: true })).toHaveValue("2");
@@ -190,8 +190,8 @@ test.describe("投稿フォーム（書き込み）", () => {
 
     // 紙の必須項目（版・ページ）＋タイトル・正誤を入力
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1"); // 版
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42"); // ページ番号
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42"); // ページ番号
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("正字コード");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字コード");
 
@@ -243,8 +243,8 @@ test.describe("投稿フォーム（書き込み）", () => {
 
     // コピーしたまま（＝直し忘れ）で投稿すると弾かれる。他の項目と同じく投稿時にまとめて出す
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2Eコピー確認");
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill("E2Eコピー確認");
     await page.getByRole("button", { name: "確認する" }).click();
     await expect(page.getByText("誤と正が同じ内容です。正しい内容に直してください")).toBeVisible();
     // 投稿は成立していない（トップへ遷移しない）
@@ -265,7 +265,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
     const edition = page.getByPlaceholder("例: 1", { exact: true });
-    const pageNumber = page.getByPlaceholder("例: 42", { exact: true });
+    const pageNumber = page.getByPlaceholder("例: 58", { exact: true });
 
     // 版は ▲ を押して入れる（未入力から押すと下限の 1 になる）
     await edition.click();
@@ -279,7 +279,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await pageNumber.blur();
     await expect(pageNumber).toHaveValue("141");
 
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("全角の誤");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("全角の正");
     await confirmAndSubmit(page);
@@ -316,8 +316,8 @@ test.describe("投稿フォーム（書き込み）", () => {
 
     // 版・刷は書籍データではなく投稿ごとの値なので、確定表示でも入力できる
     await page.getByPlaceholder("例: 1", { exact: true }).fill("2");
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("15");
-    await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("15");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
     await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った記述");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい記述");
     await confirmAndSubmit(page);
