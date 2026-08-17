@@ -13,7 +13,7 @@ const STACK = [
   { area: "フレームワーク", items: "Next.js 16（App Router）/ React 19" },
   { area: "言語", items: "TypeScript" },
   { area: "スタイリング", items: "Tailwind CSS v4" },
-  { area: "認証", items: "Supabase Auth（メール認証・PKCE）/ GitHub ログイン" },
+  { area: "認証", items: "Supabase Auth（メール認証・PKCE）/ GitHub ログイン（OAuth 2.0）" },
   { area: "データベース", items: "PostgreSQL（Supabase）/ Prisma v7" },
   { area: "ファイル保存", items: "Supabase Storage" },
   { area: "バリデーション", items: "Zod" },
@@ -29,11 +29,15 @@ const STACK = [
 const CHOICES = [
   {
     name: "Next.js 16 (App Router)",
-    why: "サーバーコンポーネントから DB を直接読み、データ取得と UI を同じ場所に書く。画面とデータの間に HTTP の往復を挟まない。",
+    why: "ルーティング・レイアウト・メタデータ・Server Action を、画面と同じ場所に規約で置ける。公開側の共通の枠は (site) ルートグループにまとめ、URL を変えずに「枠を共有する範囲」だけを区切っている。",
+  },
+  {
+    name: "データアクセス（サーバーコンポーネント + サービス層）",
+    why: "ページのデータ取得はサーバーコンポーネントから src/services/* を直接呼び、画面と DB の間に自前の HTTP 層を挟まない。外部に口が必要なときだけ Route Handler を置いている（書籍検索と画像アップロードの3本のみ）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
-    why: "認証・データ・画像を1つの基盤に寄せ、運用先を増やさない。認証は OAuth 2.0 の PKCE（RFC 7636）による code フロー。",
+    why: "認証・データ・画像を1つの基盤に寄せ、運用先を増やさない。GitHub ログインは OAuth 2.0 の認可コードフロー（PKCE / RFC 7636）で、認可 URL へ送って code を交換するところはアプリが持ち、client secret と code verifier の保管は Supabase に任せている。メール認証のリンクも同じ形で code を交換する。",
   },
   {
     name: "Prisma v7 (ORM)",
@@ -58,6 +62,12 @@ const PRACTICES = [
   {
     name: "レート制限（Postgres）",
     why: "投稿・画像アップロード・書籍検索に、ユーザー単位の固定ウィンドウ制限をかけている。カウンタは専用のミドルウェアを増やさず Postgres に置き、1文で原子的に数える。",
+  },
+  // 認証（本物のセッションか）→ 認可（何をしてよいか）の順に並べる。
+  // 別の関心事なので1枚にまとめない。
+  {
+    name: "セッションは毎回サーバーで検証",
+    why: "ログイン状態の確認には getUser() だけを使い、getSession() は使っていない。前者は Auth サーバーにトークンを検証させ、後者は cookie に入っている値をそのまま信じる。誰が何をしてよいかの判定（認可）とは別に、そのセッションが本物かの確認（認証）もサーバー側で行っている。",
   },
   {
     name: "認可はサーバー側で判定",
