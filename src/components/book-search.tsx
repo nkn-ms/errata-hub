@@ -36,6 +36,23 @@ type Mode = "api" | "isbn";
 // タイトル検索が 503 で実際に落ちるのを観測したため（route.ts のコメント参照）。
 const SEARCH_FAILED_MESSAGE = "検索に失敗しました。しばらくしてからお試しください。";
 
+/**
+ * 失敗レスポンスから画面に出す文言を作る。
+ *
+ * サーバーが返した文言を優先する。こちらで汎用化すると情報が落ちるため
+ * （レート制限は「あと何秒待てばよいか」まで書いてある／未ログインは「認証が必要です」）。
+ * JSON でない（Vercel のエラーページなど）ときだけ汎用の文言に落とす。
+ */
+async function failureMessage(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.error === "string" && body.error) return body.error;
+  } catch {
+    // 本文が読めないケースは汎用文言でよい
+  }
+  return SEARCH_FAILED_MESSAGE;
+}
+
 // Google Books の書影 URL は http で返ることがある。https のページから http 画像は
 // 混在コンテンツとしてブラウザにブロックされるため、https に揃える（books.google.com は https 対応）。
 function toHttpsUrl(url: string | undefined): string {
@@ -130,6 +147,12 @@ export function BookSearch({ onSelect }: Props) {
     setSelected(null);
     try {
       const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbn}`);
+      // ⚠️ 「取得に失敗した」と「その ISBN の本が無い」を必ず分ける。
+      //    混ぜると上流の障害を「ISBNをご確認ください」＝利用者の入力ミスとして表示してしまう。
+      if (!res.ok) {
+        setIsbnError(await failureMessage(res));
+        return;
+      }
       const data = await res.json();
       if (!data?.[0]) {
         setIsbnError("該当する書籍が見つかりませんでした。ISBNをご確認ください。");
@@ -186,7 +209,7 @@ export function BookSearch({ onSelect }: Props) {
         // ⚠️ fetch は 4xx/5xx でも例外にならないので、ここで明示的に見る。
         //    見ないと data.items が undefined ＝ 0件と見分けが付かなくなる。
         if (!res.ok) {
-          setSearchError(SEARCH_FAILED_MESSAGE);
+          setSearchError(await failureMessage(res));
           setResults([]);
           setOpen(false);
           return;

@@ -83,12 +83,12 @@ export async function GET(request: NextRequest) {
       console.error("Google Books API error:", res.status, await res.text());
       // ⚠️ 502（Bad Gateway＝上流から無効な応答を受けた）に**意図的に置き換えている**。
       //    Google の 503 をそのまま返すと「Errata Hub 自身が使えない」の意味になってしまう。
-      return NextResponse.json({ error: "書籍検索に失敗しました" }, { status: 502 });
+      return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "書籍検索に失敗しました" }, { status: 502 });
+    return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
   }
 }
