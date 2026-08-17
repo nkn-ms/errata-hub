@@ -61,6 +61,20 @@ describe("UpvoteButton", () => {
     expect(screen.getByText("2")).toBeTruthy();
   });
 
+  it("賛同状態は aria-pressed で支援技術に伝わり、クリックで切り替わる", async () => {
+    toggleUpvoteMock.mockResolvedValue({ upvoted: true, count: 3 });
+    render(<UpvoteButton reportId="r1" initialCount={2} initialUpvoted={false} viewer="user" type="ERRATA" />);
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(button);
+    await waitFor(() => expect(button.getAttribute("aria-pressed")).toBe("true"));
+  });
+
+  it("未ログイン（guest）は賛同状態を持たないので aria-pressed を付けない", () => {
+    render(<UpvoteButton reportId="r1" initialCount={0} initialUpvoted={false} viewer="guest" type="ERRATA" />);
+    expect(screen.getByRole("button").getAttribute("aria-pressed")).toBeNull();
+  });
+
   it("ボタン文言は種別で切り替わる（正誤情報=自分も見つけた / 提案・その他=私もそう思う）", () => {
     render(<UpvoteButton reportId="r1" initialCount={0} initialUpvoted={false} viewer="user" type="ERRATA" />);
     expect(screen.getByText("自分も見つけた")).toBeTruthy();
