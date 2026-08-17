@@ -264,39 +264,43 @@ export function BookSearch({ onSelect }: Props) {
                 ✕
               </button>
             )}
-          </div>
 
-          {open && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
-              {loading && <div className="px-4 py-3 text-sm text-gray-400">検索中...</div>}
-              {!loading && results.length === 0 && (
-                <div className="px-4 py-3 text-sm text-gray-400">
-                  見つかりません。ISBNがわかる場合は
-                  <button type="button" onClick={() => switchMode("isbn")} className="text-blue-600 underline mx-1">ISBNで検索</button>
-                  をお試しください。
-                </div>
-              )}
-              {!loading && results.map((book) => (
-                <button
-                  key={book.googleBooksId}
-                  type="button"
-                  onClick={() => handleSelect(book)}
-                  className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
-                >
-                  {book.coverImageUrl ? (
-                    <Image src={book.coverImageUrl} alt="" width={32} height={44} unoptimized className="w-8 h-11 object-cover flex-shrink-0 rounded" />
-                  ) : (
-                    <div className="w-8 h-11 bg-gray-200 flex-shrink-0 rounded" />
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900 line-clamp-1">{book.title}</div>
-                    <div className="text-xs text-gray-500 line-clamp-1">{book.author}</div>
-                    <div className="text-xs text-gray-400">{book.publisher}</div>
+            {/* ⚠️ 候補リストは必ずこの relative の**内側**に置く。外に出すと absolute の基準が
+                祖先に無くなり、w-full がビューポート幅として解決されて入力欄からはみ出す
+                （さらに右へあふれた分だけページに横スクロールが出る）。
+                幅は入力欄に合わせる（left-0 right-0）のが combobox の作法。 */}
+            {open && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                {loading && <div className="px-4 py-3 text-sm text-gray-400">検索中...</div>}
+                {!loading && results.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-gray-400">
+                    見つかりません。ISBNがわかる場合は
+                    <button type="button" onClick={() => switchMode("isbn")} className="text-blue-600 underline mx-1">ISBNで検索</button>
+                    をお試しください。
                   </div>
-                </button>
-              ))}
-                </div>
-          )}
+                )}
+                {!loading && results.map((book) => (
+                  <button
+                    key={book.googleBooksId}
+                    type="button"
+                    onClick={() => handleSelect(book)}
+                    className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                  >
+                    {book.coverImageUrl ? (
+                      <Image src={book.coverImageUrl} alt="" width={32} height={44} unoptimized className="w-8 h-11 object-cover flex-shrink-0 rounded" />
+                    ) : (
+                      <div className="w-8 h-11 bg-gray-200 flex-shrink-0 rounded" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 line-clamp-1">{book.title}</div>
+                      <div className="text-xs text-gray-500 line-clamp-1">{book.author}</div>
+                      <div className="text-xs text-gray-400">{book.publisher}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <p className="text-xs text-gray-400">
             目的の本が見つからない場合は
