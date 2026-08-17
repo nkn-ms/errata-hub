@@ -84,8 +84,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "紙の書籍" }).click();
       await page.getByRole("button", { name: "正誤情報" }).click();
       await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
-      await page.getByPlaceholder("例: 42", { exact: true }).fill("42");
-      await page.getByPlaceholder("例: p.42「わたし」→「私」の誤植", { exact: true }).fill("E2Eコントラスト確認");
+      await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+      await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill("E2Eコントラスト確認");
       await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
       await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
       await page.getByRole("button", { name: "確認する" }).click();

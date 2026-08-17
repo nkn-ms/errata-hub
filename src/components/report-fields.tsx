@@ -308,7 +308,7 @@ export function ReportContentFields({ value, onChange }: Props) {
           onChange={(e) => onChange({ title: e.target.value })}
           maxLength={REPORT_LIMITS.title}
           aria-describedby="title-count"
-          placeholder="例: p.42「わたし」→「私」の誤植"
+          placeholder="例: p.58「わたし」→「私」の誤植"
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <CharCounter id="title-count" value={value.title} max={REPORT_LIMITS.title} />
@@ -342,7 +342,7 @@ export function ReportContentFields({ value, onChange }: Props) {
               <label htmlFor="page" className="block text-sm font-medium text-gray-700 mb-1">
                 ページ番号 <span className="text-red-700">*</span>
               </label>
-              <NumberField id="page" value={value.page} onChange={(page) => onChange({ page })} placeholder="例: 42" />
+              <NumberField id="page" value={value.page} onChange={(page) => onChange({ page })} placeholder="例: 58" />
             </div>
             <div className="flex-1">
               <label htmlFor="line" className="block text-sm font-medium text-gray-700 mb-1">行番号（任意）</label>
@@ -365,7 +365,7 @@ export function ReportContentFields({ value, onChange }: Props) {
               実際に効き続けるのはこちら）。 */}
           {value.hasMultiplePages && (
             <p className="text-xs text-blue-600 -mt-1">
-              ページ範囲を位置備考に入力してください（例: p.42〜44、または p.70, p.101）
+              ページ範囲を位置備考に入力してください（例: p.58〜60、または p.70, p.101）
             </p>
           )}
           <div>
@@ -376,7 +376,7 @@ export function ReportContentFields({ value, onChange }: Props) {
               value={value.locationNote}
               onChange={(e) => onChange({ locationNote: e.target.value })}
               maxLength={REPORT_LIMITS.locationNote}
-              placeholder={value.hasMultiplePages ? "例: p.42〜44、または p.70, p.101" : "例: ページ中央の図、p.102にも同様の誤りあり"}
+              placeholder={value.hasMultiplePages ? "例: p.58〜60、または p.70, p.101" : "例: ページ中央の図、p.102にも同様の誤りあり"}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -394,7 +394,7 @@ export function ReportContentFields({ value, onChange }: Props) {
             value={value.ebookLocation}
             onChange={(e) => onChange({ ebookLocation: e.target.value })}
             maxLength={REPORT_LIMITS.ebookLocation}
-            placeholder="例: 位置No.1234、43%、p.42"
+            placeholder="例: 位置No.1234、35%、p.58"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

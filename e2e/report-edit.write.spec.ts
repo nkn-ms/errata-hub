@@ -66,10 +66,10 @@ test.describe("投稿者による編集（未対応の間）", () => {
     await expect(page.getByPlaceholder("例: 9784873116860", { exact: true })).toHaveCount(0);
 
     // 入力欄には今の内容が入っている（新規投稿と同じ欄を共有している）
-    await expect(page.getByPlaceholder("例: 42", { exact: true })).toHaveValue("42");
+    await expect(page.getByPlaceholder("例: 58", { exact: true })).toHaveValue("42");
     await expect(page.getByPlaceholder("誤りのある文章をそのまま入力してください")).toHaveValue("正字コード");
 
-    await page.getByPlaceholder("例: 42", { exact: true }).fill("141");
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("141");
     await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("文字符号化方式");
     await page.getByRole("button", { name: "更新する" }).click();
 

@@ -12,8 +12,8 @@ afterEach(cleanup);
 
 function setup(value = "") {
   const onChange = vi.fn();
-  render(<NumberField id="page" value={value} onChange={onChange} placeholder="例: 42" />);
-  return { onChange, input: screen.getByPlaceholderText("例: 42") };
+  render(<NumberField id="page" value={value} onChange={onChange} placeholder="例: 58" />);
+  return { onChange, input: screen.getByPlaceholderText("例: 58") };
 }
 
 describe("NumberField", () => {
