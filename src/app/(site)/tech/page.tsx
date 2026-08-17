@@ -13,7 +13,7 @@ const STACK = [
   { area: "フレームワーク", items: "Next.js 16（App Router）/ React 19" },
   { area: "言語", items: "TypeScript" },
   { area: "スタイリング", items: "Tailwind CSS v4" },
-  { area: "認証", items: "Supabase Auth（メール確認・PKCE）/ GitHub ログイン" },
+  { area: "認証", items: "Supabase Auth（メール認証・PKCE）/ GitHub ログイン" },
   { area: "データベース", items: "PostgreSQL（Supabase）/ Prisma v7" },
   { area: "ファイル保存", items: "Supabase Storage" },
   { area: "バリデーション", items: "Zod" },
