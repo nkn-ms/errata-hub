@@ -132,6 +132,14 @@ describe("AdminUserEditor", () => {
   });
 
   describe("出版社アクセスの追加", () => {
+    // 見出しを持たない絞り込み・選択の部品は、先頭の option（「出版社を選択...」）が
+    // 見た目のラベルを兼ねてしまう。option は値であって名前ではないので、
+    // これが無いと支援技術には「コンボボックス」としか読まれない。
+    it("出版社の選択欄に名前が付いている", () => {
+      renderEditor();
+      expect(screen.getByRole("combobox", { name: "追加する出版社" })).toBeTruthy();
+    });
+
     it("「追加」を押しただけでは送らず、追加予定として並ぶ", () => {
       renderEditor();
 
