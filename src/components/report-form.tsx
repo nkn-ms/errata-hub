@@ -422,6 +422,10 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
             </div>
           ) : (
             <BookSearch
+              // 入力欄の名前として読ませる要素＝この group の見出し（id="book-label" の「書籍名」）。
+              // ⚠️ group 側の aria-labelledby は**グループに**名前を付けるだけで、
+              //    中の入力欄には名前が付かない。だから同じ id を入力欄からも指す。
+              labelledBy="book-label"
               onSelect={async (selected) => {
                 setBook(selected);
                 setKnownErratumUrl(null);

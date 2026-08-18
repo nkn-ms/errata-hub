@@ -27,6 +27,14 @@ type GoogleBooksItem = {
 
 type Props = {
   onSelect: (book: BookResult) => void;
+  /**
+   * 入力欄の名前として読み上げさせる要素の id（呼び出し側が持っている「書籍名」の見出し）。
+   *
+   * ⚠️ 呼び出し側の `role="group" aria-labelledby` は**グループに**名前を与えるだけで、
+   *    中の入力欄には名前が付かない。placeholder は文字を打つと消えるので名前の代わりにならず、
+   *    これが無いと入力欄が「編集テキスト」としか読まれない。
+   */
+  labelledBy: string;
 };
 
 type Mode = "api" | "isbn";
@@ -113,7 +121,7 @@ async function enrichWithOpenBD(books: BookResult[], signal: AbortSignal): Promi
   }
 }
 
-export function BookSearch({ onSelect }: Props) {
+export function BookSearch({ onSelect, labelledBy }: Props) {
   const [mode, setMode] = useState<Mode>("isbn");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BookResult[]>([]);
@@ -277,6 +285,22 @@ export function BookSearch({ onSelect }: Props) {
     setSearchError("");
   }
 
+  // タイトル検索の状況を読み上げ用に一文へまとめる。
+  //
+  // ⚠️ 候補リストは見た目だけの通知だった。候補が出ても出なくても支援技術には何も伝わらず、
+  //    「打ったが何も起きない」と区別が付かない（候補そのものは <button> なので Tab では辿れる＝
+  //    壊れていたのは操作ではなく通知）。
+  //
+  // 打鍵のたびに鳴らないのは検索が 400ms のデバウンス越しだから＝読み上げは確定した語に対して1回。
+  // 空文字のときは何も読ませない（消えたことをいちいち報告しない）。
+  const suggestionStatus = loading
+    ? "検索中"
+    : !open
+      ? ""
+      : results.length === 0
+        ? "候補は見つかりませんでした"
+        : `${results.length}件の候補があります`;
+
   return (
     <div ref={wrapperRef} className="space-y-2">
       {/* モード切替 */}
@@ -309,6 +333,7 @@ export function BookSearch({ onSelect }: Props) {
               //    ここで打った書名が ISBN 欄の候補として出てしまう（書名は ISBN として
               //    絶対に正しくないので、候補に出しても選ばれることが無い）。
               name="book-query"
+              aria-labelledby={labelledBy}
               type="text"
               value={query}
               onChange={handleChange}
@@ -326,6 +351,13 @@ export function BookSearch({ onSelect }: Props) {
               </button>
             )}
 
+            {/* ⚠️ ここに role="combobox" / "listbox" / "option" は宣言しない。
+                combobox を名乗ると aria-expanded と、listbox の子は option だけ
+                （aria-required-children）という制約が付いてくる。この中には「検索中...」と
+                「見つかりません」も入るので、宣言した瞬間に**不正な ARIA になって今より悪くなる**。
+                候補は <button> のまま Tab で辿れるので操作性は足りており、足りていなかった
+                「候補が出たことが分からない」は上の role="status" で解いている。
+                ↑↓キーでの選択まで足すなら、そのとき構造ごと組み直すこと。 */}
             {/* ⚠️ 候補リストは必ずこの relative の**内側**に置く。外に出すと absolute の基準が
                 祖先に無くなり、w-full がビューポート幅として解決されて入力欄からはみ出す
                 （さらに右へあふれた分だけページに横スクロールが出る）。
@@ -363,7 +395,21 @@ export function BookSearch({ onSelect }: Props) {
             )}
           </div>
 
-          {searchError && <p className="text-xs text-red-700">{searchError}</p>}
+          {/* 候補リストの状況を支援技術へ伝える。role="status" は aria-live="polite" 相当で、
+              フォーカスを奪わずに読み上げる（入力を続けている最中なので奪ってはいけない）。
+              ⚠️ sr-only であって display:none ではない。隠すとアクセシビリティツリーから
+                 外れて読み上げられない。 */}
+          <p role="status" className="sr-only">
+            {suggestionStatus}
+          </p>
+
+          {/* role="alert" が必要。フォーカスは入力欄に残るので、これが無いと失敗が伝わらない。
+              「見つかりません」（候補0件）と違い、こちらは検索そのものが失敗している。 */}
+          {searchError && (
+            <p role="alert" className="text-xs text-red-700">
+              {searchError}
+            </p>
+          )}
 
           <p className="text-xs text-gray-400">
             目的の本が見つからない場合は
@@ -402,6 +448,7 @@ export function BookSearch({ onSelect }: Props) {
               // name はそちらと分ける（フォーム履歴を混ぜないため。理由もそちらのコメント）
               id="book-search"
               name="book-isbn"
+              aria-labelledby={labelledBy}
               type="text"
               value={isbnQuery}
               onChange={(e) => setIsbnQuery(e.target.value)}
@@ -419,7 +466,7 @@ export function BookSearch({ onSelect }: Props) {
             </button>
           </div>
           {isbnError && (
-            <p className="text-xs text-red-700">
+            <p role="alert" className="text-xs text-red-700">
               {isbnError}
             </p>
           )}

@@ -16,6 +16,21 @@ test.describe("投稿フォームのラベル", () => {
     await login(page, READER);
     await page.goto("/submit");
 
+    // 書籍の検索欄。ラベルは <label> ではなく role="group" の見出し（span#book-label）で、
+    // BookSearch 側が aria-labelledby でそれを指している。
+    // ⚠️ ここが抜けていたため、入力欄が「編集テキスト」としか読まれない状態に長く気づけなかった。
+    // ⚠️ ここだけ getByLabel でなく getByRole を使う。同じ id を group も指しているため
+    //    getByLabel だと group と入力欄の2つに当たって strict mode で落ちる。
+    //    必須マーク（*）を名前に含むので前方一致で引く。
+    const bookField = page.getByRole("textbox", { name: /^書籍名/ });
+    // ISBN 検索（既定モード）で名前が付いていること
+    await bookField.fill("9784873116860");
+    await expect(bookField).toHaveValue("9784873116860");
+
+    // タイトル検索へ切り替えても同じ名前で引ける（入力欄は別物なので個別に紐づけが要る）
+    await page.getByRole("button", { name: "タイトルで検索" }).click();
+    await expect(page.getByRole("textbox", { name: /^書籍名/ })).toBeVisible();
+
     // 紙の書籍を選ぶと版・ページなどの入力欄が出る
     await expect(page.getByLabel("タイトル")).toBeVisible();
     // 「版」は必須マーク（*）を含むので前方一致で引く。隣の「刷（任意）」と取り違えないこと
