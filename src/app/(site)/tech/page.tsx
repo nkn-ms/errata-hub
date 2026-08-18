@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { site } from "@/constants/site";
+import { routes } from "@/constants/routes";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
@@ -199,6 +201,11 @@ export default function TechPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
         それぞれの選定でどんな代償を受け入れたか、なぜ採らなかった選択肢があるかは、
         リポジトリの README と設計ドキュメントに書いています。
+        色や UI 部品の決まりごとは
+        <Link href={routes.design} className="mx-1 text-blue-600 hover:underline">
+          デザインの決まりごと
+        </Link>
+        にまとめています。
         <a
           href={site.repoUrl}
           target="_blank"
