@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { NavLink } from "@/components/nav-link";
+import { NavLink } from "@/components/ui/nav-link";
 import { requireAdminPage } from "@/services/auth";
 import { routes } from "@/constants/routes";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // 多層防御: proxy.ts のエッジ判定に加え、配下の全 admin ページをここで再ガードする。

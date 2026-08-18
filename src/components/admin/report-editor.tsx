@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { deleteReport, deleteReportImage, updateReport } from "@/app/actions/report";
-import { NumberField } from "@/components/number-field";
+import { NumberField } from "@/components/ui/number-field";
 import { STATUS_LABELS } from "@/constants/report-status";
 import { REPORT_LIMITS } from "@/constants/report-limits";
 import { routes } from "@/constants/routes";

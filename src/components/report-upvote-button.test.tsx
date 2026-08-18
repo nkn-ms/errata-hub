@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { UpvoteButton } from "./upvote-button";
+import { UpvoteButton } from "./report-upvote-button";
 import { routes } from "@/constants/routes";
 
 const pushMock = vi.fn();

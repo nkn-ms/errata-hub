@@ -1,6 +1,6 @@
 "use client";
 
-import { NumberField } from "@/components/number-field";
+import { NumberField } from "@/components/ui/number-field";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
 import { normalizeDigits, toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";

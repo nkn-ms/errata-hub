@@ -1,4 +1,4 @@
-import { NotFoundContent } from "@/components/not-found-content";
+import { NotFoundContent } from "@/components/layout/not-found-content";
 import { routes } from "@/constants/routes";
 
 // 管理画面の 404。notFound() の呼び出しは admin 側にも4か所ある

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SiteHeader } from "@/components/site-header";
+import { SiteHeader } from "@/components/layout/site-header";
 import { PAGE_CONTAINER } from "@/constants/layout";
 
 // 公開側（admin でない側）の枠。背景・共通ヘッダー・本文の幅をここだけが知っている。

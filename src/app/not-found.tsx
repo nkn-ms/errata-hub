@@ -1,5 +1,5 @@
-import { NotFoundContent } from "@/components/not-found-content";
-import { SiteShell } from "@/components/site-shell";
+import { NotFoundContent } from "@/components/layout/not-found-content";
+import { SiteShell } from "@/components/layout/site-shell";
 import { routes } from "@/constants/routes";
 
 // 404 の画面。2つの入口をここが受け持つ:

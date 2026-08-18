@@ -8,9 +8,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
-import { GitHubIcon, XIcon } from "@/components/icons";
-import { Breadcrumbs } from "@/components/breadcrumbs";
-import { StatusBadge } from "@/components/status-badge";
+import { GitHubIcon, XIcon } from "@/components/ui/icons";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { StatusBadge } from "@/components/report-status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
 
 type Props = {

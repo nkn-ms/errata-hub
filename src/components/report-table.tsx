@@ -27,7 +27,7 @@ import {
   getEditionLocationLabel,
   ErrataSummary,
 } from "@/components/report-card";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/report-status-badge";
 
 // 列は6つ。以前は11列あり、1280px でも 224px 分が横スクロールの向こう側に隠れていた
 // （＝隠れた列は誰も読まないのに、全部の列幅を細くして読みにくさだけを配っていた）。

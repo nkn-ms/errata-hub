@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorContent } from "@/components/error-content";
+import { ErrorContent } from "@/components/layout/error-content";
 import { routes } from "@/constants/routes";
 
 // 例外境界の受け皿（最後の砦）。ここに来るのは次の3つ:
