@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateDisplayName } from "@/app/actions/auth";
-import { PROFILE_LIMITS } from "@/constants/profile-limits";
+import { updateDisplayName } from "@/features/account/actions/auth";
+import { PROFILE_LIMITS } from "@/features/account/constants";
 
 // 表示名のセルフ変更フォーム。アカウント設定ページに埋め込む。
 // 表示名は投稿に紐づいて公開されるため、変更は即時に反映される。

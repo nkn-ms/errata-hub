@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { TERMS_VERSION } from "@/constants/legal";
-import { toDisplayName } from "@/utils/display-name";
+import { toDisplayName } from "@/features/account/utils/display-name";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {

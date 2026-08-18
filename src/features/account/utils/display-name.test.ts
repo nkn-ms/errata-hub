@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { toDisplayName } from "./display-name";
-import { PROFILE_LIMITS } from "@/constants/profile-limits";
+import { PROFILE_LIMITS } from "@/features/account/constants";
 
 describe("toDisplayName（auth/callback で user_metadata を表示名にする）", () => {
   it("普通の文字列はそのまま通る", () => {

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import AdminUserEditor from "@/components/admin/user-editor";
+import AdminUserEditor from "@/features/account/components/admin/user-editor";
 import { requireAdminPage } from "@/services/auth";
 import { isWithdrawnEmail } from "@/lib/withdrawal";
-import { authUserExists } from "@/services/withdrawal";
+import { authUserExists } from "@/features/account/service";
 import type { Profile } from "@/generated/prisma/client";
 
 /**

@@ -8,7 +8,7 @@ import {
   revokePublisherAccess,
   updateUserRole,
   withdrawUserAsAdmin,
-} from "@/app/actions/user";
+} from "@/features/account/actions/user";
 import { withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import { routes } from "@/constants/routes";
 

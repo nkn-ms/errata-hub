@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
-import { scrubProfileForWithdrawal, authUserExists } from "@/services/withdrawal";
+import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/service";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import type { Publisher, PublisherAccess } from "@/generated/prisma/client";
 

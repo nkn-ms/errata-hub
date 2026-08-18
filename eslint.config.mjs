@@ -25,7 +25,12 @@ const eslintConfig = defineConfig([
             // shared がフィーチャーを知ってはいけない（逆流すると shared でなくなる）。
             // 実例: utils/image-compress.ts が constants/report-images を読んでいた＝
             // 名前は shared でも中身は report の道具だった。
-            { target: "./src/components", from: "./src/features" },
+            //
+            // ⚠️ `components/layout` は対象外。ヘッダーやフッターは shared のライブラリではなく
+            //    **フィーチャーを組み立てて画面の枠を作る合成層**で、app/ と同じ側に立つ。
+            //    実例: ヘッダーのユーザーメニューはログアウト（account の Server Action）を持つ。
+            //    ここを禁じると、合成のためだけに props を2段バケツリレーすることになる。
+            { target: "./src/components/ui", from: "./src/features" },
             { target: "./src/constants", from: "./src/features" },
             { target: "./src/lib", from: "./src/features" },
             { target: "./src/services", from: "./src/features" },
@@ -42,6 +47,8 @@ const eslintConfig = defineConfig([
             // ⚠️ フィーチャーを足したら、その分の zone をここに足すこと。
             //    書き忘れると、そのフィーチャーだけ越境し放題になる。
             { target: "./src/features/report", from: "./src/features", except: ["./report"] },
+            { target: "./src/features/publisher", from: "./src/features", except: ["./publisher"] },
+            { target: "./src/features/account", from: "./src/features", except: ["./account"] },
           ],
         },
       ],

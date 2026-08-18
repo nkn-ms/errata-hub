@@ -3,9 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
-import { DisplayNameForm } from "./display-name-form";
+import { DisplayNameForm } from "@/features/account/components/display-name-form";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { ProfileLinksForm } from "./profile-links-form";
+import { ProfileLinksForm } from "@/features/account/components/profile-links-form";
 import { formatJstDate, shortId } from "@/utils/format";
 import { FORM_COLUMN } from "@/constants/layout";
 

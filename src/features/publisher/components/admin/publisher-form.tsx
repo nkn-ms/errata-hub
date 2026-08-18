@@ -8,7 +8,7 @@ import {
   updatePublisher,
   deletePublisher,
   type PublisherState,
-} from "@/app/actions/publisher";
+} from "@/features/publisher/actions/publisher";
 import { routes } from "@/constants/routes";
 
 export default function PublisherForm({ publisher }: { publisher?: Publisher }) {

@@ -1,4 +1,4 @@
-import { PROFILE_LIMITS } from "@/constants/profile-limits";
+import { PROFILE_LIMITS } from "@/features/account/constants";
 
 /**
  * user_metadata の値を Profile.displayName として使える形にする（auth/callback 専用）。
