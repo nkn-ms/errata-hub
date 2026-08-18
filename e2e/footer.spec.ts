@@ -8,15 +8,18 @@ import { test, expect } from "@playwright/test";
 //
 // あわせて「ヘッダーとフッターで重複させない」という規約そのものも固定する。
 
-const LINKS = ["使用技術", "デザインシステム", "利用規約", "プライバシーポリシー", "ソースコード"];
+// 並び順そのものも検査する。「法務 → 作り手向け」でまとめてあり、
+// 使用技術・デザインシステム・ソースコードは読む相手が同じなので隣り合わせにしている。
+const LINKS = ["利用規約", "プライバシーポリシー", "使用技術", "デザインシステム", "ソースコード"];
 
 test.describe("フッター", () => {
-  test("作り手向けの説明と法務・ソースへ辿れる", async ({ page }) => {
+  test("作り手向けの説明と法務・ソースへ、この並びで辿れる", async ({ page }) => {
     await page.goto("/");
     const footer = page.getByRole("contentinfo");
     for (const name of LINKS) {
       await expect(footer.getByRole("link", { name })).toBeVisible();
     }
+    await expect(footer.getByRole("link")).toHaveText(LINKS.map((name) => new RegExp(name)));
   });
 
   test("ヘッダーとリンクを重複させない", async ({ page }) => {

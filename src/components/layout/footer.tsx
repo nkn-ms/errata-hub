@@ -41,6 +41,8 @@ export function Footer() {
           {/* ヘッダー(sticky)が常時ナビを提供するため、フッターは重複させず
               ヘッダーに無いリンクだけを置く。ヘッダーは利用者の導線（使い方・投稿する）に絞り、
               作り手向けの説明（使用技術・デザインシステム）と法務・ソースはこちらに集める。
+              並びは「法務 → 作り手向け」。使用技術・デザインシステム・ソースコードは
+              読む相手も目的も同じなので隣り合わせにする。
 
               prefetch={false} の理由: このフッターは全ページに出るので、既定のままだと
               **どのページを見ても規約とプライバシーの2ページがサーバーで描画される**
@@ -52,20 +54,6 @@ export function Footer() {
               出典: node_modules/next/dist/docs/01-app/03-api-reference/02-components/link.md §prefetch
               ⚠️ prefetch は本番でしか動かないため、この効果は dev や e2e では確認できない（Preview で実測する）。 */}
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <Link
-              href={routes.tech}
-              prefetch={false}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              使用技術
-            </Link>
-            <Link
-              href={routes.design}
-              prefetch={false}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              デザインシステム
-            </Link>
             <Link
               href={routes.terms}
               prefetch={false}
@@ -79,6 +67,20 @@ export function Footer() {
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               プライバシーポリシー
+            </Link>
+            <Link
+              href={routes.tech}
+              prefetch={false}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              使用技術
+            </Link>
+            <Link
+              href={routes.design}
+              prefetch={false}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              デザインシステム
             </Link>
             <a
               href={site.repoUrl}
