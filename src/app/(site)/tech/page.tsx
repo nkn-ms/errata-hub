@@ -3,11 +3,11 @@ import { site } from "@/constants/site";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
-  description: "Errata Hub の使用技術と、それぞれを選んだ理由・システム構成の紹介。",
+  description: "Errata Hub の使用技術と、選定の理由・実装の要点・システム構成の紹介。",
 };
 
-// 「何を使っているか」の網羅はこの一覧が持ち、下の CHOICES は理由だけを書く。
-// 一覧と理由を1枚のカードに混ぜると、技術名を拾いたい読み手が理由文を読み飛ばせない
+// 「何を使っているか」の網羅はこの一覧が持ち、下の REASONS / IMPLEMENTATION は文章だけを書く。
+// 一覧と文章を1枚のカードに混ぜると、技術名を拾いたい読み手が本文を読み飛ばせない
 // （＝網羅性を足すたびに文章が増える）。ここに足しても文量は1行しか増えない。
 const STACK = [
   { area: "フレームワーク", items: "Next.js 16（App Router）/ React 19" },
@@ -23,33 +23,58 @@ const STACK = [
   { area: "ホスティング", items: "Vercel" },
 ] as const;
 
-// 選定に判断があったものだけを書く。
-// 「型安全だから TypeScript」「クラス名の設計コストが下がるから Tailwind」のように
-// 誰が書いても同じ文にしかならないものは、上の STACK に技術名だけ置いて理由は書かない。
-const CHOICES = [
+// 「なぜその形にしたか」だけを書く節。見出しは技術名ではなく判断そのものにする
+// （下の IMPLEMENTATION と技術名が並ぶと、同じ見出しが2回出て読み手が対応を取らされる）。
+// 選定に判断があったものだけを載せ、4枚を上限にする。増やしたくなったら
+// IMPLEMENTATION かリポジトリの docs/ へ回す（面談で聞かれるたびに1枚ずつ増えると、
+// この節に付加情報が混ざって「理由」でなくなるため）。
+const REASONS = [
+  {
+    name: "1つの基盤に寄せる（Supabase）",
+    why: "認証・データ・画像を別々のサービスに分けると、障害のときに切り分ける対象がその数だけ増える。個人が運用する規模では、個々の最適さよりも構成の単純さを優先し、3つとも Supabase に置いた。",
+  },
+  {
+    name: "画面のためだけの API を作らない",
+    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ため、DB を直接読める。ここに画面用の API を挟むと型の効かない境界と認可の確認点が増えるので、HTTP の受け口（Route Handler）は外部から呼ばれるものに限り、画面のデータ取得はサービス層の関数呼び出しに統一している。",
+  },
+  {
+    name: "型は DB スキーマから生成する（Prisma）",
+    why: "Prisma はスキーマ定義から TypeScript の型を生成し、テーブルの定義とコード上の型が一箇所に集約される。TypeScript と PostgreSQL を組み合わせる構成では採用例が多く、実装時に参照できる情報も豊富にあるため。",
+  },
+  {
+    name: "和書の書誌は OpenBD を正とする",
+    why: "Google Books は和書のタイトルをローマ字で返すことがあり、出版社が空のものもある。書誌の正確さでは OpenBD が上回るため ISBN 検索の基準とし、OpenBD にほとんど登録がない書影だけを Google Books で補っている。",
+  },
+] as const;
+
+// 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
+// （App Router なら画面の材料が1つのフォルダに集まる、Prisma なら型が生成される）は
+// 実装ではないので書かない。書くのは、こちらが決めた置き方・分け方だけ。
+// 用語の補足は初出の側に置く（サーバーコンポーネントと Route Handler は上の REASONS が初出）。
+const IMPLEMENTATION = [
   {
     name: "Next.js 16 (App Router)",
-    why: "ルーティング・レイアウト・メタデータ・Server Action を、画面と同じ場所に規約で置ける。公開側の共通の枠は (site) ルートグループにまとめ、URL を変えずに「枠を共有する範囲」だけを区切っている。",
+    why: "公開側のページは (site) というルートグループ（URL には現れないフォルダ）にまとめ、ヘッダーと本文の幅をここで一度だけ持たせている。ログイン・登録・退会はこの外に置いてあり、フォルダの位置がそのまま「共通の枠を受け取らない画面」を表している。投稿や管理操作は Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）で処理していて、そのための API は作っていない。",
   },
   {
     name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "ページのデータ取得はサーバーコンポーネントから src/services/* を直接呼び、画面と DB の間に自前の HTTP 層を挟まない。外部に口が必要なときだけ Route Handler を置いている（書籍検索と画像アップロードの3本のみ）。",
+    why: "ページのデータ取得は、サーバーコンポーネントから src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、Route Handler を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
-    why: "認証・データ・画像を1つの基盤に寄せ、運用先を増やさない。GitHub ログインは OAuth 2.0 の認可コードフロー（PKCE / RFC 7636）で、認可 URL へ送って code を交換するところはアプリが持ち、client secret と code verifier の保管は Supabase に任せている。メール認証のリンクも同じ形で code を交換する。",
+    why: "GitHub ログインは OAuth 2.0 の認可コードフロー（PKCE / RFC 7636）で動く。利用者を認可 URL へ送り、戻ってきた code をセッションに交換するところまでがアプリの仕事で、client secret と code verifier は Supabase が預かる。メール認証のリンクも、同じように code を交換して有効になる。",
   },
   {
     name: "Prisma v7 (ORM)",
-    why: "スキーマからの型生成をリファクタの安全網にする。接続URLは prisma.config.ts に分離し、マイグレーション用の直結URLとアプリ用のプーラーURLを使い分けている。",
+    why: "DB への接続は用途で分けている。アプリからは接続プーラー（DB への接続を何本か開いたままにして、処理に順番に貸し出す中継役）を通す。サーバーレスは処理のたびに立ち上がるので、毎回 DB へ直接つなぐと接続の数が上限に達してしまう。テーブルを作り替えるマイグレーションのときだけは、最初から最後まで同じ接続を保つ必要があってプーラーを通せないので、直結の URL を使っている。",
   },
   {
     name: "OpenBD / Google Books API",
-    why: "書誌データは OpenBD を正とし、ISBN で本を引く。タイトル検索と書影の補完には Google Books を使う。どちらもサーバー経由（/api/books/openbd・/api/books/search）で、API キーは隠蔽し、閲覧者の IP を外部サービスへ渡さない。",
+    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
   },
   {
     name: "Vitest / Playwright",
-    why: "単体テストで種別・ステータスの分岐やマッピングを、e2e で認可・投稿・管理操作の一連を実ブラウザで検証する。表示の検証（コントラスト比・CSP 違反の有無）も e2e で機械的に測っている。",
+    why: "種別やステータスの分岐は単体テストで押さえ、ログイン・投稿・管理操作の一連は実ブラウザで通している。文字のコントラスト比や CSP 違反の有無も e2e で測っていて、見た目の性質を目視に任せていない。",
   },
 ] as const;
 
@@ -85,7 +110,7 @@ export default function TechPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">使用技術</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Errata Hub を構成する技術と、それぞれを選んだ理由をまとめています。
+          Errata Hub を構成する技術と、それを選んだ理由、実際の組み方をまとめています。
         </p>
       </div>
 
@@ -104,14 +129,28 @@ export default function TechPage() {
         </dl>
       </section>
 
-      {/* 選んだ理由 */}
+      {/* 選んだ理由 → 実装の要点 の順に置く。読み手が降りる深さを自分で選べるようにするため、
+          一覧（何を使うか）→ 理由（なぜその形か）→ 要点（どう組んだか）と段を作っている。 */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">選んだ理由</h2>
         <div className="space-y-3">
-          {CHOICES.map((c) => (
-            <div key={c.name} className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-900">{c.name}</h3>
-              <p className="mt-1 text-sm text-gray-600">{c.why}</p>
+          {REASONS.map((r) => (
+            <div key={r.name} className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">{r.name}</h3>
+              <p className="mt-1 text-sm text-gray-600">{r.why}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 実装の要点 */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">実装の要点</h2>
+        <div className="space-y-3">
+          {IMPLEMENTATION.map((i) => (
+            <div key={i.name} className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">{i.name}</h3>
+              <p className="mt-1 text-sm text-gray-600">{i.why}</p>
             </div>
           ))}
         </div>
