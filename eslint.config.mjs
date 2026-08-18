@@ -49,6 +49,7 @@ const eslintConfig = defineConfig([
             { target: "./src/features/report", from: "./src/features", except: ["./report"] },
             { target: "./src/features/publisher", from: "./src/features", except: ["./publisher"] },
             { target: "./src/features/account", from: "./src/features", except: ["./account"] },
+            { target: "./src/features/book", from: "./src/features", except: ["./book"] },
           ],
         },
       ],

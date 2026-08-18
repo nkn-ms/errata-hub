@@ -1,4 +1,4 @@
-import { ReportForm } from "@/features/report/components/report-form";
+import { SubmitForm } from "./submit-form";
 import { prisma } from "@/lib/prisma";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { FORM_COLUMN } from "@/constants/layout";
@@ -29,7 +29,7 @@ export default async function SubmitPage({ searchParams }: Props) {
           書籍の正誤情報・改善提案を投稿してください。
         </p>
       </div>
-      <ReportForm
+      <SubmitForm
         initialBook={
           preselected
             ? {

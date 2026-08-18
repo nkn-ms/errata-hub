@@ -267,6 +267,7 @@ components/ui/ constants/ lib/ services/ utils/   （shared・ドメインを知
 ```
 src/features/
 ├── report/       投稿・出版社からの回答
+├── book/         書籍マスタ・書籍検索
 ├── publisher/    出版社マスタ
 └── account/      登録・ログイン・アカウント設定・退会・ユーザー管理
 
@@ -279,8 +280,11 @@ src/features/report/
 └── utils/
 ```
 
-書籍（`book-*`）はまだ切り出していない。投稿フォームが書籍検索を直接持っており、
-`features/book/` を作ると投稿 → 書籍の参照になるため、**合成の見直しとセットで行う**。
+フィーチャー同士は直接つながない。**またがるものは app 層で組み立てる。**
+投稿フォームがその例で、`app/(site)/submit/submit-form.tsx` が
+書籍を選ぶ UI（`features/book`）と投稿フォーム（`features/report`）を束ね、
+選ばれた本を props で渡している。フォーム側は「本を選ぶ UI」をスロットとして受け取るだけで、
+それが何なのかを知らない。
 
 フィーチャーの切り口は**テーブルの数ではなく「独立して存在できるか」**。
 出版社からの回答は投稿にしか付かず投稿なしには存在できないので、独立したフィーチャーにせず
@@ -293,18 +297,18 @@ src/features/report/
 ```
 src/components/
 ├── ui/         ドメインもルーティングも知らない部品（icons, nav-link, number-field, theme-toggle）
-└── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
-                breadcrumbs, legal, legal-shell, error-content, not-found-content）
+├── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
+│               breadcrumbs, legal, legal-shell, error-content, not-found-content）
+└── admin/      管理画面の共通 UI（ページ送り）
 ```
-
-まだフィーチャーに切り出していない書籍まわり（`book-cover`, `book-search`）は `components/` 直下にある。
 
 新しいファイルの置き場所は、上から順に当てはめて決める。
 
-1. **ひとつの関心事に属する**（投稿・書籍・出版社…）→ `features/<name>/`
-2. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
-3. **ドメインもルーティングも知らない** → `components/ui/`
-4. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
+1. **ひとつの関心事に属する**（投稿・書籍・出版社・アカウント）→ `features/<name>/`
+2. **複数のフィーチャーをまたぐ**（束ねて画面にする）→ `app/` に置く。フィーチャー同士を直接つながない
+3. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
+4. **ドメインもルーティングも知らない** → `components/ui/`
+5. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
 
 「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
 （`features/report/components/report-fields.tsx` は6箇所から使われる共通部品だが、

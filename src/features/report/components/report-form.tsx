@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookSearch } from "@/components/book-search";
-import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
 import { createReport, type ReportInput } from "@/features/report/actions/report";
 import { routes } from "@/constants/routes";
@@ -68,26 +66,37 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
   );
 }
 
+/**
+ * 書籍名の見出しの id。書籍を選ぶ UI（`bookPicker`）は別のフィーチャーにあり、
+ * 自分の入力欄の名前としてこの見出しを指す必要があるので、組み立てる側へ公開する。
+ */
+export const BOOK_LABEL_ID = "book-label";
+
 type Props = {
-  // 書籍ページの「この本に投稿する」から来たとき、その本を確定済みとして受け取る。
-  // 渡された場合は書籍検索を出さず、確定表示（編集不可）にする。
-  initialBook?: BookData | null;
-  initialErratumUrl?: string | null;
+  /**
+   * 確定した書籍。未選択なら null。
+   * ⚠️ 状態は**このフォームではなく組み立てる側が持つ**。書籍を選ぶ UI が別フィーチャー
+   *    （features/book）にあり、ここから直接呼ぶと投稿 → 書籍の参照になるため。
+   */
+  book: BookData | null;
+  /**
+   * 書籍名欄に差し込む「本を選ぶ UI」。
+   * **渡されない = 書籍が確定済み**（書籍ページの「この本に投稿する」から来た場合）で、
+   * そのときは検索させず確定表示にする。
+   */
+  bookPicker?: ReactNode;
+  /** 選んだ本に既に登録されている公式の正誤表。投稿前に案内して重複投稿を減らす */
+  knownErratumUrl?: string | null;
 };
 
-export function ReportForm({ initialBook = null, initialErratumUrl = null }: Props = {}) {
+export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) {
   const router = useRouter();
-  // 書籍が確定済みで来たかどうか。以降「検索欄を出すか」「別の本へ逃げる導線を出すか」の判断に使う
-  const bookPreselected = initialBook !== null;
-  const [book, setBook] = useState<BookData | null>(initialBook);
   // 投稿の中身は1つのオブジェクトで持つ（欄ごとの useState を並べない）。
   // 編集フォームと同じ形にしておくと、検証も送信用の変換も同じ関数を通せる = report-fields.tsx
   const [fields, setFields] = useState<ReportFieldsValue>(EMPTY_REPORT_FIELDS);
   const patchFields = (patch: Partial<ReportFieldsValue>) =>
     setFields((prev) => ({ ...prev, ...patch }));
   const [reportedErratumUrl, setReportedErratumUrl] = useState("");
-  // 選んだ本に公式の正誤表が既に登録されていれば、投稿前にそれを案内する（重複投稿を減らす）
-  const [knownErratumUrl, setKnownErratumUrl] = useState<string | null>(initialErratumUrl);
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   // 検証を通った送信内容。ここに値が入るとフォームを畳んで確認画面に差し替える。
@@ -391,11 +400,11 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
       <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
         <h2 className="text-base font-semibold text-gray-900">書籍情報</h2>
 
-        <div role="group" aria-labelledby="book-label">
-          <span id="book-label" className="block text-sm font-medium text-gray-700 mb-1">
-            書籍名 {!bookPreselected && <span className="text-red-700">*</span>}
+        <div role="group" aria-labelledby={BOOK_LABEL_ID}>
+          <span id={BOOK_LABEL_ID} className="block text-sm font-medium text-gray-700 mb-1">
+            書籍名 {bookPicker && <span className="text-red-700">*</span>}
           </span>
-          {bookPreselected && book ? (
+          {bookPicker ?? (book && (
             // 確定済みなので検索させない。見た目は検索で選んだ直後と同じカードに揃える
             <div className="space-y-2">
               <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -420,22 +429,7 @@ export function ReportForm({ initialBook = null, initialErratumUrl = null }: Pro
                 別の本を選ぶ
               </Link>
             </div>
-          ) : (
-            <BookSearch
-              // 入力欄の名前として読ませる要素＝この group の見出し（id="book-label" の「書籍名」）。
-              // ⚠️ group 側の aria-labelledby は**グループに**名前を付けるだけで、
-              //    中の入力欄には名前が付かない。だから同じ id を入力欄からも指す。
-              labelledBy="book-label"
-              onSelect={async (selected) => {
-                setBook(selected);
-                setKnownErratumUrl(null);
-                if (selected.isbn) {
-                  const { erratumUrl } = await findErratumUrlByIsbn(selected.isbn);
-                  setKnownErratumUrl(erratumUrl);
-                }
-              }}
-            />
-          )}
+          ))}
           {knownErratumUrl && (
             <p className="mt-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
               この本には出版社の正誤表があります。

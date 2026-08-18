@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "@/features/report/components/admin/report-editor";
 import { AdminPublisherCommentList } from "@/features/report/components/admin/publisher-comment-list";
-import { ErratumUrlAdopter } from "@/components/admin/erratum-url-adopter";
+import { ErratumUrlAdopter } from "@/features/book/components/admin/erratum-url-adopter";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { formatJstDate, formatJstDateTime } from "@/utils/format";
 import type { Report } from "@/generated/prisma/client";
