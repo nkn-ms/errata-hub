@@ -232,39 +232,84 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 
 ```
 src/
-├── app/          Next.js ルーティング（ページ・API Route・Server Action）
-├── components/   UI コンポーネント（内訳は下記）
-├── constants/    定数（ステータス定義など）
+├── app/          Next.js ルーティング（ページ・API Route）。合成だけを行い、中身は features から取る
+├── features/     関心事ごとのまとまり（下記）
+├── components/   フィーチャーに属さない UI（下記）
+├── constants/    横断する定数（routes, site, rate-limits など）
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
 ├── lib/          外部ライブラリのラッパー（prisma / supabase / utils）
-├── services/     ビジネスロジック・認可（auth, audit, report）
-├── types/        型定義
-└── utils/        純粋関数（ISBN 正規化・マッパー）
+├── services/     横断するロジック・認可（auth, audit, withdrawal, publisher-access）
+└── utils/        横断する純粋関数（ISBN 正規化・整形など）
 docs/             設計・学習メモ・ER 図
 ```
 
-### components の置き場所
+### 依存の向き
+
+```
+components/ constants/ lib/ services/ utils/   （shared）
+                  ↓
+              features/
+                  ↓
+                app/
+```
+
+**一方向だけ許す。** shared はどこからでも使える。features は shared だけを読む。app は両方を読む。
+逆流とフィーチャー同士の直接参照は `import/no-restricted-paths`（`eslint.config.mjs`）で禁止していて、
+違反すると lint が落ちる。**規約は文書ではなく lint で守る** — ディレクトリを切っただけの規約は必ず崩れるため。
+
+### features の中身
+
+```
+src/features/report/       投稿・出版社からの回答（34ファイル）
+├── components/            画面の部品（admin/ に管理画面専用）
+├── actions/               Server Action
+├── service.ts             読み取り
+├── constants/             ステータス・ラベル・文字数上限
+├── types.ts
+└── utils/
+```
+
+フィーチャーの切り口は**テーブルの数ではなく「独立して存在できるか」**。
+出版社からの回答は投稿にしか付かず投稿なしには存在できないので、独立したフィーチャーにせず
+`features/report/` に含めている（`Publisher`＝出版社マスタは別）。
+
+⚠️ **バレルファイル（`index.ts` での再 export）は作らない。** 直接 import する。
+
+### components の置き場所（フィーチャーに属さないもの）
 
 ```
 src/components/
 ├── ui/         ドメインもルーティングも知らない部品（icons, nav-link, number-field, theme-toggle）
-├── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
-│               breadcrumbs, legal-shell, error-content, not-found-content）
-├── admin/      管理画面でしか使わないもの
-└── *.tsx       ドメイン部品。Report / Book / Publisher に属するものは接頭辞で対象を表す
-                （report-*, book-*, publisher-*）。認証・規約まわり（github-sign-in-button,
-                legal）はモデルに属さないので接頭辞を持たない
+└── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
+                breadcrumbs, legal-shell, error-content, not-found-content）
 ```
 
-新しいコンポーネントの置き場所は、上から順に当てはめて決める。
+まだフィーチャーに切り出していないドメイン部品（`book-*`, `publisher-*`, 認証・規約まわり）は
+`components/` 直下にある。接頭辞が対象を表す。
 
-1. **管理画面でしか使わない** → `admin/`
-2. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `layout/`
-3. **Report / Book / Publisher / 認証を知っている** → 直下に置く（モデルに属するものは接頭辞を付ける）
-4. **どれでもない** → `ui/`
+新しいファイルの置き場所は、上から順に当てはめて決める。
+
+1. **ひとつの関心事に属する**（投稿・書籍・出版社…）→ `features/<name>/`
+2. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
+3. **ドメインもルーティングも知らない** → `components/ui/`
+4. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
 
 「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
-（たとえば `report-fields.tsx` は6箇所から使われる共通部品だが、Report を知っているので `ui/` には入らない）。
+（`features/report/components/report-fields.tsx` は6箇所から使われる共通部品だが、
+投稿を知っているので `components/ui/` には入らない）。
+
+### テストの置き場所と分担
+
+テストは実装の隣に置く（コロケーション・`*.test.ts(x)`）。何をどこで担保するかは分けている。
+
+| 対象 | どこで |
+|---|---|
+| 純粋関数・Server Action・service | unit（Vitest）で全部書く |
+| コンポーネント | **ロジック（分岐・状態）を持つものだけ** unit を書く |
+| 見た目・操作・アクセシビリティ | e2e（`e2e/`・Playwright）。表示層を触った PR には `e2e` ラベルを付ける |
+
+カバレッジ率は計測していない。上の分担ではコンポーネントの数値が意図的に低くなるため、
+率そのものが誤読を招く数字にしかならない。
 
 ---
 

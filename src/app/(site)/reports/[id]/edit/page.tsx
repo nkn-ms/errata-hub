@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { findReportById } from "@/services/report";
+import { findReportById } from "@/features/report/service";
 import { createClient } from "@/lib/supabase/server";
-import { ReportEditForm } from "@/components/report-edit-form";
-import { ReportWithdraw } from "@/components/report-withdraw";
-import { toReportFieldsValue } from "@/utils/report-fields-value";
+import { ReportEditForm } from "@/features/report/components/report-edit-form";
+import { ReportWithdraw } from "@/features/report/components/report-withdraw";
+import { toReportFieldsValue } from "@/features/report/utils/report-fields-value";
 import { routes } from "@/constants/routes";
 import { FORM_COLUMN } from "@/constants/layout";
 

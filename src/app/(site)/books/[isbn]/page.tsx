@@ -1,15 +1,15 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { reportInclude } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
+import { reportInclude } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { StatusBadge } from "@/components/report-status-badge";
+import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { BookCover } from "@/components/book-cover";
 
 type Props = {

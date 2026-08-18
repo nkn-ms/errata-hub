@@ -1,4 +1,4 @@
-import { REPORT_IMAGE_BUCKET } from "@/constants/report-images";
+import { REPORT_IMAGE_BUCKET } from "@/features/report/constants/report-images";
 
 /**
  * Supabase Storage の公開 URL（…/storage/v1/object/public/report-images/<path>）から

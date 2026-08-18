@@ -1,4 +1,4 @@
-import type { PublisherCommentView } from "@/types/report";
+import type { PublisherCommentView } from "@/features/report/types";
 
 /**
  * 一覧（フィードのカード・/reports の表）に出す1件＝**最新の回答**。

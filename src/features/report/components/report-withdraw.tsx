@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { withdrawOwnReport } from "@/app/actions/report";
-import { ErrorPanel } from "@/components/report-fields";
+import { withdrawOwnReport } from "@/features/report/actions/report";
+import { ErrorPanel } from "@/features/report/components/report-fields";
 
 /**
  * 投稿の取り下げ。編集画面の末尾に置く。

@@ -1,16 +1,16 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { findReportsByUser } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
-import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
+import { findReportsByUser } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
+import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/ui/icons";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { StatusBadge } from "@/components/report-status-badge";
+import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { formatJstDate, shortId } from "@/utils/format";
 
 type Props = {

@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import { deleteReport, deleteReportImage, updateReport } from "@/app/actions/report";
+import { deleteReport, deleteReportImage, updateReport } from "@/features/report/actions/report";
 import { NumberField } from "@/components/ui/number-field";
-import { STATUS_LABELS } from "@/constants/report-status";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { STATUS_LABELS } from "@/features/report/constants/report-status";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";

@@ -5,8 +5,8 @@ import {
   REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_BYTES,
   REPORT_IMAGE_MAX_SOURCE_MB,
-} from "@/constants/report-images";
-import { compressImage } from "@/utils/image-compress";
+} from "@/features/report/constants/report-images";
+import { compressImage } from "@/features/report/utils/image-compress";
 
 /**
  * 選ばれたファイルを添付できる形に整える（形式・枚数・サイズの検査＋圧縮。ブラウザ専用）。

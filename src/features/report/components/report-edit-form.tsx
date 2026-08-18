@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteOwnReportImage, updateOwnReport } from "@/app/actions/report";
+import { deleteOwnReportImage, updateOwnReport } from "@/features/report/actions/report";
 import { routes } from "@/constants/routes";
 import {
   ErrorPanel,
@@ -13,13 +13,13 @@ import {
   reportFieldsErrors,
   toReportBody,
   type ReportFieldsValue,
-} from "@/components/report-fields";
+} from "@/features/report/components/report-fields";
 import {
   REPORT_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_MB,
-} from "@/constants/report-images";
-import { selectReportImages } from "@/utils/report-image-select";
+} from "@/features/report/constants/report-images";
+import { selectReportImages } from "@/features/report/utils/report-image-select";
 
 type BookSummary = {
   title: string;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { deletePublisherComment } from "@/app/actions/publisher-comment";
-import type { PublisherCommentView } from "@/types/report";
+import { deletePublisherComment } from "@/features/report/actions/publisher-comment";
+import type { PublisherCommentView } from "@/features/report/types";
 
 // 削除は取り消せないので確認を挟む。⚠️ `confirm()` は使わない
 // （<dialog> なら ESC とフォーカス管理が付いてくる＝投稿の追記・出版社の回答と同じ作法）

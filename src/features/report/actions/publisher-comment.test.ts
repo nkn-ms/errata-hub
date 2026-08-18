@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
 // vi.mock はファイル先頭へ巻き上げられるため、参照する値は vi.hoisted で先に定義する。

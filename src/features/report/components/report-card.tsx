@@ -1,12 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { BookMarked } from "lucide-react";
-import { Report } from "@/types/report";
-import { STATUS_LABELS, STATUS_COLORS } from "@/constants/report-status";
-import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
+import { Report } from "@/features/report/types";
+import { STATUS_LABELS, STATUS_COLORS } from "@/features/report/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
-import { latestPublisherComment, publisherCommentLabel } from "@/utils/publisher-comment";
+import { latestPublisherComment, publisherCommentLabel } from "@/features/report/utils/publisher-comment";
 import { cn } from "@/lib/utils";
 
 export function Badge({ label, className }: { label: string; className: string }) {

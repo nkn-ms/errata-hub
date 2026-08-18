@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { findReportsPage } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
-import { ReportCard } from "@/components/report-card";
-import { CompactReportTable } from "@/components/compact-report-table";
+import { findReportsPage } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
+import { ReportCard } from "@/features/report/components/report-card";
+import { CompactReportTable } from "@/features/report/components/compact-report-table";
 import { routes } from "@/constants/routes";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";

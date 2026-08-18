@@ -1,4 +1,4 @@
-import { ReportForm } from "@/components/report-form";
+import { ReportForm } from "@/features/report/components/report-form";
 import { prisma } from "@/lib/prisma";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { FORM_COLUMN } from "@/constants/layout";

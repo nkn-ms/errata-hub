@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapReport } from "@/utils/mappers";
+import { mapReport } from "@/features/report/utils/mappers";
 
 type MapReportInput = Parameters<typeof mapReport>[0];
 

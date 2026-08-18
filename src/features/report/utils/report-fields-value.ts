@@ -1,4 +1,4 @@
-import type { ReportFieldsValue } from "@/components/report-fields";
+import type { ReportFieldsValue } from "@/features/report/components/report-fields";
 
 // DB の1行を編集フォームの初期値に落とす。
 //
