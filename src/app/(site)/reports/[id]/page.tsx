@@ -1,8 +1,8 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findReportById } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
-import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/constants/report-labels";
+import { findReportById } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
+import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,12 +10,12 @@ import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { UpvoteButton, type ViewerRole } from "@/components/report-upvote-button";
+import { UpvoteButton, type ViewerRole } from "@/features/report/components/report-upvote-button";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { StatusBadge } from "@/components/report-status-badge";
+import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { BookCover } from "@/components/book-cover";
-import { ReportAddenda } from "@/components/report-addenda";
-import { PublisherComments } from "@/components/publisher-comments";
+import { ReportAddenda } from "@/features/report/components/report-addenda";
+import { PublisherComments } from "@/features/report/components/publisher-comments";
 import {
   checkPublisherCommentPermission,
   type PublisherCommentPermission,

@@ -1,4 +1,4 @@
-import { REPORT_IMAGE_MAX_EDGE, REPORT_IMAGE_QUALITY, REPORT_IMAGE_SKIP_BYTES } from "@/constants/report-images";
+import { REPORT_IMAGE_MAX_EDGE, REPORT_IMAGE_QUALITY, REPORT_IMAGE_SKIP_BYTES } from "@/features/report/constants/report-images";
 
 /**
  * 添付画像をアップロード前に縮める（ブラウザ専用）。

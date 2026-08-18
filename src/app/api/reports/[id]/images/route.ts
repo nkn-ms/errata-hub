@@ -9,7 +9,7 @@ import {
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
-} from "@/constants/report-images";
+} from "@/features/report/constants/report-images";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { isSameOriginRequest } from "@/utils/same-origin";

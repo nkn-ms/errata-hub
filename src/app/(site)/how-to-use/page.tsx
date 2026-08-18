@@ -3,7 +3,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 import type { ReportStatus } from "@/generated/prisma/client";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/constants/report-status";
+import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/features/report/constants/report-status";
 
 export const metadata: Metadata = {
   title: "使い方 | Errata Hub",

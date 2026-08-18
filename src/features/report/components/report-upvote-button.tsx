@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsUp } from "lucide-react";
 import type { ReportType } from "@/generated/prisma/client";
-import { toggleUpvote } from "@/app/actions/report";
+import { toggleUpvote } from "@/features/report/actions/report";
 import { routes } from "@/constants/routes";
-import { UPVOTE_LABELS } from "@/constants/report-labels";
+import { UPVOTE_LABELS } from "@/features/report/constants/report-labels";
 import { cn } from "@/lib/utils";
 
 /** 閲覧者の立場。guest=未ログイン / owner=投稿者本人 / user=それ以外のログイン済み */

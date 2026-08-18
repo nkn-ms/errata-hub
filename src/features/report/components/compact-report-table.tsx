@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Report } from "@/types/report";
-import { STATUS_LABELS } from "@/constants/report-status";
-import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
+import { Report } from "@/features/report/types";
+import { STATUS_LABELS } from "@/features/report/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
 import { cn } from "@/lib/utils";
-import { Badge, getEditionLocationLabel, ErrataSummary } from "@/components/report-card";
-import { StatusBadge } from "@/components/report-status-badge";
+import { Badge, getEditionLocationLabel, ErrataSummary } from "@/features/report/components/report-card";
+import { StatusBadge } from "@/features/report/components/report-status-badge";
 
 // トップ用に列を削ぎ落としたテーブル（11列→6列）。フィード版の対案。
 // サーバー描画・?page=N ページネーション（page.tsx 側）と組み合わせる想定。

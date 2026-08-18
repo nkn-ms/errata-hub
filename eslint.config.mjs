@@ -12,6 +12,39 @@ const eslintConfig = defineConfig([
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
+
+      // フィーチャーの境界を機械的に守る。依存は shared → features → app の一方向だけ許す。
+      //
+      // なぜ lint なのか: ディレクトリを切っただけの規約は必ず崩れる。README に書いても
+      // 越境した import はレビューでしか止められず、レビューは見落とす。
+      // 出典: https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            // shared がフィーチャーを知ってはいけない（逆流すると shared でなくなる）。
+            // 実例: utils/image-compress.ts が constants/report-images を読んでいた＝
+            // 名前は shared でも中身は report の道具だった。
+            { target: "./src/components", from: "./src/features" },
+            { target: "./src/constants", from: "./src/features" },
+            { target: "./src/lib", from: "./src/features" },
+            { target: "./src/services", from: "./src/features" },
+            { target: "./src/utils", from: "./src/features" },
+
+            // フィーチャーがルーティング層を知ってはいけない。
+            // ⚠️ `actions` だけ除外している。Server Action はどこに置いてもよく、
+            //    `app/actions/` にあるのは慣習で、ルーティングではないため。
+            //    残りのフィーチャー（book / publisher / user / auth）を切り出すときに
+            //    `src/actions/` などへ移し、この except を外すのが最終形。
+            { target: "./src/features", from: "./src/app", except: ["./actions"] },
+
+            // フィーチャー同士は直接つながない（合成は app 層で行う）。
+            // ⚠️ フィーチャーを足したら、その分の zone をここに足すこと。
+            //    書き忘れると、そのフィーチャーだけ越境し放題になる。
+            { target: "./src/features/report", from: "./src/features", except: ["./report"] },
+          ],
+        },
+      ],
     },
   },
   // Override default ignores of eslint-config-next.

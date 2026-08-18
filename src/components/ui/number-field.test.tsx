@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { NumberField } from "./number-field";
-import { numberFieldError } from "@/components/report-fields";
+import { NumberField, numberFieldError } from "./number-field";
+
 
 // このリポジトリの vitest は globals を有効にしていないので自動 cleanup が効かない
 // （= 描画が積み上がり getBy* が「複数見つかった」で落ちる。user-editor.test.tsx と同じ扱い）

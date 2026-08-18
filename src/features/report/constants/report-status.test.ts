@@ -3,7 +3,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   STATUS_TOOLTIPS,
-} from "@/constants/report-status";
+} from "@/features/report/constants/report-status";
 
 const STATUS_KEYS = Object.keys(STATUS_LABELS);
 

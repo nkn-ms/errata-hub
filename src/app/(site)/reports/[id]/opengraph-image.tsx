@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
-import { findReportById } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
+import { findReportById } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
-import { TYPE_LABELS } from "@/constants/report-labels";
-import type { ReportType } from "@/types/report";
+import { TYPE_LABELS } from "@/features/report/constants/report-labels";
+import type { ReportType } from "@/features/report/types";
 
 export const alt = "投稿の概要";
 export const size = OG_SIZE;

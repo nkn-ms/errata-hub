@@ -2,16 +2,16 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
-import { addReportAddendum, type Addendum } from "@/app/actions/report";
-import { REPORT_LIMITS } from "@/constants/report-limits";
-import { CharCounter, ErrorPanel } from "@/components/report-fields";
+import { addReportAddendum, type Addendum } from "@/features/report/actions/report";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
+import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import { routes } from "@/constants/routes";
 import {
   ADDENDUM_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_MB,
-} from "@/constants/report-images";
-import { selectReportImages } from "@/utils/report-image-select";
+} from "@/features/report/constants/report-images";
+import { selectReportImages } from "@/features/report/utils/report-image-select";
 
 // ⚠️ **一覧と入力欄を1つのクライアント部品にまとめてあるのは、書きかけを失わないため。**
 // 成功後に refresh() で描き直すと、再描画が**入力欄の DOM ノードごと差し替える**

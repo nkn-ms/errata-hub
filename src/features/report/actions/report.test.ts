@@ -58,8 +58,8 @@ vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport, withdrawOwnReport } from "./report";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 
 beforeEach(() => {

@@ -15,19 +15,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
-import { Report, ReportType, ReportStatus } from "@/types/report";
-import { STATUS_LABELS } from "@/constants/report-status";
-import { TYPE_LABELS, TYPE_COLORS } from "@/constants/report-labels";
+import { Report, ReportType, ReportStatus } from "@/features/report/types";
+import { STATUS_LABELS } from "@/features/report/constants/report-status";
+import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-import { latestPublisherComment, publisherCommentLabel } from "@/utils/publisher-comment";
+import { latestPublisherComment, publisherCommentLabel } from "@/features/report/utils/publisher-comment";
 import {
   Badge,
   ReportCard,
   getEditionLocationLabel,
   ErrataSummary,
-} from "@/components/report-card";
-import { StatusBadge } from "@/components/report-status-badge";
+} from "@/features/report/components/report-card";
+import { StatusBadge } from "@/features/report/components/report-status-badge";
 
 // 列は6つ。以前は11列あり、1280px でも 224px 分が横スクロールの向こう側に隠れていた
 // （＝隠れた列は誰も読まないのに、全部の列幅を細くして読みにくさだけを配っていた）。

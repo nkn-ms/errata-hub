@@ -8,11 +8,11 @@ import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { checkPublisherCommentPermission } from "@/services/publisher-access";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
 import { formatJstDateTime } from "@/utils/format";
-import type { PublisherCommentView } from "@/types/report";
+import type { PublisherCommentView } from "@/features/report/types";
 
 const PublisherCommentSchema = z.object({
   body: z

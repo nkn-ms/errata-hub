@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { addPublisherComment } from "@/app/actions/publisher-comment";
-import { REPORT_LIMITS } from "@/constants/report-limits";
-import { CharCounter, ErrorPanel } from "@/components/report-fields";
-import type { PublisherCommentView } from "@/types/report";
+import { addPublisherComment } from "@/features/report/actions/publisher-comment";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
+import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
+import type { PublisherCommentView } from "@/features/report/types";
 
 // ⚠️ 一覧と入力欄を1つのクライアント部品にまとめてある理由は components/report-addenda.tsx と同じ
 // （成功後に refresh() すると再描画が入力欄の DOM ごと差し替え、打ちかけの文字が消える）。

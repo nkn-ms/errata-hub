@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { findAllReports } from "@/services/report";
-import { mapReport } from "@/utils/mappers";
-import { ReportTable } from "@/components/report-table";
+import { findAllReports } from "@/features/report/service";
+import { mapReport } from "@/features/report/utils/mappers";
+import { ReportTable } from "@/features/report/components/report-table";
 import { routes } from "@/constants/routes";
 
 export const metadata: Metadata = {

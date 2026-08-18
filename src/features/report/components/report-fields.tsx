@@ -1,10 +1,10 @@
 "use client";
 
-import { NumberField } from "@/components/ui/number-field";
-import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/constants/report-messages";
-import { normalizeDigits, toIntOrNull } from "@/utils/parse";
-import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { NumberField, numberFieldError } from "@/components/ui/number-field";
+import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
+import { toIntOrNull } from "@/utils/parse";
+import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 
 // 投稿の「中身」の入力欄。**新規投稿（report-form）と投稿者による編集（report-edit-form）で共有する**。
 // 分けて書くと、欄の追加・上限の変更・検証条件が2か所に散り、片方だけ直る事故が起きる。
@@ -56,16 +56,6 @@ type Props = {
   value: ReportFieldsValue;
   onChange: (patch: Patch) => void;
 };
-
-// 数値欄（版・刷・ページ番号・行番号）の検査。問題なければ null、あればそのまま画面に出す文言を返す。
-// サーバーの ReportSchema（z.number().int().positive()）と同じ条件をクライアントでも見る
-export function numberFieldError(label: string, raw: string, required: boolean): string | null {
-  const value = normalizeDigits(raw);
-  if (value === "") return required ? `${label}を入力してください` : null;
-  const parsed = toIntOrNull(value);
-  if (parsed === null || parsed < 1) return `${label}は半角数字（1以上の整数）で入力してください`;
-  return null;
-}
 
 // 投稿の中身の検証。**最初の1件で打ち切らず全部集める**。並べる順は画面の並び順にそろえる
 // （上から直していけるようにする。検証の都合で順番が飛ぶと直す順序を組み立て直させる）。

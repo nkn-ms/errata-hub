@@ -115,3 +115,14 @@ function StepButton({
     </button>
   );
 }
+
+// 数値欄の検査。問題なければ null、あればそのまま画面に出す文言を返す。
+// ⚠️ NumberField と対で使うのでここに置く。呼び出し側（投稿フォーム）にあると、
+//    shared の部品の検証をフィーチャーが持つことになり依存が逆流する。
+export function numberFieldError(label: string, raw: string, required: boolean): string | null {
+  const value = normalizeDigits(raw);
+  if (value === "") return required ? `${label}を入力してください` : null;
+  const parsed = toIntOrNull(value);
+  if (parsed === null || parsed < 1) return `${label}は半角数字（1以上の整数）で入力してください`;
+  return null;
+}

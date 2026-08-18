@@ -6,10 +6,10 @@ import Link from "next/link";
 import { BookSearch } from "@/components/book-search";
 import { findErratumUrlByIsbn } from "@/app/actions/book";
 import { useRouter } from "next/navigation";
-import { createReport, type ReportInput } from "@/app/actions/report";
+import { createReport, type ReportInput } from "@/features/report/actions/report";
 import { routes } from "@/constants/routes";
-import { TYPE_LABELS, MEDIUM_LABELS } from "@/constants/report-labels";
-import { REPORT_LIMITS } from "@/constants/report-limits";
+import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
+import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import {
   EMPTY_REPORT_FIELDS,
   ErrorPanel,
@@ -18,13 +18,13 @@ import {
   reportFieldsErrors,
   toReportBody,
   type ReportFieldsValue,
-} from "@/components/report-fields";
+} from "@/features/report/components/report-fields";
 import {
   REPORT_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
   REPORT_IMAGE_MAX_SOURCE_MB,
-} from "@/constants/report-images";
-import { selectReportImages } from "@/utils/report-image-select";
+} from "@/features/report/constants/report-images";
+import { selectReportImages } from "@/features/report/utils/report-image-select";
 
 type BookData = {
   googleBooksId: string;
