@@ -147,7 +147,10 @@ export default async function AdminLogsPage({ searchParams }: Props) {
 
       {/* フィルター */}
       <form method="GET" className="mb-4 flex gap-3 flex-wrap">
+        {/* 絞り込みバーは見出しを持たないので、部品ごとに aria-label で名前を与える
+            （先頭の option「操作：すべて」は値であって名前ではない） */}
         <select
+          aria-label="操作で絞り込む"
           name="action"
           defaultValue={action ?? ""}
           className="text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
@@ -158,6 +161,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
           ))}
         </select>
         <input
+          aria-label="メールアドレスで絞り込む"
           name="email"
           defaultValue={email ?? ""}
           placeholder="メールアドレスで絞り込み"

@@ -57,6 +57,28 @@ test.describe("投稿フォームのラベル", () => {
   });
 });
 
+// 絞り込みバーは <label> を持たず、placeholder と先頭の option が見た目のラベルを兼ねている。
+// どちらも名前にならないので（placeholder は打つと消え、option は値であって名前ではない）、
+// 部品ごとに aria-label を付けてある。
+//
+// ⚠️ ここは axe（@axe-core/playwright）で1回スキャンして見つけた。列挙式のこのファイルが
+//    3回続けて見落としていた場所＝上の「書籍名」と同じ種類の穴。
+test.describe("絞り込みバーの部品に名前が付いている", () => {
+  test("/reports の検索欄と2つの絞り込み", async ({ page }) => {
+    await page.goto("/reports");
+    await expect(page.getByRole("textbox", { name: "書籍名・タイトルで検索" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "ステータスで絞り込む" })).toBeVisible();
+  });
+
+  test("/admin/logs の絞り込み", async ({ page }) => {
+    await login(page, ADMIN);
+    await page.goto("/admin/logs");
+    await expect(page.getByRole("combobox", { name: "操作で絞り込む" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "メールアドレスで絞り込む" })).toBeVisible();
+  });
+});
+
 test.describe("管理画面のフォームのラベル", () => {
   test("出版社フォームの入力欄がラベルから引ける", async ({ page }) => {
     await login(page, ADMIN);
