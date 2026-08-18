@@ -52,6 +52,10 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, t
       type="button"
       onClick={handleClick}
       disabled={disabled}
+      // 賛同済みかどうかは色とアイコンの塗りつぶしだけで示していて、ラベル文字列は変わらない。
+      // aria-pressed が無いと支援技術には押す前後の区別が付かない。
+      // 未ログインは「押せる（ログインへ進む）」だけで賛同状態を持たないので付けない。
+      aria-pressed={viewer === "guest" ? undefined : upvoted}
       title={
         viewer === "owner"
           ? "自分の投稿には賛同できません"
