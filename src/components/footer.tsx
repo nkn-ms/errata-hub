@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
+import { PAGE_CONTAINER } from "@/constants/layout";
 
 // GitHub マーク。lucide-react はブランドアイコンを廃止したため公式マークをインラインで持つ。
 function GithubMark({ className }: { className?: string }) {
@@ -12,6 +13,11 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 // 全ページ共通フッター。root layout(app/layout.tsx) に配置する。
+//
+// 枠は公開側（ヘッダー・本文）と同じ PAGE_CONTAINER に揃える。ここだけ広いと、
+// 下までスクロールしたときにフッターの左端だけ外側へ飛び出して見える。
+// ⚠️ 管理画面（app/admin/layout.tsx）は帯も本文も max-w-screen-2xl なので、そちらでは
+//    逆にフッターだけ内側へ寄る。運営者しか見ない画面なので公開側の一致を優先している。
 export function Footer() {
   // 開始年は固定。運営継続を示すため、年をまたいだら「開始年–現在年」の範囲表記にする。
   const year = new Date().getFullYear();
@@ -22,7 +28,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-gray-200 bg-white">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={`${PAGE_CONTAINER} py-8`}>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-bold text-gray-900">{site.name}</p>
