@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { register } from "@/app/actions/auth";
+import { register } from "@/features/account/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { PROFILE_LIMITS } from "@/constants/profile-limits";
-import { GitHubSignInButton } from "@/components/github-sign-in-button";
-import { LegalConsentNote } from "@/components/legal";
+import { PROFILE_LIMITS } from "@/features/account/constants";
+import { GitHubSignInButton } from "@/features/account/components/github-sign-in-button";
+import { LegalConsentNote } from "@/components/layout/legal";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(register, undefined);

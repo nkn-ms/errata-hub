@@ -246,28 +246,41 @@ docs/             設計・学習メモ・ER 図
 ### 依存の向き
 
 ```
-components/ constants/ lib/ services/ utils/   （shared）
-                  ↓
-              features/
-                  ↓
-                app/
+components/ui/ constants/ lib/ services/ utils/   （shared・ドメインを知らない）
+                        ↓
+                    features/
+                        ↓
+            components/layout/ → app/            （合成層）
 ```
 
-**一方向だけ許す。** shared はどこからでも使える。features は shared だけを読む。app は両方を読む。
+**一方向だけ許す。** shared はどこからでも使える。features は shared だけを読む。合成層は両方を読む。
+
+⚠️ **`components/layout/` は shared ではなく合成層に立つ。** ヘッダーやフッターは再利用のための
+ライブラリではなく、**フィーチャーを組み立てて画面の枠を作る**もの。実際にヘッダーの
+ユーザーメニューはログアウト（`features/account` の Server Action）を持っている。
+ここを shared として縛ると、合成のためだけに props を何段もバケツリレーすることになる。
 逆流とフィーチャー同士の直接参照は `import/no-restricted-paths`（`eslint.config.mjs`）で禁止していて、
 違反すると lint が落ちる。**規約は文書ではなく lint で守る** — ディレクトリを切っただけの規約は必ず崩れるため。
 
 ### features の中身
 
 ```
-src/features/report/       投稿・出版社からの回答（34ファイル）
-├── components/            画面の部品（admin/ に管理画面専用）
-├── actions/               Server Action
-├── service.ts             読み取り
-├── constants/             ステータス・ラベル・文字数上限
+src/features/
+├── report/       投稿・出版社からの回答
+├── publisher/    出版社マスタ
+└── account/      登録・ログイン・アカウント設定・退会・ユーザー管理
+
+src/features/report/
+├── components/   画面の部品（admin/ に管理画面専用）
+├── actions/      Server Action
+├── service.ts    読み取り
+├── constants/    ステータス・ラベル・文字数上限
 ├── types.ts
 └── utils/
 ```
+
+書籍（`book-*`）はまだ切り出していない。投稿フォームが書籍検索を直接持っており、
+`features/book/` を作ると投稿 → 書籍の参照になるため、**合成の見直しとセットで行う**。
 
 フィーチャーの切り口は**テーブルの数ではなく「独立して存在できるか」**。
 出版社からの回答は投稿にしか付かず投稿なしには存在できないので、独立したフィーチャーにせず
@@ -281,11 +294,10 @@ src/features/report/       投稿・出版社からの回答（34ファイル）
 src/components/
 ├── ui/         ドメインもルーティングも知らない部品（icons, nav-link, number-field, theme-toggle）
 └── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
-                breadcrumbs, legal-shell, error-content, not-found-content）
+                breadcrumbs, legal, legal-shell, error-content, not-found-content）
 ```
 
-まだフィーチャーに切り出していないドメイン部品（`book-*`, `publisher-*`, 認証・規約まわり）は
-`components/` 直下にある。接頭辞が対象を表す。
+まだフィーチャーに切り出していない書籍まわり（`book-cover`, `book-search`）は `components/` 直下にある。
 
 新しいファイルの置き場所は、上から順に当てはめて決める。
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { login } from "@/app/actions/auth";
+import { login } from "@/features/account/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { GitHubSignInButton } from "@/components/github-sign-in-button";
-import { LegalConsentNote } from "@/components/legal";
+import { GitHubSignInButton } from "@/features/account/components/github-sign-in-button";
+import { LegalConsentNote } from "@/components/layout/legal";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);

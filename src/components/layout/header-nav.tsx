@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { NavLink } from "@/components/ui/nav-link";
 import { routes } from "@/constants/routes";
-import { logout } from "@/app/actions/auth";
+import { logout } from "@/features/account/actions/auth";
 
 // 常時出すナビ項目。デスクトップ列・モバイルメニューの両方で使い回す。
 //

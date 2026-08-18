@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import PublisherForm from "@/components/admin/publisher-form";
+import PublisherForm from "@/features/publisher/components/admin/publisher-form";
 import { routes } from "@/constants/routes";
 import { formatJstDate } from "@/utils/format";
 

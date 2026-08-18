@@ -1,4 +1,4 @@
-import { signInWithGitHub } from "@/app/actions/auth";
+import { signInWithGitHub } from "@/features/account/actions/auth";
 import { GitHubIcon } from "@/components/ui/icons";
 
 // GitHub ログインボタン。ログイン/会員登録の両ページで使う。

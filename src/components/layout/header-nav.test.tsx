@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { HeaderNav } from "./header-nav";
 
 // ログアウトは Server Action なのでテストではモジュールごとモックする
-vi.mock("@/app/actions/auth", () => ({ logout: vi.fn() }));
+vi.mock("@/features/account/actions/auth", () => ({ logout: vi.fn() }));
 // ナビは現在地の判定に usePathname を使う（NavLink）。テストでは Next のルーターが
 // 立っていないので、どのページに居るかをここで決める
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));

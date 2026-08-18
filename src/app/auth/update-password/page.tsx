@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updatePassword } from "@/app/actions/auth";
+import { updatePassword } from "@/features/account/actions/auth";
 
 export default function UpdatePasswordPage() {
   const [state, action, pending] = useActionState(updatePassword, undefined);

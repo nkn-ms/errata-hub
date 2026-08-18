@@ -7,7 +7,7 @@ import { requireAdminServerAction } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
-import { normalizeEmailDomain, isValidEmailDomain } from "@/utils/email-domain";
+import { normalizeEmailDomain, isValidEmailDomain } from "@/features/publisher/utils/email-domain";
 import { Prisma } from "@/generated/prisma/client";
 
 const PublisherSchema = z.object({

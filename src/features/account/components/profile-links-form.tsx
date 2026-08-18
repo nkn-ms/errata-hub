@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateProfileLinks } from "@/app/actions/auth";
+import { updateProfileLinks } from "@/features/account/actions/auth";
 
 type Props = {
   currentGithubUsername: string | null;

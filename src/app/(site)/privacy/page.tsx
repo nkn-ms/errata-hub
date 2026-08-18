@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Article, BulletList, OrderedList } from "@/components/legal";
+import { Article, BulletList, OrderedList } from "@/components/layout/legal";
 import { LegalShell } from "@/components/layout/legal-shell";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";

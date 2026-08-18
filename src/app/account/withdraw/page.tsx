@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { withdraw } from "@/app/actions/auth";
+import { withdraw } from "@/features/account/actions/auth";
 import { routes } from "@/constants/routes";
 
 export default function WithdrawPage() {

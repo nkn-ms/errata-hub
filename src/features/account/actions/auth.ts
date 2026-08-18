@@ -8,9 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { scrubProfileForWithdrawal } from "@/services/withdrawal";
+import { scrubProfileForWithdrawal } from "@/features/account/service";
 import { routes } from "@/constants/routes";
-import { PROFILE_LIMITS } from "@/constants/profile-limits";
+import { PROFILE_LIMITS } from "@/features/account/constants";
 
 const LoginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
