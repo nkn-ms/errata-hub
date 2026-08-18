@@ -10,6 +10,7 @@ export async function expectPublicHeader(page: Page) {
 
   await expect(header.getByText("Errata Hub")).toBeVisible();
   await expect(header.getByRole("button", { name: /表示テーマ/ })).toBeVisible();
+  await expect(header.getByRole("link", { name: "TOP" })).toBeVisible();
   await expect(header.getByRole("link", { name: "使い方" })).toBeVisible();
   await expect(header.getByRole("link", { name: "使用技術" })).toBeVisible();
   await expect(header.getByRole("link", { name: "会員登録" })).toBeVisible();
