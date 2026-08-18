@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "./display-name-form";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ProfileLinksForm } from "./profile-links-form";
 import { formatJstDate, shortId } from "@/utils/format";
 import { FORM_COLUMN } from "@/constants/layout";

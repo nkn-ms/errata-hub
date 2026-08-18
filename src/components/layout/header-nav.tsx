@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { NavLink } from "@/components/nav-link";
+import { NavLink } from "@/components/ui/nav-link";
 import { routes } from "@/constants/routes";
 import { logout } from "@/app/actions/auth";
 

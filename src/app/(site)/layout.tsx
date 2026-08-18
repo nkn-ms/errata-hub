@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SiteShell } from "@/components/site-shell";
+import { SiteShell } from "@/components/layout/site-shell";
 
 // 公開側（admin でない側）の**全ページ**の枠。枠の中身は components/site-shell.tsx が持つ
 // （404 = app/not-found.tsx も同じ枠を使うので、共有できるコンポーネントに出している）。

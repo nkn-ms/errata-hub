@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorContent } from "@/components/error-content";
+import { ErrorContent } from "@/components/layout/error-content";
 import { routes } from "@/constants/routes";
 
 // 公開側ページの例外境界。ここに置くと (site)/layout.tsx の中で描かれる＝共通ヘッダーが残る。

@@ -6,7 +6,7 @@ import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
 import { cn } from "@/lib/utils";
 import { Badge, getEditionLocationLabel, ErrataSummary } from "@/components/report-card";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/report-status-badge";
 
 // トップ用に列を削ぎ落としたテーブル（11列→6列）。フィード版の対案。
 // サーバー描画・?page=N ページネーション（page.tsx 側）と組み合わせる想定。

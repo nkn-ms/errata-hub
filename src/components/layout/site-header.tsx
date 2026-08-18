@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { HeaderNav } from "@/components/header-nav";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { HeaderNav } from "@/components/layout/header-nav";
 import { getHeaderUser } from "@/lib/header-user";
 import { PAGE_CONTAINER } from "@/constants/layout";
 

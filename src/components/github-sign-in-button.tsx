@@ -1,5 +1,5 @@
 import { signInWithGitHub } from "@/app/actions/auth";
-import { GitHubIcon } from "@/components/icons";
+import { GitHubIcon } from "@/components/ui/icons";
 
 // GitHub ログインボタン。ログイン/会員登録の両ページで使う。
 // OAuth はどちらの導線でも「未登録なら登録・登録済みならログイン」になるためラベルは共通。

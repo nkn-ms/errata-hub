@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
-import { Footer } from "@/components/footer";
+import { Footer } from "@/components/layout/footer";
 import { site } from "@/constants/site";
 import { THEME_INIT_SCRIPT } from "@/utils/theme";
 

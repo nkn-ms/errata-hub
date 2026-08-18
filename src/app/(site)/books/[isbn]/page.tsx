@@ -8,8 +8,8 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
-import { Breadcrumbs } from "@/components/breadcrumbs";
-import { StatusBadge } from "@/components/status-badge";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { StatusBadge } from "@/components/report-status-badge";
 import { BookCover } from "@/components/book-cover";
 
 type Props = {

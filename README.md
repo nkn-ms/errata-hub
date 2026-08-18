@@ -233,7 +233,7 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 ```
 src/
 ├── app/          Next.js ルーティング（ページ・API Route・Server Action）
-├── components/   UI コンポーネント（admin/ に管理画面専用）
+├── components/   UI コンポーネント（内訳は下記）
 ├── constants/    定数（ステータス定義など）
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
 ├── lib/          外部ライブラリのラッパー（prisma / supabase / utils）
@@ -242,6 +242,29 @@ src/
 └── utils/        純粋関数（ISBN 正規化・マッパー）
 docs/             設計・学習メモ・ER 図
 ```
+
+### components の置き場所
+
+```
+src/components/
+├── ui/         ドメインもルーティングも知らない部品（icons, nav-link, number-field, theme-toggle）
+├── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
+│               breadcrumbs, legal-shell, error-content, not-found-content）
+├── admin/      管理画面でしか使わないもの
+└── *.tsx       ドメイン部品。Report / Book / Publisher に属するものは接頭辞で対象を表す
+                （report-*, book-*, publisher-*）。認証・規約まわり（github-sign-in-button,
+                legal）はモデルに属さないので接頭辞を持たない
+```
+
+新しいコンポーネントの置き場所は、上から順に当てはめて決める。
+
+1. **管理画面でしか使わない** → `admin/`
+2. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `layout/`
+3. **Report / Book / Publisher / 認証を知っている** → 直下に置く（モデルに属するものは接頭辞を付ける）
+4. **どれでもない** → `ui/`
+
+「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
+（たとえば `report-fields.tsx` は6箇所から使われる共通部品だが、Report を知っているので `ui/` には入らない）。
 
 ---
 

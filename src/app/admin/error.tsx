@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorContent } from "@/components/error-content";
+import { ErrorContent } from "@/components/layout/error-content";
 import { routes } from "@/constants/routes";
 
 // 管理画面の例外境界。admin/layout.tsx の中で描かれるので管理ナビが残る
