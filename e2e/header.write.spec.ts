@@ -36,6 +36,7 @@ test.describe("ログイン済みヘッダーの中身", () => {
       await page.goto(path);
 
       const header = page.getByRole("banner");
+      await expect(header.getByRole("link", { name: "ホーム" })).toBeVisible();
       await expect(header.getByRole("link", { name: "使い方" })).toBeVisible();
       await expect(header.getByRole("link", { name: "使用技術" })).toBeVisible();
       await expect(header.getByRole("link", { name: "投稿する" })).toBeVisible();

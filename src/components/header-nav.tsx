@@ -6,8 +6,15 @@ import { NavLink } from "@/components/nav-link";
 import { routes } from "@/constants/routes";
 import { logout } from "@/app/actions/auth";
 
-// 常時出す情報ページのナビ項目。デスクトップ列・モバイルメニューの両方で使い回す。
+// 常時出すナビ項目。デスクトップ列・モバイルメニューの両方で使い回す。
+//
+// 「ホーム」はロゴ（ヘッダー左端）と行き先が同じ。重複させているのは移動距離のためで、
+// 右側で操作している間に画面の反対側までポインタを運ばせない。
+//
+// ⚠️ NavLink の現在地判定は前方一致だが、href="/" では `pathname.startsWith("//")` が
+//    常に false になるため、実質「トップページに居るときだけ」点く（全ページで点きはしない）。
 const NAV_LINKS = [
+  { href: routes.home, label: "ホーム" },
   { href: routes.howToUse, label: "使い方" },
   { href: routes.tech, label: "使用技術" },
 ] as const;
