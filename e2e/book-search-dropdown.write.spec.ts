@@ -68,6 +68,39 @@ test.describe("タイトル検索の候補リスト（書き込み・ログイ�
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
+  // 候補が出たことが支援技術に伝わるか。
+  //
+  // なぜ必要か: 候補リストは見た目だけの通知だった。<button> の並びなので Tab では辿れるが、
+  // 「いま候補が出た」ことはどこにも出ておらず、画面を見ていない人には打っても何も起きていない
+  // ように見えた。role="status" の一文がその穴を埋めている。属性を1つ消せば静かに戻るので、
+  // 読み上げ用の文言そのものを assertion にする。
+  //
+  // ⚠️ 見た目の候補リストが出ていることでは代用にならない（それが伝わらないのが元の問題）。
+  test("候補の状況が読み上げ用の領域に出る", async ({ page }) => {
+    await page.goto("/submit");
+    await page.getByRole("button", { name: "タイトルで検索" }).click();
+
+    const status = page.getByRole("status");
+    await expect(status).toHaveText("");
+
+    await page.getByPlaceholder("書籍名・著者名で検索...").fill("web");
+
+    // モックは3件返す。デバウンス（400ms）の後に確定した件数が読み上げられる
+    await expect(status).toHaveText("3件の候補があります");
+  });
+
+  // 0件と「検索が失敗した」を混ぜないのは表示側で既に決めている（book-search.tsx のコメント）。
+  // 読み上げ側でも同じ区別が要る＝「候補が無い」を「壊れている」と読ませない。
+  test("候補が0件のときは0件だと読み上げる", async ({ page }) => {
+    await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+
+    await page.goto("/submit");
+    await page.getByRole("button", { name: "タイトルで検索" }).click();
+    await page.getByPlaceholder("書籍名・著者名で検索...").fill("該当なし");
+
+    await expect(page.getByRole("status")).toHaveText("候補は見つかりませんでした");
+  });
+
   // 打鍵の追い越し。デバウンスのタイマーを張り直すだけでは**送信済みのリクエストは走り続ける**ので、
   // 古い応答が新しい応答より後に届くと候補リストが古い語のものに上書きされる（上流が遅いときに起きる）。
   // AbortController で前を打ち切っているかを、遅い応答をわざと作って確かめる。
