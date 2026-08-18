@@ -88,7 +88,7 @@ export function MenuPanelDemo() {
         </button>
         {open && (
           <ul className="mt-2 rounded-md border border-gray-200 bg-white py-1 text-sm shadow-sm">
-            {["ホーム", "使い方", "使用技術", "投稿する"].map((label) => (
+            {["ホーム", "使い方", "投稿する"].map((label) => (
               <li key={label} className="px-4 py-2 text-gray-700">
                 {label}
               </li>

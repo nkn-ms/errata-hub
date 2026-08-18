@@ -203,7 +203,7 @@ export default function TechPage() {
         リポジトリの README と設計ドキュメントに書いています。
         色や UI 部品の決まりごとは
         <Link href={routes.design} className="mx-1 text-blue-600 hover:underline">
-          デザインの決まりごと
+          デザインシステム
         </Link>
         にまとめています。
         <a

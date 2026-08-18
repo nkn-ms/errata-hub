@@ -14,8 +14,8 @@ import { SAMPLE_REPORT, SAMPLE_REPORTS } from "./fixtures";
 import { CharCounterDemo, ErrorPanelDemo, MenuPanelDemo, NumberFieldDemo } from "./demos";
 
 export const metadata: Metadata = {
-  title: "デザインの決まりごと",
-  description: "Errata Hub で使っている色・文字・UI 部品と、その値をそう決めた理由。",
+  title: "デザインシステム",
+  description: "Errata Hub の色・文字・UI 部品と、その値をそう決めた理由。",
 };
 
 // グレーの梯子。値は CSS 変数を直に読むので、globals.css を変えればこのページも一緒に変わる
@@ -68,9 +68,9 @@ function Item({ name, note, children }: { name: string; note: string; children: 
 export default function DesignPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <Breadcrumbs items={[{ label: "デザインの決まりごと" }]} />
+      <Breadcrumbs items={[{ label: "デザインシステム" }]} />
 
-      <h1 className="text-2xl font-bold text-gray-900">デザインの決まりごと</h1>
+      <h1 className="text-2xl font-bold text-gray-900">デザインシステム</h1>
       <p className="mt-2 text-sm text-gray-600">
         このサイトで使っている色・文字・UI 部品と、その値をそう決めた理由をまとめています。
         どの技術を選んだかは

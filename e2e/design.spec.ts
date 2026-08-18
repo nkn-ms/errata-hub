@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { routes } from "../src/constants/routes";
 
-// デザインの決まりごとのページ。読み取りだけなので既定（chromium）で回す。
+// デザインシステムのページ。読み取りだけなので既定（chromium）で回す。
 //
 // 何を守るか: このページは「実装の見本」なので、部品の描画が壊れると
 // **説明だけが残って実物が消える**（もっとも困る壊れ方）。見出しではなく
 // 見本そのものの数を数える。
 
-test.describe("デザインの決まりごと", () => {
+test.describe("デザインシステム", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(routes.design);
   });

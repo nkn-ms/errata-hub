@@ -16,7 +16,6 @@ import { logout } from "@/features/account/actions/auth";
 const NAV_LINKS = [
   { href: routes.home, label: "ホーム" },
   { href: routes.howToUse, label: "使い方" },
-  { href: routes.tech, label: "使用技術" },
 ] as const;
 
 // ドロップダウン内の項目に共通の見た目（デスクトップのユーザーメニュー・モバイルメニュー共用）。
