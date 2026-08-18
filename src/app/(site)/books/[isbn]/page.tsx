@@ -10,7 +10,7 @@ import { hostnameOf, isInsecureUrl } from "@/utils/external-url";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
-import { BookCover } from "@/components/book-cover";
+import { BookCover } from "@/features/book/components/book-cover";
 
 type Props = {
   params: Promise<{ isbn: string }>;

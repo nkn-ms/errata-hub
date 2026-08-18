@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { AdminBookEditor } from "@/components/admin/book-editor";
+import { AdminBookEditor } from "@/features/book/components/admin/book-editor";
 import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
 

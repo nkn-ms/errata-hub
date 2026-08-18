@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/features/report/components/report-upvote-button";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
-import { BookCover } from "@/components/book-cover";
+import { BookCover } from "@/features/book/components/book-cover";
 import { ReportAddenda } from "@/features/report/components/report-addenda";
 import { PublisherComments } from "@/features/report/components/publisher-comments";
 import {
