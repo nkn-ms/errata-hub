@@ -90,7 +90,7 @@ export default async function ReportDetailPage({ params }: Props) {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-        {/* タイトルとバッジ */}
+        {/* 概要とバッジ */}
         <div>
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex flex-wrap gap-2">

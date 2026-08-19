@@ -19,7 +19,7 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
-  test("落とした列の情報は同じ行の中に残っている（版・刷／タイトル／投稿者）", async ({ page }) => {
+  test("落とした列の情報は同じ行の中に残っている（版・刷／概要／投稿者）", async ({ page }) => {
     await page.goto("/reports");
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();

@@ -58,7 +58,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByRole("button", { name: "検索", exact: true }).click();
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
-    // 何も入れずに投稿＝紙の必須（版・ページ）＋タイトル＋誤＋正 の5件が一度に出る
+    // 何も入れずに投稿＝紙の必須（版・ページ）＋概要＋誤＋正 の5件が一度に出る
     await page.getByRole("button", { name: "確認する" }).click();
 
     // ⚠️ Next.js が挿入するルートアナウンサー（#__next-route-announcer__）も role="alert" なので、
@@ -66,11 +66,11 @@ test.describe("投稿フォーム（書き込み）", () => {
     const summary = page.locator('form [role="alert"]');
     await expect(summary).toBeVisible();
     await expect(summary).toContainText("5件の入力を直してください");
-    // 並び順は画面の並び（版 → タイトル → ページ番号 → 誤 → 正）。全項目がリンクであること
+    // 並び順は画面の並び（版 → 概要 → ページ番号 → 誤 → 正）。全項目がリンクであること
     await expect(summary.getByRole("link")).toHaveCount(5);
     await expect(summary.getByRole("listitem")).toHaveText([
       "版を入力してください",
-      "タイトルを入力してください",
+      "概要を入力してください",
       "ページ番号を入力してください",
       "誤（該当箇所）を入力してください",
       "正（正しい内容）を入力してください",
@@ -83,7 +83,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     // 直した項目は消え、残りだけが出る（1件になったら箇条書きにしない）
     await page.getByLabel("ページ番号").fill("42");
     await page.getByLabel(/^版/).fill("1");
-    await page.getByLabel("タイトル").fill("E2Eエラー集約の確認");
+    await page.getByLabel("概要").fill("E2Eエラー集約の確認");
     await page.getByLabel("誤（該当箇所）").fill("誤った文");
     await page.getByRole("button", { name: "確認する" }).click();
     await expect(summary).toHaveText("正（正しい内容）を入力してください");
@@ -188,7 +188,7 @@ test.describe("投稿フォーム（書き込み）", () => {
     await page.getByRole("button", { name: "検索", exact: true }).click();
     await expect(page.getByText(BOOK_B.title)).toBeVisible();
 
-    // 紙の必須項目（版・ページ）＋タイトル・正誤を入力
+    // 紙の必須項目（版・ページ）＋概要・正誤を入力
     await page.getByPlaceholder("例: 1", { exact: true }).fill("1"); // 版
     await page.getByPlaceholder("例: 58", { exact: true }).fill("42"); // ページ番号
     await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);

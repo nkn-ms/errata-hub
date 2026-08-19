@@ -310,7 +310,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
               </SummaryRow>
             )}
 
-            <SummaryRow label="タイトル">{pending.title}</SummaryRow>
+            <SummaryRow label="概要">{pending.title}</SummaryRow>
             <SummaryRow label="種別">{TYPE_LABELS[pending.type]}</SummaryRow>
 
             {pending.medium === "PAPER" && (

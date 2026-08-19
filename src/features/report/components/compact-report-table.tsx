@@ -13,7 +13,7 @@ import { StatusBadge } from "@/features/report/components/report-status-badge";
 //
 // 落とした列と行き先:
 //   版・刷   → 「位置」セルに統合（"第1版 第2刷 p.42"＝ getEditionLocationLabel）
-//   タイトル → 「内容」に統合（誤→正・content が本体。タイトルはノイズになりがちで詳細で見せる）
+//   概要 → 「内容」に統合（誤→正・content が本体。概要はノイズになりがちで詳細で見せる）
 //   出版社コメント / 投稿者 → 詳細ページ（/reports/[id]）と全件テーブル（/reports）に温存
 //   賛同     → 「投稿」セルに 👍n を同居
 // 残す6列: 種別 / 書籍 / 内容 / 位置 / 状況 / 投稿（日付＋賛同）
