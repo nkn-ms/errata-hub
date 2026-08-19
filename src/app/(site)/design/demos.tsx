@@ -47,7 +47,7 @@ export function CharCounterDemo() {
   return (
     <div className="max-w-xs">
       <label htmlFor="demo-counter" className="block text-sm font-medium text-gray-700 mb-1">
-        タイトル
+        概要
       </label>
       <input
         id="demo-counter"
