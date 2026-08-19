@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SelectField } from "@/components/ui/select-field";
 import { useRouter } from "next/navigation";
 import type { Profile, Publisher, PublisherAccess } from "@/generated/prisma/client";
 import {
@@ -230,11 +231,12 @@ export default function AdminUserEditor({
 
         {ungrantedPublishers.length > 0 && (
           <div className="flex gap-2 pt-2">
-            <select
+            <SelectField
               aria-label="追加する出版社"
               value={selectedPublisherId}
               onChange={(e) => setSelectedPublisherId(e.target.value)}
-              className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
+              wrapperClassName="flex-1"
+              className="w-full py-2 focus:ring-gray-900"
             >
               <option value="">出版社を選択...</option>
               {ungrantedPublishers.map((p) => (
@@ -242,7 +244,7 @@ export default function AdminUserEditor({
                   {p.name}
                 </option>
               ))}
-            </select>
+            </SelectField>
             <button
               onClick={markForAdd}
               disabled={!selectedPublisherId}
