@@ -35,7 +35,7 @@ import { StatusBadge } from "@/features/report/components/report-status-badge";
 // 落とした情報は捨てずに同じ意味のセルへ寄せてある。トップの CompactReportTable と同じ並び。
 //
 //   版・刷        → 「位置」に統合（"第1版 第2刷 p.42"）
-//   タイトル      → 「内容」の2行目に統合（主役は誤→正・内容の方）
+//   概要          → 「内容」の2行目に統合（主役は誤→正・内容の方）
 //   出版社コメント → 「状況」に統合（ステータスと出版社の回答は同じ話）
 //   賛同・投稿者   → 「投稿」に統合（日付と同じ「誰がいつ」の情報）
 //
@@ -92,7 +92,7 @@ const columns: ColumnDef<Report>[] = [
     cell: ({ row }) => (
       <div className="max-w-md">
         <ErrataSummary report={row.original} />
-        {/* 投稿タイトルは主役ではないので下に小さく置く（検索語が当たった理由が見える） */}
+        {/* 投稿の概要は主役ではないので下に小さく置く（検索語が当たった理由が見える） */}
         <div className="text-xs text-gray-500 line-clamp-1">{row.original.title}</div>
       </div>
     ),
@@ -211,8 +211,8 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
           // 絞り込みバーの部品は見出しを持たず、placeholder と先頭の option が
           // 見た目のラベルを兼ねている。どちらも名前にはならない（placeholder は打つと消え、
           // option は名前ではなく値）ので aria-label で名前を与える。
-          aria-label="書籍名・タイトルで検索"
-          placeholder="書籍名・タイトルで検索..."
+          aria-label="書籍名・投稿内容で検索"
+          placeholder="書籍名・投稿内容で検索..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"

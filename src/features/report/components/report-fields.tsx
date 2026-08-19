@@ -79,7 +79,7 @@ export function reportFieldsErrors(v: ReportFieldsValue): { field?: string; mess
       if (message) found.push({ field, message });
     }
   }
-  if (!v.title.trim()) found.push({ field: "title", message: "タイトルを入力してください" });
+  if (!v.title.trim()) found.push({ field: "title", message: "概要を入力してください" });
   if (isPaper) {
     for (const [field, label, value, required] of [
       ["page", "ページ番号", v.page, true],
@@ -185,7 +185,7 @@ export function ErrorPanel({ errors }: { errors: { field?: string; message: stri
 }
 
 // 文字数カウンター（「820/1000」）。maxLength に達すると入力できなくなるので、
-// 打ち切られる前に残りが見えるようにする。自由記述の欄（タイトル・誤・正・内容/提案・備考）に付け、
+// 打ち切られる前に残りが見えるようにする。自由記述の欄（概要・誤・正・内容/提案・備考）に付け、
 // 位置・URL のような「上限まで書くことがそもそも無い」欄には付けない。
 //
 // 常時は出さず、上限の 80% に達してから出す。常時表示だと上限の数字自体がアンカーになり
@@ -281,7 +281,7 @@ export function MediumFields({ value, onChange }: Props) {
   );
 }
 
-// 「投稿内容」セクションの中身（タイトル・種別・位置・誤/正 or 内容・備考）。
+// 「投稿内容」セクションの中身（概要・種別・位置・誤/正 or 内容・備考）。
 export function ReportContentFields({ value, onChange }: Props) {
   const isErrataType = value.reportType === "ERRATA";
 
@@ -289,15 +289,22 @@ export function ReportContentFields({ value, onChange }: Props) {
     <>
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-          タイトル <span className="text-red-700">*</span>
+          概要 <span className="text-red-700">*</span>
         </label>
+        {/* ⚠️「タイトル」と呼ばない。同じフォームに書籍の「書籍名」があり、どちらも本の題名に読める。
+            ここは投稿の一行要約で、一覧と検索でこの投稿を見分ける手がかりになる。
+            補助テキストを置くのは、名前だけだと「タイポ」のような一語で終わりやすいため
+            （そうなると投稿詳細の見出しが内容を語らなくなる）。 */}
+        <p id="title-hint" className="mb-1 text-xs text-gray-500">
+          どんな誤り・提案かが一行で分かるように書いてください。
+        </p>
         <input
           id="title"
           type="text"
           value={value.title}
           onChange={(e) => onChange({ title: e.target.value })}
           maxLength={REPORT_LIMITS.title}
-          aria-describedby="title-count"
+          aria-describedby="title-hint title-count"
           placeholder="例: p.58「わたし」→「私」の誤植"
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />

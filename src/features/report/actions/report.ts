@@ -53,7 +53,7 @@ const limited = (max: number, label: string) =>
 const reportBodyShape = {
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
-  title: limited(REPORT_LIMITS.title, "タイトル").min(1, "タイトルは必須です"),
+  title: limited(REPORT_LIMITS.title, "概要").min(1, "概要は必須です"),
   type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
   medium: z.enum(["PAPER", "EBOOK", "OTHER"]),
   page: z.number().int().positive().nullable().optional(),

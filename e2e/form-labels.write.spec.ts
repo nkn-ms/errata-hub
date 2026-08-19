@@ -32,7 +32,7 @@ test.describe("投稿フォームのラベル", () => {
     await expect(page.getByRole("textbox", { name: /^書籍名/ })).toBeVisible();
 
     // 紙の書籍を選ぶと版・ページなどの入力欄が出る
-    await expect(page.getByLabel("タイトル")).toBeVisible();
+    await expect(page.getByLabel("概要")).toBeVisible();
     // 「版」は必須マーク（*）を含むので前方一致で引く。隣の「刷（任意）」と取り違えないこと
     await expect(page.getByLabel(/^版/)).toBeVisible();
     await expect(page.getByLabel("刷（任意）", { exact: true })).toBeVisible();
@@ -40,8 +40,8 @@ test.describe("投稿フォームのラベル", () => {
     await expect(page.getByLabel("出版社の正誤表URL（任意）")).toBeVisible();
 
     // 実際に値が入る（＝ラベルが指しているのが目当ての入力欄であることの確認）
-    await page.getByLabel("タイトル").fill("ラベル紐づけの確認");
-    await expect(page.getByLabel("タイトル")).toHaveValue("ラベル紐づけの確認");
+    await page.getByLabel("概要").fill("ラベル紐づけの確認");
+    await expect(page.getByLabel("概要")).toHaveValue("ラベル紐づけの確認");
   });
 
   test("ボタン群には role=group で名前が付く（ラベルが単一の入力欄を指さない箇所）", async ({
@@ -66,7 +66,7 @@ test.describe("投稿フォームのラベル", () => {
 test.describe("絞り込みバーの部品に名前が付いている", () => {
   test("/reports の検索欄と2つの絞り込み", async ({ page }) => {
     await page.goto("/reports");
-    await expect(page.getByRole("textbox", { name: "書籍名・タイトルで検索" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "書籍名・投稿内容で検索" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "ステータスで絞り込む" })).toBeVisible();
   });

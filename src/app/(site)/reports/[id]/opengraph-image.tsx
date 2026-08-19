@@ -65,7 +65,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             fontWeight: 700,
             color: "#111827",
             lineHeight: 1.35,
-            // satori は -webkit-line-clamp 相当をサポート（長文タイトルの省略）
+            // satori は -webkit-line-clamp 相当をサポート（長い概要の省略）
             lineClamp: 3,
           }}
         >

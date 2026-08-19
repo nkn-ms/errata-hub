@@ -19,7 +19,7 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
-  test("落とした列の情報は同じ行の中に残っている（版・刷／タイトル／投稿者）", async ({ page }) => {
+  test("落とした列の情報は同じ行の中に残っている（版・刷／概要／投稿者）", async ({ page }) => {
     await page.goto("/reports");
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();
@@ -46,7 +46,7 @@ test.describe("投稿一覧テーブル（/reports）", () => {
 
   test("表示を落とした項目でも検索できる（出版社の回答・投稿者名）", async ({ page }) => {
     await page.goto("/reports");
-    const search = page.getByPlaceholder("書籍名・タイトルで検索...");
+    const search = page.getByPlaceholder("書籍名・投稿内容で検索...");
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
 
     // 投稿者名で検索 → その投稿者の行だけが残る

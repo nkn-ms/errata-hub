@@ -1,12 +1,12 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-// 「投稿タイトルから、その投稿を探して詳細ページを開く」導線をここに集約する。
+// 「投稿の概要から、その投稿を探して詳細ページを開く」導線をここに集約する。
 //
 // トップは新着カード／削ぎ落としテーブルのフィードで、検索は `/reports` へ委譲される
 // （トップの検索ボックスは `/reports?q=` へ飛ばす GET フォーム）。トップ上で一覧を絞り込むことは
 // できないので、投稿の検索はテストからも `/reports?q=` を使う。
 
-/** 検索一覧（/reports）で投稿タイトルを検索し、その行を返す */
+/** 検索一覧（/reports）で投稿の概要を検索し、その行を返す */
 export function findReportRow(page: Page, title: string): Locator {
   return page.getByRole("row").filter({ hasText: title });
 }
@@ -20,7 +20,7 @@ export async function searchReports(page: Page, title: string): Promise<Locator>
 }
 
 /**
- * 投稿タイトルで検索して詳細ページを開き、投稿 id を返す。
+ * 投稿の概要で検索して詳細ページを開き、投稿 id を返す。
  * 行クリックでの遷移（ReportTable の tr onClick）も同時に検証している。
  */
 export async function openReportByTitle(page: Page, title: string): Promise<string> {
