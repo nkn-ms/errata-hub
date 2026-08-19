@@ -68,7 +68,22 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
     const before = await page.locator("tbody tr").count();
 
-    await page.getByRole("combobox").nth(1).selectOption({ label: "修正済み" });
+    // ⚠️ 矢印は自前で重ねてある（ui/select-field.tsx）。pointer-events-none が外れると
+    //    矢印の上のクリックが select に届かず、見た目は正常なのに開かなくなる。
+    const statusFilter = page.getByRole("combobox", { name: "ステータスで絞り込む" });
+    const box = (await statusFilter.boundingBox())!;
+    const chevron = { x: box.x + box.width - 14, y: box.y + box.height / 2 };
+    expect(
+      await page.evaluate(
+        ([x, y]) => {
+          const el = document.elementFromPoint(x, y);
+          return el?.tagName.toLowerCase();
+        },
+        [chevron.x, chevron.y]
+      )
+    ).toBe("select");
+
+    await statusFilter.selectOption({ label: "修正済み" });
     const after = await page.locator("tbody tr").count();
     expect(after).toBeLessThanOrEqual(before);
   });

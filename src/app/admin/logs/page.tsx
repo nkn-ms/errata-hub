@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
@@ -149,17 +150,17 @@ export default async function AdminLogsPage({ searchParams }: Props) {
       <form method="GET" className="mb-4 flex gap-3 flex-wrap">
         {/* 絞り込みバーは見出しを持たないので、部品ごとに aria-label で名前を与える
             （先頭の option「操作：すべて」は値であって名前ではない） */}
-        <select
+        <SelectField
           aria-label="操作で絞り込む"
           name="action"
           defaultValue={action ?? ""}
-          className="text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
+          className="py-2 focus:ring-gray-900"
         >
           <option value="">操作：すべて</option>
           {Object.entries(AUDIT_ACTION_LABELS).map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
           ))}
-        </select>
+        </SelectField>
         <input
           aria-label="メールアドレスで絞り込む"
           name="email"
