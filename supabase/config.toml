@@ -355,7 +355,8 @@ secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
 # Google ログイン（ローカル用）。Google Cloud の OAuth クライアント（種類=ウェブアプリケーション・
 # リダイレクト URI = http://127.0.0.1:54321/auth/v1/callback）を作り、client_id / secret を
 # .env.local に書いたうえで enabled を true にする。
-# ⚠️ enabled = true のまま client_id が空だと Auth コンテナが起動に失敗するため、既定は false。
+# ⚠️ enabled = true のまま client_id が空だと `supabase start` が設定の読み込みで失敗する
+# （ProjectConfigParseError＝コンテナは1つも立ち上がらない。2026-08-19 に実測）。だから既定は false。
 # 本番は Supabase ダッシュボード側の Provider 設定（別のクライアント）を使うので、この値は関係しない。
 [auth.external.google]
 enabled = false
