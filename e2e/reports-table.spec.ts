@@ -136,3 +136,41 @@ test.describe("ステータスの説明（ツールチップ）", () => {
     }
   });
 });
+
+// トップの検索フォームから絞り込みを引き継ぐ導線。
+//
+// ⚠️ トップ側では絞らない（手元に今のページの 20 件しか無いので、その場で絞ると
+// 全体とは違う件数を見せてしまう）。トップは**絞る意図を渡す入口**で、絞るのは一覧。
+test.describe("トップからの絞り込みの引き継ぎ", () => {
+  // ⚠️ データに依存させない。シードは「正誤情報」1件だけなので、改善提案で試すと
+  //    行が0件になり、件数を当てにした検証は skip に落ちて**何も確かめないまま緑になる**。
+  test("トップで選んだ種別が、一覧の絞り込みに選択済みで引き継がれる", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("combobox", { name: "種別で絞り込む" }).selectOption({ label: "改善提案" });
+    await page.getByRole("button", { name: "検索" }).click();
+
+    await expect(page).toHaveURL(/\/reports\?/);
+    await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toHaveValue("SUGGESTION");
+  });
+
+  test("引き継いだ絞り込みが表にも効いている", async ({ page }) => {
+    await page.goto("/");
+    // シードに必ずある種別で試す（行が0件だと「絞れている」ことを確かめられない）
+    await page.getByRole("combobox", { name: "種別で絞り込む" }).selectOption({ label: "正誤情報" });
+    await page.getByRole("button", { name: "検索" }).click();
+
+    const typeCells = page.locator("table tbody tr td:first-child");
+    await expect(typeCells.first()).toBeVisible();
+    for (const cell of await typeCells.all()) {
+      await expect(cell).toHaveText("正誤情報");
+    }
+  });
+
+  test("知らない値の ?type= は無視する（0件にしない）", async ({ page }) => {
+    // ⚠️ URL は誰でも書ける。知らない値をそのまま表に渡すとどの行にも当たらず、
+    //    絞り込みが壊れているように見える。サーバー側で弾いていることを確かめる。
+    await page.goto("/reports?type=NO_SUCH_TYPE");
+    await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toHaveValue("all");
+    await expect(page.locator("table tbody tr").first()).toBeVisible();
+  });
+});
