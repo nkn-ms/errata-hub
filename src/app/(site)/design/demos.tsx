@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
 import { NumberField } from "@/components/ui/number-field";
 import { SelectField } from "@/components/ui/select-field";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
+import { Button } from "@/components/ui/button";
 
 // 動かして確かめる見本だけをここに集める。ページ本体（page.tsx）はサーバーのまま保つ。
 
@@ -66,13 +66,14 @@ export function ErrorPanelDemo() {
   const [shown, setShown] = useState(false);
   return (
     <div className="max-w-xl space-y-3">
-      <button
+      <Button
         type="button"
         onClick={() => setShown((prev) => !prev)}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        variant="secondary"
+        className="px-3 py-1.5"
       >
         {shown ? "閉じる" : "検証に失敗したときの表示を見る"}
-      </button>
+      </Button>
       {shown && (
         <ErrorPanel
           errors={[
@@ -83,41 +84,6 @@ export function ErrorPanelDemo() {
           ]}
         />
       )}
-    </div>
-  );
-}
-
-// ⚠️ ハンバーガーの実物はこのページに置けない。切り替えが hidden sm:block / sm:hidden で、
-//    Tailwind のブレークポイントは**ビューポート幅**を見るため、幅を狭めた箱に入れても
-//    PC で開いている限りデスクトップ版のまま描画される。
-//    そこでボタンだけ同じ見た目で作り、開いた中身は静的な複製を並べる。
-export function MenuPanelDemo() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="max-w-xs">
-      <div className="relative rounded-lg border border-gray-200 bg-white p-3">
-        <button
-          type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-expanded={open}
-          aria-label="メニュー（見本）"
-          className="p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-        {open && (
-          <ul className="mt-2 rounded-md border border-gray-200 bg-white py-1 text-sm shadow-sm">
-            {["ホーム", "使い方", "投稿する"].map((label) => (
-              <li key={label} className="px-4 py-2 text-gray-700">
-                {label}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <p className="mt-2 text-xs text-gray-500">
-        開いた中身は複製です。実物はスマホ幅でヘッダーの右端に出ます。
-      </p>
     </div>
   );
 }
