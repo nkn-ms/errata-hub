@@ -158,7 +158,8 @@ export default function AdminUserEditor({
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 role === r.value
                   ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  // disabled でも :hover は当たるので、押せないときは色を戻す
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:hover:bg-gray-100"
               }`}
             >
               {r.label}

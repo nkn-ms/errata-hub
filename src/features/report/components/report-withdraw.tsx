@@ -41,14 +41,17 @@ export function ReportWithdraw({ reportId, title }: { reportId: string; title: s
 
       <ErrorPanel errors={errors} />
 
-      <button
+      <Button
         type="button"
         onClick={() => confirmRef.current?.showModal()}
         disabled={withdrawing}
-        className="mt-3 px-6 py-2 text-sm border border-red-700 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+        variant="dangerOutline"
+        // 枠線だけ既定（red-300）より濃くする。取り消せない操作の入口なので、
+        // 管理画面の「削除」と同じ強さでは弱い
+        className="mt-3 px-6 border-red-700"
       >
         取り下げる
-      </button>
+      </Button>
 
       <dialog
         ref={confirmRef}

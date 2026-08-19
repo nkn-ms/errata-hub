@@ -67,9 +67,11 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, t
       }
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer",
+        // disabled でも :hover は当たるので、押せないときは色を戻す
+        // （自分の投稿にはこのボタンが disabled で出る＝反応すると押せるように見える）
         upvoted
-          ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
-          : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50",
+          ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:hover:bg-blue-50"
+          : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:hover:bg-white",
         viewer === "owner" && "opacity-50 cursor-not-allowed",
         isPending && "opacity-60"
       )}
