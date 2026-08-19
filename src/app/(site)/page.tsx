@@ -12,6 +12,7 @@ import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import type { ReportType, ReportStatus } from "@/features/report/types";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
+import { Button } from "@/components/ui/button";
 
 // トップの新着フィードは1ページ20件。11件目以降も ?page=N のリンクで辿れる
 // （古い投稿が導線から消えず、クローラも辿れる）。
@@ -97,13 +98,13 @@ export default async function Home({ searchParams }: Props) {
             <option key={value} value={value}>{label}</option>
           ))}
         </SelectField>
-        <button
+        <Button
           type="submit"
           // スマホでは絞り込みの下に単独で残るので、幅いっぱいにして押しやすくする
-          className="w-full sm:w-auto px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+          className="w-full sm:w-auto"
         >
           検索
-        </button>
+        </Button>
       </form>
 
       {/* 免責バナー */}

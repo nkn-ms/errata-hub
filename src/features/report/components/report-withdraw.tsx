@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { withdrawOwnReport } from "@/features/report/actions/report";
 import { ErrorPanel } from "@/features/report/components/report-fields";
+import { Button } from "@/components/ui/button";
 
 /**
  * 投稿の取り下げ。編集画面の末尾に置く。
@@ -62,21 +63,23 @@ export function ReportWithdraw({ reportId, title }: { reportId: string; title: s
             <strong>取り消せません。</strong>
           </p>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => confirmRef.current?.close()}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleWithdraw}
               disabled={withdrawing}
-              className="px-6 py-2 text-sm bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50 transition-colors"
+              variant="danger"
+              className="px-6"
             >
               {withdrawing ? "取り下げ中..." : "取り下げる"}
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>

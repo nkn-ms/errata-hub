@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { deletePublisherComment } from "@/features/report/actions/publisher-comment";
 import type { PublisherCommentView } from "@/features/report/types";
+import { Button } from "@/components/ui/button";
 
 // 削除は取り消せないので確認を挟む。⚠️ `confirm()` は使わない
 // （<dialog> なら ESC とフォーカス管理が付いてくる＝投稿の追記・出版社の回答と同じ作法）
@@ -61,16 +62,17 @@ export function AdminPublisherCommentList({ comments }: Props) {
                 </p>
                 <p className="mt-0.5 text-sm text-gray-800 whitespace-pre-wrap">{comment.body}</p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => openConfirm(comment)}
                 disabled={deleting}
-                className="shrink-0 px-3 py-1 text-xs text-red-700 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                variant="dangerOutline"
+                className="shrink-0 px-3 py-1 text-xs"
               >
                 {/* ⚠️ ただの「削除」にしない。同じ画面に投稿そのものの「削除」があり、
                     どちらを押すのか区別できない（添付画像の「この画像を削除」と同じ理由） */}
                 この回答を削除
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -97,24 +99,26 @@ export function AdminPublisherCommentList({ comments }: Props) {
           )}
           <p className="text-xs text-gray-500">この操作は取り消せません。</p>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 confirmRef.current?.close();
                 setTarget(null);
               }}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="px-6 py-2 text-sm bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50 transition-colors"
+              variant="danger"
+              className="px-6"
             >
               {deleting ? "削除中..." : "削除する"}
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>

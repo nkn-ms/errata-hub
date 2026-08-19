@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { adoptReportedErratumUrl } from "@/features/book/actions/book";
 import { hostnameOf } from "@/utils/external-url";
+import { Button } from "@/components/ui/button";
 
 /**
  * 投稿者が申告した正誤表 URL を、その本の公式な正誤表として採用する管理者用の操作。
@@ -80,14 +81,9 @@ export function ErratumUrlAdopter({
       {alreadyAdopted && !saved ? (
         <p className="text-sm text-gray-500">この URL は既にこの本の正誤表として登録済みです。</p>
       ) : (
-        <button
-          type="button"
-          onClick={handleClick}
-          disabled={saving || saved}
-          className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-        >
+        <Button type="button" onClick={handleClick} disabled={saving || saved}>
           {saving ? "採用中..." : "この本の正誤表として採用"}
-        </button>
+        </Button>
       )}
 
       {willOverwrite && (
@@ -118,21 +114,17 @@ export function ErratumUrlAdopter({
             </div>
           </dl>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => confirmRef.current?.close()}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleAdopt}
-              disabled={saving}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" onClick={handleAdopt} disabled={saving} className="px-6">
               {saving ? "採用中..." : "採用する"}
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>

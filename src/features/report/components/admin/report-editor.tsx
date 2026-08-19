@@ -11,6 +11,7 @@ import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { routes } from "@/constants/routes";
 import { toIntOrNull } from "@/utils/parse";
 import type { ReportStatus } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
 
 type Status = ReportStatus;
 
@@ -227,30 +228,21 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
 
       <div className="flex gap-3 justify-between">
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
+          <Button type="button" onClick={handleSave} disabled={saving} className="px-6">
             {saving ? "更新中..." : "更新する"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => router.push(routes.admin.reports)}
-            className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            variant="secondary"
+            className="px-6"
           >
             一覧に戻る
-          </button>
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={saving}
-          className="px-4 py-2 text-sm text-red-700 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
-        >
+        <Button type="button" onClick={handleDelete} disabled={saving} variant="dangerOutline">
           削除
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { withdraw } from "@/features/account/actions/auth";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 export default function WithdrawPage() {
   const [state, action, pending] = useActionState(withdraw, undefined);
@@ -48,13 +49,14 @@ export default function WithdrawPage() {
             <span>上記を理解し、退会することに同意します。</span>
           </label>
 
-          <button
+          <Button
             type="submit"
             disabled={!confirmed || pending}
-            className="w-full py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            variant="danger"
+            className="w-full"
           >
             {pending ? "退会処理中..." : "退会する"}
-          </button>
+          </Button>
 
           <p className="text-center text-sm text-gray-500">
             <Link href={routes.account} className="text-blue-600 hover:underline">

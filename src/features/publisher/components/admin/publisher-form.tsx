@@ -10,6 +10,7 @@ import {
   type PublisherState,
 } from "@/features/publisher/actions/publisher";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 export default function PublisherForm({ publisher }: { publisher?: Publisher }) {
   const router = useRouter();
@@ -97,29 +98,22 @@ export default function PublisherForm({ publisher }: { publisher?: Publisher }) 
 
         <div className="flex gap-3 justify-between pt-2">
           <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={pending}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            <Button type="submit" disabled={pending} className="px-6">
               {pending ? "送信中..." : submitLabel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => router.push(routes.admin.publishers)}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
+            </Button>
           </div>
           {isEdit && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="px-4 py-2 text-sm text-red-700 border border-red-300 rounded-md hover:bg-red-50 transition-colors"
-            >
+            <Button type="button" onClick={handleDelete} variant="dangerOutline">
               削除
-            </button>
+            </Button>
           )}
         </div>
       </form>

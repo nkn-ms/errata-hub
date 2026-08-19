@@ -7,6 +7,7 @@ import { routes } from "@/constants/routes";
 import { PROFILE_LIMITS } from "@/features/account/constants";
 import { GitHubSignInButton } from "@/features/account/components/github-sign-in-button";
 import { LegalConsentNote } from "@/components/layout/legal";
+import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(register, undefined);
@@ -72,13 +73,9 @@ export default function RegisterPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" disabled={pending} className="w-full">
             {pending ? "登録中..." : "会員登録"}
-          </button>
+          </Button>
           </form>
 
           <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { GitHubSignInButton } from "@/features/account/components/github-sign-in-button";
 import { LegalConsentNote } from "@/components/layout/legal";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -55,13 +56,9 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" disabled={pending} className="w-full">
             {pending ? "ログイン中..." : "ログイン"}
-          </button>
+          </Button>
           </form>
 
           <div className="flex items-center gap-3">

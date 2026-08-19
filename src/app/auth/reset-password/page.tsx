@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { requestPasswordReset } from "@/features/account/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 export default function ResetPasswordPage() {
   const [state, action, pending] = useActionState(requestPasswordReset, undefined);
@@ -41,13 +42,9 @@ export default function ResetPasswordPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" disabled={pending} className="w-full">
             {pending ? "送信中..." : "再設定リンクを送信"}
-          </button>
+          </Button>
 
           <p className="text-center text-sm text-gray-500">
             <Link href={routes.login} className="text-blue-600 hover:underline">

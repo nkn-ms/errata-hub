@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteBook, updateBook } from "@/features/book/actions/book";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 type Book = {
   id: string;
@@ -195,31 +196,27 @@ export function AdminBookEditor({ book }: { book: Book }) {
 
         <div className="flex gap-3 justify-between pt-2">
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            <Button type="button" onClick={handleSave} disabled={saving} className="px-6">
               {saving ? "更新中..." : "更新する"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => router.push(routes.admin.books)}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               一覧に戻る
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleDelete}
             disabled={saving || book.reportCount > 0}
             title={book.reportCount > 0 ? "投稿が紐づく書籍は削除できません" : undefined}
-            className="px-4 py-2 text-sm text-red-700 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            variant="dangerOutline"
           >
             削除
-          </button>
+          </Button>
         </div>
         {book.reportCount > 0 && (
           <p className="text-xs text-gray-400">
@@ -236,14 +233,15 @@ export function AdminBookEditor({ book }: { book: Book }) {
               この ISBN の最新の書誌を OpenBD から取得し、現在の値と差分を比較できます。
             </p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleFetchOpenBd}
             disabled={fetching}
-            className="shrink-0 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            variant="secondary"
+            className="shrink-0"
           >
             {fetching ? "取得中..." : "ISBNで最新取得"}
-          </button>
+          </Button>
         </div>
 
         {fetchError && <p className="text-sm text-red-700">{fetchError}</p>}
@@ -289,13 +287,9 @@ export function AdminBookEditor({ book }: { book: Book }) {
                 </tbody>
               </table>
             </div>
-            <button
-              type="button"
-              onClick={applyAll}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-            >
+            <Button type="button" onClick={applyAll} variant="secondary">
               差分をすべて反映
-            </button>
+            </Button>
             <p className="text-xs text-gray-400">
               反映してもまだ更新はされません。内容を確認して「更新する」を押してください。
             </p>
