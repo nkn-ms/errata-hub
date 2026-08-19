@@ -211,8 +211,8 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
           // 絞り込みバーの部品は見出しを持たず、placeholder と先頭の option が
           // 見た目のラベルを兼ねている。どちらも名前にはならない（placeholder は打つと消え、
           // option は名前ではなく値）ので aria-label で名前を与える。
-          aria-label="書籍名・タイトルで検索"
-          placeholder="書籍名・タイトルで検索..."
+          aria-label="書籍名・投稿内容で検索"
+          placeholder="書籍名・投稿内容で検索..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
