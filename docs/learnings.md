@@ -583,7 +583,7 @@ Supabase Auth のユーザー本体（`auth.users`）には認証に必要な情
 | 誰が | いつ | 何が入るか |
 |------|------|-----------|
 | アプリ | 会員登録時（`signUp` の `options.data`）や `updateUser` | 登録フォームの表示名など任意の値 |
-| OAuth プロバイダ | GitHub ログイン時に**自動で** | GitHub プロフィール（`user_name`・`avatar_url`・`email` など） |
+| OAuth プロバイダ | ソーシャルログイン時に**自動で** | プロバイダのプロフィール（GitHub なら `user_name`・`avatar_url`・`email`、Google なら `full_name`・`picture`・`email` など） |
 
 参考: https://supabase.com/docs/guides/auth/managing-user-data
 
@@ -595,7 +595,7 @@ Supabase Auth のユーザー本体（`auth.users`）には認証に必要な情
 
 **表示名の正は `Profile.displayName` のみ。`user_metadata.display_name` は「会員登録フォーム → メール確認後の callback で Profile を作る」までの一度きりの運搬役で、以後は参照も同期もしない。**
 
-かつては「Profile が正・user_metadata も整合のため合わせて更新する」という二重管理だったが、ログイン経路（メール登録・GitHub・将来の Google）が増えるたびに同期漏れが起きる構造で、実際に GitHub ログインでヘッダーがメール表示になるバグが出た（GitHub 由来の metadata には `display_name` というキーが無いため）。読む場所を Profile に一本化して同期コード自体を廃止した（コミット b1492de）。
+かつては「Profile が正・user_metadata も整合のため合わせて更新する」という二重管理だったが、ログイン経路（メール登録・GitHub・Google）が増えるたびに同期漏れが起きる構造で、実際に GitHub ログインでヘッダーがメール表示になるバグが出た（GitHub 由来の metadata には `display_name` というキーが無いため）。読む場所を Profile に一本化して同期コード自体を廃止した（コミット b1492de）。
 
 ## Next.js の `metadata` / `generateMetadata` は「予約 export」— 呼び出しコードはどこにも無い
 

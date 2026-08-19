@@ -94,19 +94,22 @@ export async function register(_prevState: AuthState, formData: FormData): Promi
 }
 
 /**
- * GitHub ログイン（OAuth 開始）。
+ * ソーシャルログイン（OAuth 開始）。
  *
  * signInWithOAuth はサーバーでは自動リダイレクトせず認可 URL を返すだけなので、
- * redirect() で GitHub へ送る。PKCE の code verifier は @supabase/ssr が
- * Cookie に保存し、GitHub から戻った /auth/callback の exchangeCodeForSession が消費する。
+ * redirect() でプロバイダへ送る。PKCE の code verifier は @supabase/ssr が
+ * Cookie に保存し、戻ってきた /auth/callback の exchangeCodeForSession が消費する。
  * 参考: https://supabase.com/docs/guides/auth/social-login/auth-github
+ *
+ * プロバイダごとの違い（GitHub は OAuth 2.0・Google は OpenID Connect）は Supabase の中で
+ * 吸収されるので、アプリ側は provider の文字列が変わるだけになる。
  */
-export async function signInWithGitHub() {
+async function startOAuth(provider: "github" | "google") {
   const origin = await getRequestOrigin();
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "github",
+    provider,
     options: { redirectTo: `${origin}${routes.auth.callback}` },
   });
 
@@ -114,6 +117,14 @@ export async function signInWithGitHub() {
     redirect(routes.auth.error);
   }
   redirect(data.url);
+}
+
+export async function signInWithGitHub() {
+  await startOAuth("github");
+}
+
+export async function signInWithGoogle() {
+  await startOAuth("google");
 }
 
 const ResetRequestSchema = z.object({

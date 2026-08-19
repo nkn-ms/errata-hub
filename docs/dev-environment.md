@@ -10,7 +10,8 @@ env で迷ったらここを見る。
 
 - **ローカルの値は全部 `.env.local`**。`.env` は方針コメントのみの空ファイル（§4）。
 - **Supabase CLI（`supabase start`）も `.env` と `.env.local` を自動で読む**（実測確認済み）。
-  GitHub ログインのローカル用 client_id/secret はここから `supabase/config.toml` の `env()` に入る。
+  ソーシャルログイン（GitHub・Google）のローカル用 client_id/secret はここから `supabase/config.toml` の `env()` に入る。
+  **Google はローカルでは既定で無効**（`[auth.external.google] enabled = false`）＝空の client_id で `true` にすると Auth が起動しないため。
 - **`supabase/config.toml` や Supabase 向け env 値を変えたら `supabase stop && supabase start`**。
   起動中のコンテナには反映されない（データは stop では消えない。消えるのは `db reset` 時）。
 - **`prisma/schema.prisma` を変えた PR は、main マージとは別に本番 Supabase への `prisma migrate deploy` が必要**。

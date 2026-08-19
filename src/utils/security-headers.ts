@@ -22,7 +22,7 @@ export const STATIC_SECURITY_HEADERS = [
   // CSP を解さない古いブラウザ向けの保険として残す
   { key: "X-Frame-Options", value: "DENY" },
   // 別オリジンから window.opener 経由で参照されないようにする（タブナビング対策）。
-  // GitHub ログインはポップアップではなく全画面リダイレクトなので影響しない
+  // ソーシャルログインはポップアップではなく全画面リダイレクトなので影響しない
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // 使っていない強い権限は明示的に閉じる（画像添付の <input type="file"> は権限を要求しない）
   {
@@ -137,7 +137,7 @@ export function buildContentSecurityPolicy({
     // <base> の書き換えで相対 URL の解決先を乗っ取られないようにする
     "base-uri 'self'",
     // フォームの送信先を自サイトに限定（注入されたフォームでの入力値の持ち出しを防ぐ）。
-    // ⚠️ JS 無効時の GitHub ログインだけは影響を受ける（Server Action の 303 リダイレクト先が
+    // ⚠️ JS 無効時のソーシャルログインだけは影響を受ける（Server Action の 303 リダイレクト先が
     //    Supabase の認可 URL になるため）。JS 有効時はルーターが遷移するので影響しない。
     "form-action 'self'",
     // 他サイトからの frame 埋め込みを禁止（X-Frame-Options の CSP 版）

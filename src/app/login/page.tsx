@@ -4,7 +4,10 @@ import { useActionState } from "react";
 import { login } from "@/features/account/actions/auth";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { GitHubSignInButton } from "@/features/account/components/github-sign-in-button";
+import {
+  GitHubSignInButton,
+  GoogleSignInButton,
+} from "@/features/account/components/oauth-sign-in-buttons";
 import { LegalConsentNote } from "@/components/layout/legal";
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +22,7 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-gray-500">Errata Hub</p>
         </div>
 
-        {/* GitHub ボタンも <form> なので、ネストを避けるためカードは div にして form を分ける */}
+        {/* ソーシャルログインのボタンも <form> なので、ネストを避けるためカードは div にして form を分ける */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <form action={action} className="space-y-4">
           {state?.error && (
@@ -67,9 +70,12 @@ export default function LoginPage() {
             <div className="flex-1 border-t border-gray-200" />
           </div>
 
-          <GitHubSignInButton />
+          <div className="space-y-2">
+            <GoogleSignInButton />
+            <GitHubSignInButton />
+          </div>
 
-          {/* GitHubログインは初回に新規登録を兼ねる（同一メール自動リンク/新規作成）ため、ログイン画面にも同意文言を出す */}
+          {/* ソーシャルログインは初回に新規登録を兼ねる（同一メール自動リンク/新規作成）ため、ログイン画面にも同意文言を出す */}
           <LegalConsentNote action="ログイン" />
 
           <p className="text-center text-sm">
