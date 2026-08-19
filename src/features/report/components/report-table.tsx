@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
+import { SelectField } from "@/components/ui/select-field";
 import { Report, ReportType, ReportStatus } from "@/features/report/types";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
@@ -216,7 +217,7 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <select
+        <SelectField
           aria-label="種別で絞り込む"
           value={filterValue("type") ?? "all"}
           onChange={(e) =>
@@ -225,14 +226,13 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
               { id: "type", value: e.target.value },
             ])
           }
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">種別：すべて</option>
           {(Object.entries(TYPE_LABELS) as [ReportType, string][]).map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
           ))}
-        </select>
-        <select
+        </SelectField>
+        <SelectField
           aria-label="ステータスで絞り込む"
           value={filterValue("status") ?? "all"}
           onChange={(e) =>
@@ -241,13 +241,12 @@ export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initi
               { id: "status", value: e.target.value },
             ])
           }
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">ステータス：すべて</option>
           {(Object.entries(STATUS_LABELS) as [ReportStatus, string][]).map(([value, label]) => (
             <option key={value} value={value}>{label}</option>
           ))}
-        </select>
+        </SelectField>
         <span className="text-sm text-gray-500 ml-auto">
           {table.getFilteredRowModel().rows.length} 件
         </span>
