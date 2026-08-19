@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NumberField } from "@/components/ui/number-field";
+import { SelectField } from "@/components/ui/select-field";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 
 // 動かして確かめる見本だけをここに集める。ページ本体（page.tsx）はサーバーのまま保つ。
@@ -18,6 +19,24 @@ export function NumberFieldDemo() {
       <p className="mt-2 text-xs text-gray-500">
         全角で「５８」と打っても半角になります。文字を混ぜても値は消えません。
       </p>
+    </div>
+  );
+}
+
+export function SelectFieldDemo() {
+  const [value, setValue] = useState("all");
+  return (
+    <div className="space-y-2">
+      <SelectField
+        aria-label="見本の絞り込み"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      >
+        <option value="all">種別：すべて</option>
+        <option value="errata">正誤情報</option>
+        <option value="suggestion">改善提案</option>
+      </SelectField>
+      <p className="text-xs text-gray-500">選んでいる値: {value}</p>
     </div>
   );
 }

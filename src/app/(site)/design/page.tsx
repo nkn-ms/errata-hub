@@ -11,7 +11,13 @@ import type { ReportStatus } from "@/features/report/types";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 import { SAMPLE_REPORT, SAMPLE_REPORTS } from "./fixtures";
-import { CharCounterDemo, ErrorPanelDemo, MenuPanelDemo, NumberFieldDemo } from "./demos";
+import {
+  CharCounterDemo,
+  ErrorPanelDemo,
+  MenuPanelDemo,
+  NumberFieldDemo,
+  SelectFieldDemo,
+} from "./demos";
 
 export const metadata: Metadata = {
   title: "デザインシステム",
@@ -227,6 +233,19 @@ export default function DesignPage() {
               全角で打った数字を半角に直そうにも、直す対象が取れません。
               変換の完了だけを見る方法も、貼り付けでは反応しないため使えませんでした。
               増減のボタンも自前です。
+            </p>
+          </Item>
+          <Item name="選択欄" note="矢印だけ自前にしています。">
+            <SelectFieldDemo />
+            <p className="mt-3 text-sm text-gray-600">
+              ブラウザが標準で描く矢印は<strong>枠の右端に貼り付き、文字との間が空きます</strong>。
+              位置も形も CSS からは動かせないうえ、幅は最も長い選択肢で決まるので、
+              短い選択肢を選んでいるときほど間延びして見えます。標準の矢印を消し、
+              同じアイコン集の矢印を重ねて位置を揃えました。
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              重ねた矢印はクリックを受け取らないようにしてあります。そうしないと、
+              <strong>矢印の上を押したときだけ開かない</strong>という、見た目では分からない壊れ方をします。
             </p>
           </Item>
         </Section>

@@ -32,6 +32,7 @@ test.describe("デザインシステム", () => {
     await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
     await expect(page.getByRole("button", { name: "自分も見つけた" })).toBeVisible();
     await expect(page.getByRole("button", { name: "メニュー（見本）" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "見本の絞り込み" })).toBeVisible();
   });
 
   test("ページに横スクロールを作らない", async ({ page }) => {
