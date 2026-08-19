@@ -29,6 +29,7 @@ import {
   ErrataSummary,
 } from "@/features/report/components/report-card";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
+import { Button } from "@/components/ui/button";
 
 // 列は6つ。以前は11列あり、1280px でも 224px 分が横スクロールの向こう側に隠れていた
 // （＝隠れた列は誰も読まないのに、全部の列幅を細くして読みにくさだけを配っていた）。
@@ -342,20 +343,22 @@ export function ReportTable({
           {table.getState().pagination.pageIndex + 1} / {table.getPageCount()} ページ
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            variant="secondary"
+            className="px-3 py-1.5"
           >
             前へ
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            variant="secondary"
+            className="px-3 py-1.5"
           >
             次へ
-          </button>
+          </Button>
         </div>
       </div>
     </div>

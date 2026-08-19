@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updatePassword } from "@/features/account/actions/auth";
+import { Button } from "@/components/ui/button";
 
 export default function UpdatePasswordPage() {
   const [state, action, pending] = useActionState(updatePassword, undefined);
@@ -36,13 +37,9 @@ export default function UpdatePasswordPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-          >
+          <Button type="submit" disabled={pending} className="w-full">
             {pending ? "更新中..." : "パスワードを更新"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -12,7 +12,7 @@ test.describe("デザインシステム", () => {
     await page.goto(routes.design);
   });
 
-  test("グレーの梯子が10段そろっている", async ({ page }) => {
+  test("グレーの階調が10段そろっている", async ({ page }) => {
     // 数を数えるのは、CSS 変数が消えても見た目が「白い四角」になるだけで気づけないため。
     // ⚠️ 色つきの段は並べない: Tailwind v4 は使われている色の変数しか出力しないので、
     //    使っていない段は解決できず空白になる（壊れて見える）。
@@ -27,11 +27,22 @@ test.describe("デザインシステム", () => {
     await expect(badges).toHaveCount(8);
   });
 
+  test("ボタンは4種類を、押せる状態と押せない状態の対で並べる", async ({ page }) => {
+    // variant が増減したらこのページも直す必要がある、を検知する（見本1件につき2つ描く）。
+    await expect(page.locator("#button button")).toHaveCount(8);
+    // 押せないボタンがマウスに反応しないこと自体がこの部品を作った理由なので、そこを測る。
+    const disabled = page.locator("#button button[disabled]").first();
+    const before = await disabled.evaluate((e) => getComputedStyle(e).backgroundColor);
+    await disabled.hover({ force: true });
+    await expect
+      .poll(() => disabled.evaluate((e) => getComputedStyle(e).backgroundColor))
+      .toBe(before);
+  });
+
   test("見本の部品が実物として描かれている", async ({ page }) => {
-    // 投稿の表（TanStack）・カード・賛同ボタン・テーマ切り替え
+    // 投稿の表（TanStack）・賛同ボタン・選択欄
     await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
     await expect(page.getByRole("button", { name: "自分も見つけた" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "メニュー（見本）" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "見本の絞り込み" })).toBeVisible();
   });
 

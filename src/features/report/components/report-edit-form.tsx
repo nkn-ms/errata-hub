@@ -20,6 +20,7 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import { Button } from "@/components/ui/button";
 
 type BookSummary = {
   title: string;
@@ -324,24 +325,26 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
             削除した画像は<strong>元に戻せません。</strong>本文の変更も一緒に保存されます。
           </p>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => confirmRef.current?.close()}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => {
                 confirmRef.current?.close();
                 void save();
               }}
               disabled={submitting}
-              className="px-6 py-2 text-sm bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50 transition-colors"
+              variant="danger"
+              className="px-6"
             >
               削除して更新する
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>
@@ -353,13 +356,9 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
         >
           キャンセル
         </Link>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-        >
+        <Button type="submit" disabled={submitting} className="px-6">
           {submitting ? "更新中..." : "更新する"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -23,6 +23,7 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import { Button } from "@/components/ui/button";
 
 type BookData = {
   googleBooksId: string;
@@ -370,21 +371,22 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
 
         {/* 並びはフォームの footer と同じ（主要な行き先を右に置く） */}
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
             type="button"
             onClick={() => setPending(null)}
-            className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            variant="secondary"
+            className="px-6"
           >
             修正する
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => submitReport(pending)}
             disabled={submitting}
-            className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            className="px-6"
           >
             {submitting ? "投稿中..." : "投稿する"}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -608,22 +610,19 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
       <ErrorPanel errors={errors} />
 
       <div className="flex gap-3 justify-end">
-        <button
+        <Button
           type="button"
           onClick={() => router.push(routes.home)}
-          className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          variant="secondary"
+          className="px-6"
         >
           キャンセル
-        </button>
+        </Button>
         {/* このボタンは送信しない（確認画面へ進む）。ラベルもそう名乗る。
             「投稿する」のままだと押した瞬間に投稿されると読めてしまう */}
-        <button
-          type="submit"
-          disabled={compressing}
-          className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-        >
+        <Button type="submit" disabled={compressing} className="px-6">
           確認する
-        </button>
+        </Button>
       </div>
     </form>
   );

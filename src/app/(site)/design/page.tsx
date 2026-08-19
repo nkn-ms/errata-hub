@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Button, type ButtonVariant } from "@/components/ui/button";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { ReportCard } from "@/features/report/components/report-card";
 import { ReportTable } from "@/features/report/components/report-table";
@@ -11,20 +12,14 @@ import type { ReportStatus } from "@/features/report/types";
 import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 import { SAMPLE_REPORT, SAMPLE_REPORTS } from "./fixtures";
-import {
-  CharCounterDemo,
-  ErrorPanelDemo,
-  MenuPanelDemo,
-  NumberFieldDemo,
-  SelectFieldDemo,
-} from "./demos";
+import { CharCounterDemo, ErrorPanelDemo, NumberFieldDemo, SelectFieldDemo } from "./demos";
 
 export const metadata: Metadata = {
   title: "デザインシステム",
-  description: "Errata Hub の色・文字・UI 部品と、その値をそう決めた理由。",
+  description: "Errata Hub で使っている色・文字・UI 部品と、それぞれの値を決めた基準。",
 };
 
-// グレーの梯子。値は CSS 変数を直に読むので、globals.css を変えればこのページも一緒に変わる
+// グレーの階調。値は CSS 変数を直に読むので、globals.css を変えればこのページも一緒に変わる
 // （数値を書き写さない = 説明が実装に追いつかなくなる経路を作らない）。
 //
 // ⚠️ 色つきの段はここに並べない。Tailwind v4 は**使われている色の変数しか出力しない**ので、
@@ -52,10 +47,32 @@ const SEMANTIC_COLORS: { use: string; className: string; sample: string }[] = [
   { use: "未対応・既定", className: "bg-gray-100 text-gray-700", sample: "未対応" },
 ];
 
+// ボタンの見た目は4つだけ。ここは Button の variant をそのまま並べるので、
+// 種類が増えれば型（ButtonVariant）が変わってこの配列も直すことになる。
+const BUTTON_SAMPLES: { variant: ButtonVariant; label: string; use: string }[] = [
+  { variant: "primary", label: "投稿する", use: "その画面の主たる操作。原則1画面に1つ" },
+  { variant: "secondary", label: "キャンセル", use: "主たる操作の隣に置く、戻る側の操作" },
+  { variant: "danger", label: "取り下げる", use: "取り消せない操作" },
+  { variant: "dangerOutline", label: "削除", use: "破壊的だが画面の主役ではない操作（管理画面）" },
+];
+
+// 文字の段。実際に画面で使っている6段だけを、使っている組み合わせ（太さ込み）で並べる。
+// px は Tailwind 既定値（rem 指定）を 16px 基準で換算したもの。
+const TYPE_SCALE: { className: string; token: string; px: string; role: string }[] = [
+  { className: "text-2xl font-bold", token: "text-2xl", px: "24px", role: "公開側ページの見出し" },
+  { className: "text-xl font-bold", token: "text-xl", px: "20px", role: "管理画面・認証画面の見出し" },
+  { className: "text-lg font-semibold", token: "text-lg", px: "18px", role: "節の見出し" },
+  { className: "text-base font-semibold", token: "text-base", px: "16px", role: "カード・フォームの小見出し" },
+  { className: "text-sm", token: "text-sm", px: "14px", role: "本文・入力欄・ボタン" },
+  { className: "text-xs", token: "text-xs", px: "12px", role: "補助（日付・短縮 ID・注記）" },
+];
+
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-8 border-t border-gray-200 pt-8">
-      <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+      {/* 節の見出しはサイト共通の段（text-lg font-semibold）に合わせる。
+          ここで独自の段を使うと、下の「文字」の節で説明している内容とこのページ自身が食い違う。 */}
+      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
       <div className="mt-4 space-y-6">{children}</div>
     </section>
   );
@@ -78,8 +95,8 @@ export default function DesignPage() {
 
       <h1 className="text-2xl font-bold text-gray-900">デザインシステム</h1>
       <p className="mt-2 text-sm text-gray-600">
-        このサイトで使っている色・文字・UI 部品と、その値をそう決めた理由をまとめています。
-        どの技術を選んだかは
+        このサイトで使っている色・文字・UI 部品を、実際の画面で動いているものそのまま並べています。
+        それぞれ、その形にした理由を添えました。どの技術を選んだかは
         <Link href={routes.tech} className="mx-1 text-blue-600 hover:underline">
           使用技術
         </Link>
@@ -94,21 +111,25 @@ export default function DesignPage() {
             <strong>同じ変数の中身を差し替える</strong>方式です。
           </p>
           <p className="text-sm text-gray-700">
-            <code className="text-xs">dark:</code> 方式だと、<code className="text-xs">bg-white</code>{" "}
-            を書いた1083箇所すべてに <code className="text-xs">dark:bg-gray-900</code>{" "}
-            を書き足すことになります。書き漏らした1箇所は、ダークで開いたときだけ白く光ります。
-            変数を差し替えれば、<strong>書き漏らしという状態が存在しません</strong>。
+            <code className="text-xs">dark:</code> 方式では、色を指定している 1,000 箇所以上のクラスに、
+            対になる指定を1つずつ書き足すことになります。書き漏らした1箇所は、
+            ダークで開いたときだけ白く光ります。変数を差し替える方式なら、
+            <strong>書き漏らしという状態がそもそも生まれません</strong>。
           </p>
           <p className="text-sm text-gray-700">
-            代償は「Tailwind の階調がそのままの意味では読めなくなる」ことです。ダークでは{" "}
+            例外は管理画面の帯だけです。ここはライトでもダークでも暗い面のままにしたいので、
+            そこに限って <code className="text-xs">dark:</code> で当て直しています。
+          </p>
+          <p className="text-sm text-gray-700">
+            代償は、Tailwind の階調がそのままの意味では読めなくなることです。ダークでは{" "}
             <code className="text-xs">gray-700</code> が本文、<code className="text-xs">gray-200</code>{" "}
             が枠線で、明るさの順序が反転しています。下の見本は CSS 変数を直接読んでいるので、
-            右上のボタンでテーマを切り替えると実際の値が入れ替わります。
+            テーマを切り替えると実際の値が入れ替わります。
           </p>
 
           <div className="rounded-lg border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">グレーの梯子</h3>
+              <h3 className="text-sm font-semibold text-gray-900">グレーの階調</h3>
               <ThemeToggle />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -126,9 +147,14 @@ export default function DesignPage() {
                 </div>
               ))}
             </div>
+            <p className="mt-4 text-sm text-gray-600">
+              右上のボタンは「OS の設定に合わせる・ライト・ダーク」の3つを順に回ります。
+              選択は保存され、次に開いたときも維持されます。最初の描画より前にテーマを確定させているので、
+              読み込みの途中で一瞬ライトが見えることはありません。
+            </p>
           </div>
 
-          <Item name="意味を持つ色" note="色は飾りではなく状態を表しています。実際に当てている組み合わせです。">
+          <Item name="意味を持つ色" note="色は飾りではなく状態を表します。画面で実際に当てている組み合わせです。">
             <ul className="space-y-2">
               {SEMANTIC_COLORS.map((c) => (
                 <li key={c.use} className="flex flex-wrap items-center gap-3 text-sm">
@@ -147,8 +173,8 @@ export default function DesignPage() {
           </Item>
 
           <Item
-            name="ライトで手を入れているのは gray-400 だけ"
-            note="ほかはすべて Tailwind の既定値をそのまま使っています。"
+            name="既定値を変えたのは gray-400 だけ"
+            note="ライトのグレーで、ほかの段はすべて Tailwind の既定値のままです。"
           >
             <div className="space-y-3 text-sm text-gray-700">
               <p>
@@ -158,8 +184,9 @@ export default function DesignPage() {
               </p>
               <p>
                 計算した結果、<strong>AA を満たす最も薄いグレーは実質 gray-500</strong>{" "}
-                でした（白地 4.84:1）。その手前に置いても 4.5 をわずかに超える程度で、
-                ブラウザ差で割れる余地が残ります。そこで 400 を 500 と同じ値にしました。
+                でした（白地 4.84:1）。400 と 500 の間に新しい値を置いても 4.5
+                をわずかに超える程度にしかならず、ブラウザ差で割れる余地が残ります。
+                そこで 400 を 500 と同じ値にしました。
                 <strong>「薄いグレーの文字」という段は AA と両立しない</strong>
                 と分かったので、段そのものを消しています。
               </p>
@@ -170,20 +197,40 @@ export default function DesignPage() {
             </div>
           </Item>
 
-          <Item name="色つきの文字の下限" note="背景しだいで基準を割るので、段ごとに下限を決めています。">
+          <Item name="色を付けた文字の下限" note="背景しだいで基準を割るので、色ごとに使ってよい下限を決めています。">
             <ul className="space-y-2 text-sm">
               <li className="text-red-700">赤は red-700 まで（500・600 は背景しだいで AA を割る）</li>
               <li className="text-green-700">緑は green-700 まで</li>
               <li className="text-blue-600">青は blue-600 まで（リンクとして最も薄くできる段）</li>
             </ul>
             <p className="mt-3 text-sm text-gray-600">
-              開いただけでは出ない文字（エラー・状態の変化）は、状態を切り替えるテストで測っています。
-              静的に眺めるだけでは見つかりません。
+              エラー文言のように、操作しなければ画面に出ない文字もあります。
+              こうした色は、状態を切り替えるテストの中で測っています。ページを開いて眺めるだけでは見つかりません。
             </p>
           </Item>
         </Section>
 
         <Section id="type" title="文字">
+          <Item name="大きさの段" note="画面で使っているのはこの6段だけです。">
+            <ul className="space-y-3">
+              {TYPE_SCALE.map((t) => (
+                <li key={t.token} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className={`${t.className} text-gray-900`}>見出しと本文</span>
+                  <code className="text-xs text-gray-500">
+                    {t.token}（{t.px}）
+                  </code>
+                  <span className="text-sm text-gray-700">{t.role}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-gray-600">
+              本文は 14px、補助的な文字は 12px です。12px は 4.5:1 を満たす色でしか使えないため、
+              このサイズに使えるグレーは上で決めた下限（gray-400 = 500 相当）までに限られます。
+              段の間は太さ（<code className="text-xs">font-semibold</code> /{" "}
+              <code className="text-xs">font-bold</code>）で差を付け、段そのものは増やしていません。
+            </p>
+          </Item>
+
           <Item name="書体" note="欧文は Geist、日本語は OS のゴシックに落とします。">
             <div className="space-y-2 text-sm text-gray-700">
               <p>
@@ -199,11 +246,32 @@ export default function DesignPage() {
           </Item>
         </Section>
 
+        <Section id="button" title="ボタン">
+          <Item name="4つの見た目" note="呼び出し側が変えられるのは幅と余白だけです。">
+            <ul className="space-y-4">
+              {BUTTON_SAMPLES.map((b) => (
+                <li key={b.variant} className="flex flex-wrap items-center gap-3">
+                  <Button type="button" variant={b.variant}>
+                    {b.label}
+                  </Button>
+                  <Button type="button" variant={b.variant} disabled>
+                    {b.label}
+                  </Button>
+                  <span className="text-sm text-gray-700">{b.use}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-gray-600">
+              右側は押せない状態です。色を薄くするだけでなく、カーソルの形も変えています。
+            </p>
+          </Item>
+        </Section>
+
         <Section id="form" title="フォームの部品">
           <p className="text-sm text-gray-700">
-            投稿・編集・追記・取り下げ・出版社からの回答の5画面が、同じファイルの部品を共有しています。
-            共有しているのは見た目だけでなく、
-            <strong>検証と、送信用の値への変換まで含めた「フォームという振る舞い」</strong>です。
+            投稿・編集・追記・取り下げ・出版社からの回答という5つの画面が、同じ部品を共有しています。
+            共有しているのは見た目だけではありません。
+            <strong>入力の検証と、送信用の値への変換まで含めた振る舞い全体</strong>を1か所に置いています。
           </p>
 
           <Item
@@ -212,16 +280,18 @@ export default function DesignPage() {
           >
             <ErrorPanelDemo />
             <p className="mt-3 text-sm text-gray-600">
-              上から順に直していけるようにするためで、検証の都合で順番が飛ぶと、
-              読み手に直す順序を組み立て直させることになります。各項目は該当の入力欄へ飛びます。
+              画面の並び順に出すのは、上から順に直していけるようにするためです。
+              検証の都合で順番が飛ぶと、読み手が直す順序を組み立て直すことになります。
+              実際のフォームでは各項目が該当の入力欄へのリンクになっています（この見本は表示だけです）。
             </p>
           </Item>
 
           <Item name="文字数のカウンター" note="上限の8割に達してから出します。">
             <CharCounterDemo />
             <p className="mt-3 text-sm text-gray-600">
-              最初から数字を見せると、それが目安になって書く量が引っ張られます。
-              上限に近づいたときだけ出せば、警告としてだけ働きます。
+              最初から数字を見せると、上限そのものが目安になって「そこまで書いてよい」と読めてしまいます。
+              上限に近づいたときだけ出せば、警告としてだけ働きます（GOV.UK Design System の
+              Character count が同じ理由で threshold を持っています）。
             </p>
           </Item>
 
@@ -229,10 +299,15 @@ export default function DesignPage() {
             <NumberFieldDemo />
             <p className="mt-3 text-sm text-gray-600">
               <code className="text-xs">type=&quot;number&quot;</code>{" "}
-              は不正な値が入ると読み出せる値が<strong>空文字になります</strong>。
-              全角で打った数字を半角に直そうにも、直す対象が取れません。
-              変換の完了だけを見る方法も、貼り付けでは反応しないため使えませんでした。
-              増減のボタンも自前です。
+              は不正な値が入ると、読み出せる値が<strong>空文字になります</strong>。
+              全角で「１４１」と打たれても、半角に直す対象そのものが取れません。
+              日本語入力の確定を合図にして直す方法もありますが、貼り付けではその合図が来ません。
+              実際に本番で、全角のまま「数字を入力してください」で止まる投稿が発生しています。
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              文字として受け取り、欄から離れた時点で半角へ直す形にしました。
+              失われる ▲▼ と上下キーでの増減は自前で補い、
+              代わりにホイールで値が勝手に変わる誤操作は起きなくなっています。
             </p>
           </Item>
           <Item name="選択欄" note="矢印だけ自前にしています。">
@@ -262,11 +337,12 @@ export default function DesignPage() {
             </div>
             <div className="mt-3 space-y-2 text-sm text-gray-600">
               <p>
-                <strong>運営が実際にできること以上を約束する語を使わない</strong>
-                、を原則にしています。「対応中」のように進んでいるように見えて中身の無いラベルは置きません。
+                <strong>運営が実際にできること以上を約束する語は使わない</strong>
+                ことを原則にしています。「対応中」のように、進んでいるように見えて中身の無いラベルは置きません。
               </p>
               <p>
-                説明文はバッジの中に隠して持たせてあり、hover に依存せず読み上げられます。
+                各バッジは説明文を中に隠して持っています。hover で出るパネルとは別に読み上げ用の文があるので、
+                マウスを乗せられない環境でも意味が伝わります。
               </p>
             </div>
           </Item>
@@ -280,45 +356,32 @@ export default function DesignPage() {
               type="ERRATA"
             />
             <p className="mt-3 text-sm text-gray-600">
-              賛同済みかどうかは色とアイコンの塗りつぶしで変わりますが、それだけでは支援技術に伝わりません。
-              押された状態であることを属性でも持たせています（この見本は未ログイン扱いなので押すと案内へ移ります）。
+              賛同済みかどうかは色とアイコンの塗りつぶしで変わりますが、見た目の差だけでは支援技術に伝わりません。
+              押された状態であることを属性でも持たせています。
+              なお、この見本は未ログイン扱いなので、押すとログインの案内へ移ります。
             </p>
           </Item>
 
-          <Item name="投稿のカード" note="スマホで一覧に出る形。表と同じデータを別の形で見せます。">
-            <div className="max-w-md">
-              <ReportCard report={SAMPLE_REPORT} />
-            </div>
-          </Item>
-        </Section>
-
-        <Section id="screen" title="画面の主役">
           <Item
-            name="投稿の一覧"
+            name="投稿の一覧（PC）"
             note="ヘッドレスのテーブルライブラリを使い、HTML と CSS は自前で書いています。"
           >
             <ReportTable data={SAMPLE_REPORTS} />
             <p className="mt-3 text-sm text-gray-600">
-              並べ替え・絞り込み・ページ送りの計算だけを借りて、
-              マークアップは自分で持ちます。狭い画面では表をやめてカードに切り替えます。
+              並べ替え・絞り込み・ページ送りの計算だけを借り、マークアップは自分で持っています。
+              画面幅が狭いときは、同じデータを次のカードに切り替えて出します。
             </p>
           </Item>
 
-          <Item name="メニュー" note="狭い画面ではナビをたたんでボタンにします。">
-            <MenuPanelDemo />
+          <Item name="投稿のカード（スマホ）" note="表を縮めるのではなく、優先順位を付け直した別の形です。">
+            <div className="max-w-md">
+              <ReportCard report={SAMPLE_REPORT} />
+            </div>
             <p className="mt-3 text-sm text-gray-600">
-              画面幅の判定はブラウザの表示領域を見るため、
-              <strong>このページの中で幅を狭めても実物は切り替わりません</strong>。
-              そのためボタンは同じものを置き、開いた中身は複製を並べています。
-              実物はスマホで開くと見られます。
-            </p>
-          </Item>
-
-          <Item name="テーマの切り替え" note="ライト・ダーク・OS の設定 の3つを順に回ります。">
-            <ThemeToggle />
-            <p className="mt-3 text-sm text-gray-600">
-              選択は保存され、次に開いたときも維持されます。
-              最初の描画より前に確定させているので、読み込み中に一瞬ライトが見えることはありません。
+              6つの列をそのまま縮めると、どの列も等しく読みにくくなります。
+              カードでは「どの本の・どこが・どう間違っているか」の順に積み直し、
+              書影と誤/正を主役に置きました。表では横に並ぶ値の優先順位が付いていませんが、
+              カードでは縦の順序がそのまま優先順位になります。
             </p>
           </Item>
         </Section>

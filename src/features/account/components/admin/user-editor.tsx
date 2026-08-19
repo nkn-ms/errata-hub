@@ -12,6 +12,7 @@ import {
 } from "@/features/account/actions/user";
 import { withdrawalConfirmationLabel } from "@/lib/withdrawal";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 type ProfileWithAccess = Profile & {
   publisherAccess: (PublisherAccess & { publisher: Publisher })[];
@@ -157,7 +158,8 @@ export default function AdminUserEditor({
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 role === r.value
                   ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  // disabled でも :hover は当たるので、押せないときは色を戻す
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:hover:bg-gray-100"
               }`}
             >
               {r.label}
@@ -165,13 +167,13 @@ export default function AdminUserEditor({
           ))}
         </div>
         {roleBlockedReason && <p className="text-sm text-gray-500">{roleBlockedReason}</p>}
-        <button
+        <Button
           onClick={handleSaveRole}
           disabled={saving || role === profile.role || roleBlockedReason !== null}
-          className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="w-full"
         >
           {saving ? "更新中..." : "ロールを更新"}
-        </button>
+        </Button>
         {roleError && <p className="text-sm text-red-700">{roleError}</p>}
         {roleSaved && <p className="text-sm text-green-700">更新しました</p>}
       </div>
@@ -245,23 +247,19 @@ export default function AdminUserEditor({
                 </option>
               ))}
             </SelectField>
-            <button
-              onClick={markForAdd}
-              disabled={!selectedPublisherId}
-              className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            <Button onClick={markForAdd} disabled={!selectedPublisherId}>
               追加
-            </button>
+            </Button>
           </div>
         )}
 
-        <button
+        <Button
           onClick={handleSaveAccess}
           disabled={savingAccess || !hasAccessChanges}
-          className="w-full py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="w-full"
         >
           {savingAccess ? "更新中..." : "アクセス権を更新する"}
-        </button>
+        </Button>
         {accessError && <p className="text-sm text-red-700">{accessError}</p>}
         {accessMessage && <p className="text-sm text-green-700">{accessMessage}</p>}
       </div>
@@ -295,13 +293,14 @@ export default function AdminUserEditor({
                 className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
               />
             </div>
-            <button
+            <Button
               onClick={handleWithdraw}
               disabled={!canWithdraw || withdrawing}
-              className="w-full py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors"
+              variant="danger"
+              className="w-full"
             >
               {withdrawing ? "処理中..." : "退会させる"}
-            </button>
+            </Button>
           </>
         )}
         {withdrawError && <p className="text-sm text-red-700">{withdrawError}</p>}

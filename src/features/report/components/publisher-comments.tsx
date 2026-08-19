@@ -5,6 +5,7 @@ import { addPublisherComment } from "@/features/report/actions/publisher-comment
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import type { PublisherCommentView } from "@/features/report/types";
+import { Button } from "@/components/ui/button";
 
 // ⚠️ 一覧と入力欄を1つのクライアント部品にまとめてある理由は components/report-addenda.tsx と同じ
 // （成功後に refresh() すると再描画が入力欄の DOM ごと差し替え、打ちかけの文字が消える）。
@@ -123,13 +124,9 @@ export function PublisherComments({ reportId, initialComments, commentAs }: Prop
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-gray-500">回答した内容は取り消せません。</p>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors shrink-0"
-            >
+            <Button type="submit" disabled={submitting} className="px-6 shrink-0">
               {submitting ? "送信中..." : "確認する"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -155,21 +152,17 @@ export function PublisherComments({ reportId, initialComments, commentAs }: Prop
             回答した内容は取り消せません。公開ページに表示されます。
           </p>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => confirmRef.current?.close()}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" onClick={handleSubmit} disabled={submitting} className="px-6">
               {submitting ? "送信中..." : "回答する"}
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
+import { Button } from "@/components/ui/button";
 
 type BookResult = {
   googleBooksId: string;
@@ -456,14 +457,13 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
               placeholder="例: 9784873116860"
               className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button
+            <Button
               type="button"
               onClick={handleIsbnSearch}
               disabled={isbnLoading || !isbnQuery.trim()}
-              className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-40 transition-colors"
             >
               {isbnLoading ? "検索中..." : "検索"}
-            </button>
+            </Button>
           </div>
           {isbnError && (
             <p role="alert" className="text-xs text-red-700">

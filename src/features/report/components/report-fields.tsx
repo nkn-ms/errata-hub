@@ -5,6 +5,7 @@ import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/rep
 import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
+import { Button } from "@/components/ui/button";
 
 // 投稿の「中身」の入力欄。**新規投稿（report-form）と投稿者による編集（report-edit-form）で共有する**。
 // 分けて書くと、欄の追加・上限の変更・検証条件が2か所に散り、片方だけ直る事故が起きる。
@@ -441,14 +442,15 @@ export function ReportContentFields({ value, onChange }: Props) {
               {/* 誤の全文を持ってきて、違う数文字だけ直せるようにする（長い引用を2回打たせない）。
                   ⚠️ 上書きはしない（打ち込んだ内容を黙って消さない）。すでに正が埋まっているときは
                      押せない状態にして、消したい人には自分で消してもらう。 */}
-              <button
+              <Button
                 type="button"
                 onClick={() => onChange({ correct: value.wrong })}
                 disabled={!value.wrong.trim() || value.correct.length > 0}
-                className="rounded-md border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                variant="secondary"
+                className="bg-white px-2 py-0.5 text-xs text-gray-700"
               >
                 誤の内容をコピー
-              </button>
+              </Button>
             </div>
             <textarea
               id="correct"

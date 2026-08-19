@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { site } from "@/constants/site";
+import { Button } from "@/components/ui/button";
 
 // 例外時の本文。error.tsx（公開側・管理画面・その他）で共有する。
 // 枠（ヘッダー・背景・幅）は呼び出し側のレイアウトが持つので、ここは中身だけを描く。
@@ -31,13 +32,9 @@ export function ErrorContent({
       </p>
 
       <div className="mt-6 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onRetry}
-          className="block w-full rounded-md bg-gray-900 py-2 text-sm text-white transition-colors hover:bg-gray-700"
-        >
+        <Button type="button" onClick={onRetry} className="block w-full">
           再試行
-        </button>
+        </Button>
         <Link
           href={action.href}
           className="block w-full rounded-md border border-gray-300 py-2 text-sm transition-colors hover:bg-gray-50"

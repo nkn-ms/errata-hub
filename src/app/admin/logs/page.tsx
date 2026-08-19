@@ -9,6 +9,7 @@ import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
 import { AUDIT_ACTION_LABELS, auditActionLabel, targetTypeLabel } from "@/constants/audit";
 import type { Prisma } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
 
 /**
  * 一覧では縮めて出し、**開くと全文を読める**部品。対象・変更前・変更後の3列で共有する。
@@ -168,12 +169,9 @@ export default async function AdminLogsPage({ searchParams }: Props) {
           placeholder="メールアドレスで絞り込み"
           className="text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 w-64"
         />
-        <button
-          type="submit"
-          className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
-        >
+        <Button type="submit">
           絞り込み
-        </button>
+        </Button>
         {(action || email) && (
           <Link
             href={routes.admin.logs}

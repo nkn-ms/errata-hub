@@ -12,6 +12,7 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import { Button } from "@/components/ui/button";
 
 // ⚠️ **一覧と入力欄を1つのクライアント部品にまとめてあるのは、書きかけを失わないため。**
 // 成功後に refresh() で描き直すと、再描画が**入力欄の DOM ノードごと差し替える**
@@ -248,13 +249,9 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-gray-500">追記した内容は取り消せません。</p>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors shrink-0"
-            >
+            <Button type="submit" disabled={submitting} className="px-6 shrink-0">
               {submitting ? "追記中..." : "確認する"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -287,21 +284,17 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
             追記した内容は取り消せません。元の投稿の内容は変わりません。
           </p>
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => confirmRef.current?.close()}
-              className="px-6 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              variant="secondary"
+              className="px-6"
             >
               キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="px-6 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" onClick={handleSubmit} disabled={submitting} className="px-6">
               {submitting ? "追記中..." : "追記する"}
-            </button>
+            </Button>
           </div>
         </div>
       </dialog>
