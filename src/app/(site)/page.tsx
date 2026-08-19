@@ -71,7 +71,7 @@ export default async function Home({ searchParams }: Props) {
         <input
           type="search"
           name="q"
-          placeholder="書籍名・タイトルで検索..."
+          placeholder="書籍名・投稿の内容で検索..."
           aria-label="投稿を検索"
           className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />

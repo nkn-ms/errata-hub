@@ -56,7 +56,7 @@ test.describe("トップページ", () => {
     await page.getByRole("button", { name: "検索" }).click();
     // トップは眺める場所。絞り込みは一覧ページ /reports に渡す（q はそこで初期検索語になる）
     await expect(page).toHaveURL(/\/reports\?q=TCP$/);
-    await expect(page.getByRole("heading", { name: "すべての投稿" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "投稿一覧" })).toBeVisible();
   });
 
   test("ページ送り（?page=N）が表示される", async ({ page }) => {
@@ -118,8 +118,8 @@ test.describe("認可ゲート（proxy.ts）", () => {
 test.describe("投稿一覧ページ（/reports）", () => {
   test("トップの検索テーブルは /reports へ引っ越している（フィルタバーが出る）", async ({ page }) => {
     await page.goto("/reports");
-    await expect(page.getByRole("heading", { name: "すべての投稿" })).toBeVisible();
-    await expect(page.getByPlaceholder("書籍名・タイトルで検索...")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "投稿一覧" })).toBeVisible();
+    await expect(page.getByPlaceholder("書籍名・投稿の内容で検索...")).toBeVisible();
     await expect(page.getByRole("option", { name: "種別：すべて" })).toBeAttached();
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
   });
@@ -154,7 +154,7 @@ test.describe("投稿一覧ページ（/reports）", () => {
     test.skip((await bookLinks.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
     // トップの検索ボックス相当。URL の q が検索入力に入り、テーブルが絞り込まれる。
     await page.goto("/reports?q=TCP");
-    await expect(page.getByPlaceholder("書籍名・タイトルで検索...")).toHaveValue("TCP");
+    await expect(page.getByPlaceholder("書籍名・投稿の内容で検索...")).toHaveValue("TCP");
   });
 
   test("書影が無い本でも、書籍ページ・投稿詳細に「表紙なし」のプレースホルダが出る", async ({ page }) => {
