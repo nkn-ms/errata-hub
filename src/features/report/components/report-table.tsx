@@ -36,7 +36,9 @@ import { StatusBadge } from "@/features/report/components/report-status-badge";
 //
 //   版・刷        → 「位置」に統合（"第1版 第2刷 p.42"）
 //   概要          → 「内容」の2行目に統合（主役は誤→正・内容の方）
-//   出版社コメント → 「状況」に統合（ステータスと出版社の回答は同じ話）
+//   出版社コメント → 「ステータス」に統合（ステータスと出版社の回答は同じ話）
+//     ⚠️ 見出しは主たる中身（ステータス）を名乗る。用語の正は /how-to-use の
+//        「ステータスの意味」で、サイト全体で1語に揃えてある（以前ここだけ「状況」だった）。
 //   賛同・投稿者   → 「投稿」に統合（日付と同じ「誰がいつ」の情報）
 //
 // 検索（globalFilter）の対象は列を絞る前と同じに保つため、隠し列 searchText にまとめている。
@@ -116,7 +118,7 @@ const columns: ColumnDef<Report>[] = [
   },
   {
     accessorKey: "status",
-    header: "状況",
+    header: "ステータス",
     cell: ({ row, table }) => {
       const rows = table.getRowModel().rows;
       // 最終行だけツールチップを上向きにする（下向きだと overflow-x-auto のコンテナに切られる）

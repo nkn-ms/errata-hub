@@ -11,7 +11,7 @@ test.describe("投稿一覧テーブル（/reports）", () => {
     await page.goto("/reports");
     await expect(page.getByText(/\d+ 件/)).toBeVisible();
 
-    await expect(page.locator("thead th")).toHaveText(["種別", "書籍", "内容", "位置", "状況", "投稿"]);
+    await expect(page.locator("thead th")).toHaveText(["種別", "書籍", "内容", "位置", "ステータス", "投稿"]);
 
     // 以前は 1280px でも 200px 超が隠れていた。テーブルを包む overflow-x-auto の
     // 中身が枠に収まっている＝隠れた列が無いことを見る

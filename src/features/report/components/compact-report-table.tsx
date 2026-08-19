@@ -15,8 +15,9 @@ import { StatusBadge } from "@/features/report/components/report-status-badge";
 //   版・刷   → 「位置」セルに統合（"第1版 第2刷 p.42"＝ getEditionLocationLabel）
 //   概要 → 「内容」に統合（誤→正・content が本体。概要はノイズになりがちで詳細で見せる）
 //   出版社コメント / 投稿者 → 詳細ページ（/reports/[id]）と全件テーブル（/reports）に温存
+//     ＝この表の「ステータス」列はステータスだけを持つ（/reports は回答も同じ列に載せる）
 //   賛同     → 「投稿」セルに 👍n を同居
-// 残す6列: 種別 / 書籍 / 内容 / 位置 / 状況 / 投稿（日付＋賛同）
+// 残す6列: 種別 / 書籍 / 内容 / 位置 / ステータス / 投稿（日付＋賛同）
 
 export function CompactReportTable({ data }: { data: Report[] }) {
   return (
@@ -28,7 +29,7 @@ export function CompactReportTable({ data }: { data: Report[] }) {
             <th className="px-4 py-3">書籍</th>
             <th className="px-4 py-3">内容</th>
             <th className="px-4 py-3 whitespace-nowrap">位置</th>
-            <th className="px-4 py-3 whitespace-nowrap">状況</th>
+            <th className="px-4 py-3 whitespace-nowrap">ステータス</th>
             <th className="px-4 py-3 text-right whitespace-nowrap">投稿</th>
           </tr>
         </thead>
