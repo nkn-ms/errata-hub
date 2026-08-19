@@ -66,7 +66,7 @@ test.describe("投稿フォームのラベル", () => {
 test.describe("絞り込みバーの部品に名前が付いている", () => {
   test("/reports の検索欄と2つの絞り込み", async ({ page }) => {
     await page.goto("/reports");
-    await expect(page.getByRole("textbox", { name: "書籍名・投稿の内容で検索" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "書籍名・投稿内容で検索" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "ステータスで絞り込む" })).toBeVisible();
   });
