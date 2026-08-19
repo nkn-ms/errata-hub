@@ -113,7 +113,7 @@ test.describe("ステータス運用（管理者）", () => {
     // 判断の履歴を読者にも見えるまま残す
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    // ⚠️ 完全一致で指す（投稿タイトルにも「却下」が入るので、部分一致だと3つに当たる）
+    // ⚠️ 完全一致で指す（投稿の概要にも「却下」が入るので、部分一致だと3つに当たる）
     await expect(page.getByText("却下", { exact: true })).toBeVisible();
     await expect(page.getByText(THROWAWAY_WRONG)).toBeVisible(); // 本文も伏せない
 

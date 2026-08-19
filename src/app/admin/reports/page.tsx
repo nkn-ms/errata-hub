@@ -48,7 +48,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-700">書籍名</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-700">タイトル</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-700">概要</th>
               <th className="text-left px-4 py-3 font-medium text-gray-700">種別</th>
               <th className="text-left px-4 py-3 font-medium text-gray-700">出版社</th>
               <th className="text-left px-4 py-3 font-medium text-gray-700">ステータス</th>

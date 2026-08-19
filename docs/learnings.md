@@ -618,7 +618,7 @@ App Router は「アプリのコードがフレームワークを呼ぶ」ので
 ### 静的 `metadata` と動的 `generateMetadata` の使い分け
 
 - `export const metadata = {...}` — **静的**。ビルド時に決まる固定値。本プロジェクトでは `app/layout.tsx` がサイト全体のデフォルト（`title: "Errata Hub"` ＋公開前の一時的な `robots: noindex`）を持つ。
-- `export async function generateMetadata()` — **動的**。リクエストごとに実行され、DB を引いて値を作れる。`app/reports/[id]/page.tsx` がこれで投稿タイトルを `<title>` に入れている。**サーバーコンポーネント限定**。
+- `export async function generateMetadata()` — **動的**。リクエストごとに実行され、DB を引いて値を作れる。`app/reports/[id]/page.tsx` がこれで投稿の概要を `<title>` に入れている。**サーバーコンポーネント限定**。
 - 副作用の注意: `generateMetadata` とページ本体が**同じデータを別々に取りに行く**構造になるため、素朴に書くと同一リクエスト内で同じ DB クエリが2回走る。`reports/[id]/page.tsx` では React の `cache()` で `findReportById` を包み、リクエスト内で1回に重複排除している（`getReport`）。
 
 ### layout と page のマージ規則（ページが勝つ・フィールド単位）
