@@ -17,6 +17,7 @@ const GUEST_PAGES = [
   "/reports",
   "/how-to-use",
   "/tech",
+  "/design",
   "/login",
   "/register",
   "/terms",

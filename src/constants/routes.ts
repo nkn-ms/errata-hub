@@ -16,6 +16,7 @@ export const routes = {
   submitForBook: (isbn: string) => `/submit?isbn=${isbn}`,
   howToUse: "/how-to-use",
   tech: "/tech",
+  design: "/design",
   terms: "/terms",
   privacy: "/privacy",
   account: "/account",
