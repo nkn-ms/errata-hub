@@ -55,7 +55,10 @@ test.describe("トップページ", () => {
     await page.getByRole("searchbox", { name: "投稿を検索" }).fill("TCP");
     await page.getByRole("button", { name: "検索" }).click();
     // トップは眺める場所。絞り込みは一覧ページ /reports に渡す（q はそこで初期検索語になる）
-    await expect(page).toHaveURL(/\/reports\?q=TCP$/);
+    // ⚠️ 末尾一致にしない。絞り込みの select も同じ form にあるので、未選択でも
+    //    ?type=&status= が付く（HTML の GET は名前の付いた項目を空でも送る）。
+    //    空の値は一覧側が無視する。JS 無しで動く GET フォームを保つための割り切り。
+    await expect(page).toHaveURL(/\/reports\?q=TCP(&|$)/);
     await expect(page.getByRole("heading", { name: "投稿一覧" })).toBeVisible();
   });
 

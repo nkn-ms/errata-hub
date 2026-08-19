@@ -167,14 +167,34 @@ const columns: ColumnDef<Report>[] = [
   },
 ];
 
-export function ReportTable({ data, initialQuery = "" }: { data: Report[]; initialQuery?: string }) {
+export function ReportTable({
+  data,
+  initialQuery = "",
+  initialType,
+  initialStatus,
+}: {
+  data: Report[];
+  initialQuery?: string;
+  /**
+   * トップの検索フォームから引き継ぐ初期の絞り込み。
+   * ⚠️ 呼び出し側で**既知の値だけに絞ってから渡すこと**。知らない値を入れると
+   *    どの行にも当たらず「0件」になり、絞り込みが壊れているように見える。
+   */
+  initialType?: ReportType;
+  initialStatus?: ReportStatus;
+}) {
   // TanStack Table の useReactTable は React Compiler と非互換（返り値の関数を
   // メモ化すると stale UI になる）ため、このコンポーネントだけ最適化対象から外す。
   "use no memo";
 
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
+    [
+      initialType ? { id: "type", value: initialType } : null,
+      initialStatus ? { id: "status", value: initialStatus } : null,
+    ].filter((f) => f !== null)
+  );
   // 一覧ページの ?q= を初期検索語として引き継ぐ（トップの検索ボックスからの遷移）。
   const [globalFilter, setGlobalFilter] = useState(initialQuery);
 

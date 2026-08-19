@@ -6,6 +6,10 @@ import { mapReport } from "@/features/report/utils/mappers";
 import { ReportCard } from "@/features/report/components/report-card";
 import { CompactReportTable } from "@/features/report/components/compact-report-table";
 import { routes } from "@/constants/routes";
+import { SelectField } from "@/components/ui/select-field";
+import { TYPE_LABELS } from "@/features/report/constants/report-labels";
+import { STATUS_LABELS } from "@/features/report/constants/report-status";
+import type { ReportType, ReportStatus } from "@/features/report/types";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";
 
@@ -66,18 +70,37 @@ export default async function Home({ searchParams }: Props) {
         </p>
       </div>
 
-      {/* 検索・絞り込みは一覧ページに委ねる（トップは眺める場所）。form の GET で /reports?q= へ */}
-      <form action={routes.reports} className="mb-6 flex gap-2">
+      {/* 検索・絞り込みは一覧ページに委ねる（トップは眺める場所）。form の GET で /reports へ渡す。
+          ⚠️ **ここで絞らない**のは、トップが手元に持っているのが今のページの 20 件だけだからで、
+             その場で絞ると「未対応で 3 件」のように**全体とは違う数**を見せてしまう。
+             絞る場所は全件を持っている一覧のまま、トップは**絞る意図を渡す入口**にする。
+          ⚠️ 「すべて」は value="" にしてある。GET は全項目を送るので、値を持たせると
+             ?type=all のような意味の無いパラメータが URL に残る。 */}
+      <form action={routes.reports} className="mb-6 flex flex-wrap gap-2">
         <input
           type="search"
           name="q"
           placeholder="書籍名・投稿内容で検索..."
           aria-label="投稿を検索"
-          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          // スマホでは1行を占め、絞り込みは下へ折り返す（横並びのままだと入力欄が潰れる）
+          className="w-full sm:w-auto sm:min-w-0 sm:flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <SelectField name="type" aria-label="種別で絞り込む" className="py-2">
+          <option value="">種別：すべて</option>
+          {(Object.entries(TYPE_LABELS) as [ReportType, string][]).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </SelectField>
+        <SelectField name="status" aria-label="ステータスで絞り込む" className="py-2">
+          <option value="">ステータス：すべて</option>
+          {(Object.entries(STATUS_LABELS) as [ReportStatus, string][]).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </SelectField>
         <button
           type="submit"
-          className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+          // スマホでは絞り込みの下に単独で残るので、幅いっぱいにして押しやすくする
+          className="w-full sm:w-auto px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
         >
           検索
         </button>

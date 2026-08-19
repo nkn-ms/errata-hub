@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { findAllReports } from "@/features/report/service";
 import { mapReport } from "@/features/report/utils/mappers";
 import { ReportTable } from "@/features/report/components/report-table";
+import { TYPE_LABELS } from "@/features/report/constants/report-labels";
+import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { routes } from "@/constants/routes";
 
 export const metadata: Metadata = {
@@ -19,11 +21,18 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; status?: string }>;
 };
 
+// トップの検索フォームから引き継ぐ絞り込み。
+// ⚠️ **既知の値だけを通す。** URL は誰でも書けるので、知らない値をそのまま表に渡すと
+//    どの行にも当たらず「0件」になり、絞り込みが壊れているように見える。
+function knownOr<T extends string>(labels: Record<T, string>, value: string | undefined): T | undefined {
+  return value && value in labels ? (value as T) : undefined;
+}
+
 export default async function ReportsPage({ searchParams }: Props) {
-  const [{ q }, rows] = await Promise.all([searchParams, findAllReports()]);
+  const [{ q, type, status }, rows] = await Promise.all([searchParams, findAllReports()]);
   const reports = rows.map(mapReport);
 
   return (
@@ -37,7 +46,12 @@ export default async function ReportsPage({ searchParams }: Props) {
         </p>
       </div>
 
-      <ReportTable data={reports} initialQuery={q ?? ""} />
+      <ReportTable
+        data={reports}
+        initialQuery={q ?? ""}
+        initialType={knownOr(TYPE_LABELS, type)}
+        initialStatus={knownOr(STATUS_LABELS, status)}
+      />
     </>
   );
 }
