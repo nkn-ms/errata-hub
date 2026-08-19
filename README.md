@@ -6,18 +6,18 @@
 
 ### 🔗 https://errata-hub.vercel.app
 
-投稿には誤りの箇所（ページ・行や版・刷）を添えられ、出版社からの回答・対応状況は管理者が記録して公開します。
+投稿には誤りの箇所（ページ・行や版・刷）を添えられ、出版社からの回答とステータスは管理者が記録して公開します。
 
-> ℹ️ 掲載されている投稿は投稿者からの報告であり、出版社の回答がつくまでは未確認の情報です。各投稿に表示される出版社の回答・対応状況とあわせてご確認ください。
+> ℹ️ 掲載されている投稿は投稿者からの報告であり、出版社の回答がつくまでは未確認の情報です。各投稿に表示される出版社の回答・ステータスとあわせてご確認ください。
 
-![Errata Hub のトップページ。書籍名で検索でき、投稿が種別・書籍・内容・位置・状況の表で一覧される](docs/screenshot-top.png)
+![Errata Hub のトップページ。書籍名で検索でき、投稿が種別・書籍・内容・位置・ステータス・投稿日の表で一覧される](docs/screenshot-top.png)
 
 | | |
 |---|---|
 | **開発体制** | 個人開発（要件・設計・実装・運用・法務文書まで） |
 | **期間** | 2026-06 〜 継続中（本番公開・検索インデックス済み） |
-| **規模** | コミット 516 / マージ済み PR 190 |
-| **テスト** | 単体 331 件（Vitest）/ e2e 186 件（Playwright） |
+| **規模** | コミット 597 / マージ済み PR 221 |
+| **テスト** | 単体 346 件（Vitest）/ e2e 208 件（Playwright） |
 | **運用** | Vercel 本番稼働 / GitHub Actions で CI / Dependabot / CodeQL |
 
 <sub>※ 数値は 2026-08 時点。</sub>
@@ -42,7 +42,7 @@
 - **賛同（自分も見つけた）** — 同じ誤りを見つけた読者が投稿に賛同できる。賛同数は一覧・詳細に表示
 - **公開ページ** — トップ（最新投稿）・全投稿の検索/絞り込み・書籍別一覧・投稿詳細・ユーザー別投稿一覧
 - **認証** — Supabase Auth（メール確認・PKCE code フロー）/ GitHub ログイン / パスワード再発行 / 退会（匿名化）
-- **管理画面** — 対応状況の更新、出版社マスタ管理、ユーザー/ロール管理、出版社アクセスの付与、操作ログ（監査ログ）
+- **管理画面** — ステータスの更新、出版社マスタ管理、ユーザー/ロール管理、出版社アクセスの付与、操作ログ（監査ログ）
 - **ダークモード** — OS の設定に追従＋手動トグル
 
 ---
@@ -183,6 +183,7 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 | `npm run lint` | ESLint |
 | `npm test` | 単体テスト（Vitest・1回実行） |
 | `npm run test:watch` | 単体テスト（ウォッチモード） |
+| `npm run test:e2e` | e2e テスト（Playwright。ローカルの dev サーバーに対して実行） |
 
 型チェックは `npx tsc --noEmit` で実行できます。これら（lint / typecheck / test / build）は push・PR ごとに [GitHub Actions](.github/workflows/ci.yml) でも自動実行されます。
 
@@ -237,8 +238,8 @@ src/
 ├── components/   フィーチャーに属さない UI（下記）
 ├── constants/    横断する定数（routes, site, rate-limits など）
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
-├── lib/          外部ライブラリのラッパー（prisma / supabase / utils）
-├── services/     横断するロジック・認可（auth, audit, withdrawal, publisher-access）
+├── lib/          外部ライブラリのラッパーと横断する小物（prisma / supabase / rate-limit / withdrawal）
+├── services/     横断するロジック・認可（auth, audit, publisher-access）
 └── utils/        横断する純粋関数（ISBN 正規化・整形など）
 docs/             設計・学習メモ・ER 図
 ```
@@ -296,7 +297,8 @@ src/features/report/
 
 ```
 src/components/
-├── ui/         ドメインもルーティングも知らない部品（icons, nav-link, number-field, theme-toggle）
+├── ui/         ドメインもルーティングも知らない部品（button, icons, nav-link, number-field,
+│               select-field, theme-toggle）
 ├── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
 │               breadcrumbs, legal, legal-shell, error-content, not-found-content）
 └── admin/      管理画面の共通 UI（ページ送り）
@@ -311,8 +313,8 @@ src/components/
 5. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
 
 「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
-（`features/report/components/report-fields.tsx` は6箇所から使われる共通部品だが、
-投稿を知っているので `components/ui/` には入らない）。
+（`features/report/components/report-fields.tsx` は投稿・編集・追記・取り下げ・出版社からの回答が
+共有している部品だが、投稿を知っているので `components/ui/` には入らない）。
 
 ### テストの置き場所と分担
 
