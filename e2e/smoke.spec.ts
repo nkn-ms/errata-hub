@@ -85,6 +85,10 @@ test.describe("ログインページ", () => {
     await expect(page.locator("#email")).toBeVisible();
     await expect(page.locator("#password")).toBeVisible();
     await expect(page.getByRole("button", { name: "ログイン" })).toBeVisible();
+    // ソーシャルログインは Server Action を呼ぶ <form> なので、押せる状態にあることだけ見る
+    // （実際の認可 URL への遷移は外部サービス頼みなので e2e では追わない）
+    await expect(page.getByRole("button", { name: "Googleで続ける" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "GitHubで続ける" })).toBeVisible();
   });
 
   test("会員登録リンクから /register に遷移できる", async ({ page }) => {
@@ -102,6 +106,10 @@ test.describe("会員登録ページ", () => {
     await expect(page.locator("#email")).toBeVisible();
     await expect(page.locator("#password")).toBeVisible();
     await expect(page.getByRole("button", { name: "会員登録" })).toBeVisible();
+    // ソーシャルログインは Server Action を呼ぶ <form> なので、押せる状態にあることだけ見る
+    // （実際の認可 URL への遷移は外部サービス頼みなので e2e では追わない）
+    await expect(page.getByRole("button", { name: "Googleで続ける" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "GitHubで続ける" })).toBeVisible();
   });
 });
 

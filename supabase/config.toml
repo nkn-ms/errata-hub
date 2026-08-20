@@ -352,6 +352,20 @@ client_id = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
 
+# Google ログイン（ローカル用）。Google Cloud の OAuth クライアント（種類=ウェブアプリケーション・
+# リダイレクト URI = http://127.0.0.1:54321/auth/v1/callback）を作り、client_id / secret を
+# .env.local に書く（上の GitHub と同じ形）。
+# ⚠️ env() の中身が未設定でも `supabase start` は WARN を出すだけで通る。ただし置換されなかった
+# 「env(...)」という文字列がそのまま client_id として送られるので、ローカルの Google ボタンは
+# Google 側のエラー画面になる（2026-08-19 に CLI 2.108 で実測）。ローカル開発そのものは壊れない。
+# ⚠️ 起動が止まるのは client_id に空文字を直書きしたときだけ（Missing required field in config）。
+# 本番は Supabase ダッシュボード側の Provider 設定（別のクライアント）を使うので、この値は関係しない。
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

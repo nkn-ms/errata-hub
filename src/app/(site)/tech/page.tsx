@@ -15,7 +15,7 @@ const STACK = [
   { area: "フレームワーク", items: "Next.js 16（App Router）/ React 19" },
   { area: "言語", items: "TypeScript" },
   { area: "スタイリング", items: "Tailwind CSS v4" },
-  { area: "認証", items: "Supabase Auth（メール認証・PKCE）/ GitHub ログイン（OAuth 2.0）" },
+  { area: "認証", items: "Supabase Auth（メール認証・PKCE）/ ソーシャルログイン（Google・GitHub）" },
   { area: "データベース", items: "PostgreSQL（Supabase）/ Prisma v7" },
   { area: "ファイル保存", items: "Supabase Storage" },
   { area: "バリデーション", items: "Zod" },
@@ -64,7 +64,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
-    why: "GitHub ログインは OAuth 2.0 の認可コードフロー（PKCE / RFC 7636）で動く。利用者を認可 URL へ送り、戻ってきた code をセッションに交換するところまでがアプリの仕事で、client secret と code verifier は Supabase が預かる。メール認証のリンクも、同じように code を交換して有効になる。",
+    why: "Google・GitHub でのログインは認可コードフロー（PKCE / RFC 7636）で動く。利用者を認可 URL へ送り、戻ってきた code をセッションに交換するところまでがアプリの仕事で、client secret と code verifier は Supabase が預かる。メール認証のリンクも、同じように code を交換して有効になる。",
   },
   {
     name: "Prisma v7 (ORM)",
