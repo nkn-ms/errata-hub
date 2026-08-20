@@ -13,7 +13,8 @@ export default function ResetPasswordSentPage() {
             リンクの有効期限は1時間です。期限切れの場合は再度お試しください。
           </p>
           <p className="text-xs text-gray-400">
-            メールが届かない場合は迷惑メールフォルダをご確認ください。
+            メールが届かない場合は、迷惑メールフォルダと、入力したアドレスをご確認ください。
+            登録に使っていないアドレスには届きません。
           </p>
         </div>
       </div>
