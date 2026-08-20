@@ -88,8 +88,8 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <GoogleSignInButton />
             <GitHubSignInButton />
+            <GoogleSignInButton />
           </div>
 
           <LegalConsentNote action="登録" />

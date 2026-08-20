@@ -71,8 +71,8 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <GoogleSignInButton />
             <GitHubSignInButton />
+            <GoogleSignInButton />
           </div>
 
           {/* ソーシャルログインは初回に新規登録を兼ねる（同一メール自動リンク/新規作成）ため、ログイン画面にも同意文言を出す */}
