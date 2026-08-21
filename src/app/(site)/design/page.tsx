@@ -59,8 +59,8 @@ const BUTTON_SAMPLES: { variant: ButtonVariant; label: string; use: string }[] =
 // 文字の段。実際に画面で使っている6段だけを、使っている組み合わせ（太さ込み）で並べる。
 // px は Tailwind 既定値（rem 指定）を 16px 基準で換算したもの。
 const TYPE_SCALE: { className: string; token: string; px: string; role: string }[] = [
-  { className: "text-2xl font-bold", token: "text-2xl", px: "24px", role: "公開側ページの見出し" },
-  { className: "text-xl font-bold", token: "text-xl", px: "20px", role: "管理画面・認証画面の見出し" },
+  { className: "text-2xl font-bold", token: "text-2xl", px: "24px", role: "一覧・案内・フォームの見出し" },
+  { className: "text-xl font-bold", token: "text-xl", px: "20px", role: "詳細ページ・管理画面・結果画面の見出し" },
   { className: "text-lg font-semibold", token: "text-lg", px: "18px", role: "節の見出し" },
   { className: "text-base font-semibold", token: "text-base", px: "16px", role: "カード・フォームの小見出し" },
   { className: "text-sm", token: "text-sm", px: "14px", role: "本文・入力欄・ボタン" },
@@ -121,10 +121,10 @@ export default function DesignPage() {
             そこに限って <code className="text-xs">dark:</code> で当て直しています。
           </p>
           <p className="text-sm text-gray-700">
-            代償は、Tailwind の階調がそのままの意味では読めなくなることです。ダークでは{" "}
-            <code className="text-xs">gray-700</code> が本文、<code className="text-xs">gray-200</code>{" "}
-            が枠線で、明るさの順序が反転しています。下の見本は CSS 変数を直接読んでいるので、
-            テーマを切り替えると実際の値が入れ替わります。
+            代償は、階調の数字が明るさを表さなくなることです。役割は動かしていないので{" "}
+            <code className="text-xs">gray-700</code> は本文、<code className="text-xs">gray-200</code>{" "}
+            は枠線のままですが、ダークでは 700 の方が 200 より明るくなります。
+            下の見本は CSS 変数を直接読んでいるので、テーマを切り替えると実際の値が入れ替わります。
           </p>
 
           <div className="rounded-lg border border-gray-200 bg-white p-5">
@@ -167,7 +167,7 @@ export default function DesignPage() {
               ))}
             </ul>
             <p className="mt-3 text-sm text-gray-600">
-              背景は 50〜200、文字は 700〜900 という組み合わせに揃えています。
+              背景は 50〜200、文字は 700〜900 に揃えています（意図的に控えめにするグレーだけ 600 を使います）。
               薄い地に濃い文字を載せる形なので、どの色でも読める比率を確保できます。
             </p>
           </Item>
@@ -199,7 +199,7 @@ export default function DesignPage() {
 
           <Item name="色を付けた文字の下限" note="背景しだいで基準を割るので、色ごとに使ってよい下限を決めています。">
             <ul className="space-y-2 text-sm">
-              <li className="text-red-700">赤は red-700 まで（500・600 は背景しだいで AA を割る）</li>
+              <li className="text-red-700">赤は red-700 まで（red-600 は白地では通るが、赤い帯の上で割る）</li>
               <li className="text-green-700">緑は green-700 まで</li>
               <li className="text-blue-600">青は blue-600 まで（リンクとして最も薄くできる段）</li>
             </ul>
@@ -238,8 +238,9 @@ export default function DesignPage() {
                 <strong>読み込み終わるまで文字が入れ替わる</strong>代償の方が大きいと判断しました。
               </p>
               <p>
-                等幅（Geist Mono）は ISBN と管理画面の ID 表示だけで使い、preload していません。
-                公開側の主要な導線には出てこないためです。
+                等幅（Geist Mono）は識別子だけに使います。ISBN・操作ログの ID・メールアドレス・
+                エラー画面の識別子が対象で、桁が縦に揃うと目視で照合できるためです。
+                書名や本文のような散文には使いません。
               </p>
               <p className="font-mono text-xs text-gray-500">ISBN: 9784873115658（等幅の例）</p>
             </div>
@@ -247,7 +248,7 @@ export default function DesignPage() {
         </Section>
 
         <Section id="button" title="ボタン">
-          <Item name="4つの見た目" note="呼び出し側が変えられるのは幅と余白だけです。">
+          <Item name="4つの見た目" note="見た目はこの4つから選び、呼び出し側は幅・余白・並びを足します。">
             <ul className="space-y-4">
               {BUTTON_SAMPLES.map((b) => (
                 <li key={b.variant} className="flex flex-wrap items-center gap-3">
@@ -269,9 +270,9 @@ export default function DesignPage() {
 
         <Section id="form" title="フォームの部品">
           <p className="text-sm text-gray-700">
-            投稿・編集・追記・取り下げ・出版社からの回答という5つの画面が、同じ部品を共有しています。
-            共有しているのは見た目だけではありません。
-            <strong>入力の検証と、送信用の値への変換まで含めた振る舞い全体</strong>を1か所に置いています。
+            投稿・編集・追記・取り下げ・出版社からの回答という5つのフォームが、同じ部品を共有しています。
+            うち投稿と編集は入力欄の並びがそのまま同じなので、共有しているのは見た目だけではありません。
+            <strong>入力の検証と、送信用の値への変換</strong>まで同じ関数を通します。
           </p>
 
           <Item
@@ -357,8 +358,9 @@ export default function DesignPage() {
             />
             <p className="mt-3 text-sm text-gray-600">
               賛同済みかどうかは色とアイコンの塗りつぶしで変わりますが、見た目の差だけでは支援技術に伝わりません。
-              押された状態であることを属性でも持たせています。
-              なお、この見本は未ログイン扱いなので、押すとログインの案内へ移ります。
+              ログインしている人には、押された状態であることを属性でも持たせています。
+              この見本は未ログイン扱い＝まだ賛同の状態を持たないのでその属性は付かず、
+              押すとログインの案内へ移ります。
             </p>
           </Item>
 
@@ -380,7 +382,8 @@ export default function DesignPage() {
             <p className="mt-3 text-sm text-gray-600">
               6つの列をそのまま縮めると、どの列も等しく読みにくくなります。
               カードでは「どの本の・どこが・どう間違っているか」の順に積み直し、
-              書影（サムネイル）と誤/正を主役に置きました。表では横に並ぶ値の優先順位が付いていませんが、
+              書影（サムネイル）と誤/正を主役に置きました。表紙の無い本はアイコンに置き換えます
+              （この見本がその状態です）。表では横に並ぶ値の優先順位が付いていませんが、
               カードでは縦の順序がそのまま優先順位になります。
             </p>
           </Item>
@@ -388,7 +391,7 @@ export default function DesignPage() {
       </div>
 
       <p className="mt-10 text-sm text-gray-600">
-        判断の経緯はリポジトリの設計ドキュメントに残しています。
+        ここに書いた判断は、それぞれの実装のコメントに理由まで残しています。
         <a
           href={site.repoUrl}
           target="_blank"
