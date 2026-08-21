@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateDisplayName } from "@/features/account/actions/auth";
 import { PROFILE_LIMITS } from "@/features/account/constants";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 // 表示名のセルフ変更フォーム。アカウント設定ページに埋め込む。
 // 表示名は投稿に紐づいて公開されるため、変更は即時に反映される。
@@ -31,14 +32,14 @@ export function DisplayNameForm({ currentDisplayName }: { currentDisplayName: st
       </div>
 
       {state?.error && (
-        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+        <Notice variant="error">
           {state.error}
-        </p>
+        </Notice>
       )}
       {state?.success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+        <Notice variant="success">
           表示名を更新しました。
-        </p>
+        </Notice>
       )}
 
       <Button type="submit" disabled={pending}>

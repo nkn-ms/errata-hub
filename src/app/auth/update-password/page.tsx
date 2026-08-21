@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updatePassword } from "@/features/account/actions/auth";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 export default function UpdatePasswordPage() {
   const [state, action, pending] = useActionState(updatePassword, undefined);
@@ -17,9 +18,9 @@ export default function UpdatePasswordPage() {
 
         <form action={action} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           {state?.error && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <Notice variant="error">
               {state.error}
-            </p>
+            </Notice>
           )}
 
           <div>

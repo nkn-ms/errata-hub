@@ -10,6 +10,7 @@ import {
 } from "@/features/account/components/oauth-sign-in-buttons";
 import { LegalConsentNote } from "@/components/layout/legal";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -26,9 +27,9 @@ export default function LoginPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
           <form action={action} className="space-y-4">
           {state?.error && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <Notice variant="error">
               {state.error}
-            </p>
+            </Notice>
           )}
 
           <div>

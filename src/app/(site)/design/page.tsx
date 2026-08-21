@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button, type ButtonVariant } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { ReportCard } from "@/features/report/components/report-card";
 import { ReportTable } from "@/features/report/components/report-table";
@@ -207,6 +208,30 @@ export default function DesignPage() {
               エラー文言のように、操作しなければ画面に出ない文字もあります。
               こうした色は、状態を切り替えるテストの中で測っています。ページを開いて眺めるだけでは見つかりません。
             </p>
+          </Item>
+
+          <Item
+            name="エラーと成功の知らせ"
+            note="赤＝エラー、緑＝成功という一般的な割り当てにそのまま従っています。"
+          >
+            <div className="space-y-2">
+              <Notice variant="error">メールアドレスまたはパスワードが正しくありません。</Notice>
+              <Notice variant="success">表示名を更新しました。</Notice>
+            </div>
+            <div className="mt-3 space-y-2 text-sm text-gray-600">
+              <p>
+                ここで独自の色を当てても、読み手に覚え直しを強いるだけで得るものがありません。
+                地（50）・枠（200）・文字（700）の3枚を同じ色系で塗り、
+                <code className="text-xs">Notice</code> という1つの部品にしています。
+              </p>
+              <p>
+                <strong>3枚とも塗れるのは、これが一度読んで終わる知らせだから</strong>です。
+                投稿詳細の「誤 / 正」は同じ赤と緑を使いますが、色を持たせるのは枠と小さいラベルだけで、
+                引用された本文は通常の文字色のままにしています。
+                読ませたいのが本文そのものなので、地まで塗ると色が文字に重なるためです（ダークで特に目立ちます）。
+                <strong>一時的な知らせは3枚、読ませ続ける中身は1枚</strong>、という使い分けです。
+              </p>
+            </div>
           </Item>
         </Section>
 
