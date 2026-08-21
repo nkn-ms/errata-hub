@@ -72,7 +72,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "OpenBD / Google Books API",
-    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
+    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
   },
   {
     name: "Vitest / Playwright",

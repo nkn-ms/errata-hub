@@ -113,7 +113,7 @@ export default function PrivacyPage() {
               </table>
             </div>
             <p className="mt-2">
-              なお、書籍の書誌情報・書影は外部の書籍データベース（OpenBD・Google
+              なお、書籍の書誌情報・書影（サムネイル）は外部の書籍データベース（OpenBD・Google
               Books）から取得しますが、その際に利用者の個人情報（氏名・メールアドレス等）を送信することはありません（送信するのは書籍の
               ISBN・検索語のみです）。
             </p>
