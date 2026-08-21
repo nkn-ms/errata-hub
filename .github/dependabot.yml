@@ -6,6 +6,15 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # ESLint 10 は eslint-plugin-react が未対応で、lint がルールの読み込み中に落ちる
+      # （TypeError: contextOrFilename.getFilename is not a function）。このプラグインは
+      # eslint-config-next が同梱していて単独では上げられず、peer も eslint ^9.7 までしか
+      # 許していない。上流が対応するまで major の提案を止める（#152・#242 と2回踏んだ）。
+      # ⚠️ 解除の条件: eslint-plugin-react の peerDependencies に eslint 10 が入ること。
+      #    確認は `npm view eslint-plugin-react peerDependencies`。入ったらこの項目を消す。
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
     groups:
       # パッチ・マイナーはまとめて1PRに（レビュー負荷を下げる）
       minor-and-patch:
