@@ -40,9 +40,9 @@ test.describe("デザインシステム", () => {
   });
 
   test("見本の部品が実物として描かれている", async ({ page }) => {
-    // 投稿の表（TanStack）・賛同ボタン・選択欄
+    // 投稿の表（TanStack）・数値欄・選択欄
     await expect(page.getByRole("combobox", { name: "種別で絞り込む" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "自分も見つけた" })).toBeVisible();
+    await expect(page.getByRole("spinbutton", { name: "ページ番号" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "見本の絞り込み" })).toBeVisible();
   });
 

@@ -6,7 +6,6 @@ import { Button, type ButtonVariant } from "@/components/ui/button";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { ReportCard } from "@/features/report/components/report-card";
 import { ReportTable } from "@/features/report/components/report-table";
-import { UpvoteButton } from "@/features/report/components/report-upvote-button";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import type { ReportStatus } from "@/features/report/types";
 import { routes } from "@/constants/routes";
@@ -24,7 +23,6 @@ export const metadata: Metadata = {
 //
 // ⚠️ 色つきの段はここに並べない。Tailwind v4 は**使われている色の変数しか出力しない**ので、
 //    使っていない段が空白の四角になって「壊れている」ように見える。
-//    代わりに下の「意味を持つ色」で、実際に当てている組み合わせをそのまま見せる。
 const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
 
 const GRAY_ROLES: Partial<Record<(typeof SHADES)[number], string>> = {
@@ -34,18 +32,6 @@ const GRAY_ROLES: Partial<Record<(typeof SHADES)[number], string>> = {
   700: "本文",
   900: "見出し・主ボタンの地",
 };
-
-// 意味を持つ色。クラス名は静的に書く（Tailwind は組み立てた文字列を読めないため）。
-const SEMANTIC_COLORS: { use: string; className: string; sample: string }[] = [
-  { use: "誤り・修正なし", className: "bg-red-100 text-red-700", sample: "修正なし" },
-  { use: "正しい内容・掲載済み", className: "bg-green-100 text-green-800", sample: "正誤表に掲載" },
-  { use: "連絡済み・情報", className: "bg-blue-100 text-blue-700", sample: "出版社へ連絡済み" },
-  { use: "修正予定", className: "bg-yellow-100 text-yellow-700", sample: "修正予定" },
-  { use: "種別：正誤情報", className: "bg-purple-100 text-purple-700", sample: "正誤情報" },
-  { use: "種別：改善提案", className: "bg-cyan-100 text-cyan-700", sample: "改善提案" },
-  { use: "注意書き", className: "bg-amber-50 text-amber-900", sample: "この本には正誤表があります" },
-  { use: "未対応・既定", className: "bg-gray-100 text-gray-700", sample: "未対応" },
-];
 
 // ボタンの見た目は4つだけ。ここは Button の variant をそのまま並べるので、
 // 種類が増えれば型（ButtonVariant）が変わってこの配列も直すことになる。
@@ -153,24 +139,6 @@ export default function DesignPage() {
               読み込みの途中で一瞬ライトが見えることはありません。
             </p>
           </div>
-
-          <Item name="意味を持つ色" note="色は飾りではなく状態を表します。画面で実際に当てている組み合わせです。">
-            <ul className="space-y-2">
-              {SEMANTIC_COLORS.map((c) => (
-                <li key={c.use} className="flex flex-wrap items-center gap-3 text-sm">
-                  <span className={`inline-block rounded px-2 py-0.5 text-xs ${c.className}`}>
-                    {c.sample}
-                  </span>
-                  <span className="text-gray-700">{c.use}</span>
-                  <code className="text-xs text-gray-500">{c.className}</code>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-sm text-gray-600">
-              背景は 50〜200、文字は 700〜900 に揃えています（意図的に控えめにするグレーだけ 600 を使います）。
-              薄い地に濃い文字を載せる形なので、どの色でも読める比率を確保できます。
-            </p>
-          </Item>
 
           <Item
             name="既定値を変えたのは gray-400 だけ"
@@ -346,22 +314,6 @@ export default function DesignPage() {
                 マウスを乗せられない環境でも意味が伝わります。
               </p>
             </div>
-          </Item>
-
-          <Item name="賛同" note="押した状態を色だけで示さないようにしています。">
-            <UpvoteButton
-              reportId={SAMPLE_REPORT.id}
-              initialCount={SAMPLE_REPORT.upvoteCount}
-              initialUpvoted={false}
-              viewer="guest"
-              type="ERRATA"
-            />
-            <p className="mt-3 text-sm text-gray-600">
-              賛同済みかどうかは色とアイコンの塗りつぶしで変わりますが、見た目の差だけでは支援技術に伝わりません。
-              ログインしている人には、押された状態であることを属性でも持たせています。
-              この見本は未ログイン扱い＝まだ賛同の状態を持たないのでその属性は付かず、
-              押すとログインの案内へ移ります。
-            </p>
           </Item>
 
           <Item
