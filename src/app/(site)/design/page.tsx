@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button, type ButtonVariant } from "@/components/ui/button";
+import { CtaLink } from "@/components/ui/cta-link";
 import { Notice } from "@/components/ui/notice";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { ReportCard } from "@/features/report/components/report-card";
@@ -34,10 +35,14 @@ const GRAY_ROLES: Partial<Record<(typeof SHADES)[number], string>> = {
   900: "見出し・主ボタンの地",
 };
 
-// ボタンの見た目は4つだけ。ここは Button の variant をそのまま並べるので、
+// 操作のボタンは4つだけ。ここは Button の variant をそのまま並べるので、
 // 種類が増えれば型（ButtonVariant）が変わってこの配列も直すことになる。
+//
+// ⚠️ primary のラベルに「投稿する」を使わない。ヘッダーの青い「投稿する」（CtaLink）と
+//    同じ文言になり、同じものが2色あるように見える（実際そう読まれた）。
+//    ここは投稿フォームの送信ボタンの実ラベルを使う。
 const BUTTON_SAMPLES: { variant: ButtonVariant; label: string; use: string }[] = [
-  { variant: "primary", label: "投稿する", use: "その画面の主たる操作。原則1画面に1つ" },
+  { variant: "primary", label: "確認する", use: "その画面の主たる操作。原則1画面に1つ" },
   { variant: "secondary", label: "キャンセル", use: "主たる操作の隣に置く、戻る側の操作" },
   { variant: "danger", label: "取り下げる", use: "取り消せない操作" },
   { variant: "dangerOutline", label: "削除", use: "破壊的だが画面の主役ではない操作（管理画面）" },
@@ -225,7 +230,10 @@ export default function DesignPage() {
         </Section>
 
         <Section id="button" title="ボタン">
-          <Item name="4つの見た目" note="見た目はこの4つから選び、呼び出し側は幅・余白・並びを足します。">
+          <Item
+            name="操作のボタン（4つの見た目）"
+            note="見た目はこの4つから選び、呼び出し側は幅・余白・並びを足します。"
+          >
             <ul className="space-y-4">
               {BUTTON_SAMPLES.map((b) => (
                 <li key={b.variant} className="flex flex-wrap items-center gap-3">
@@ -242,6 +250,13 @@ export default function DesignPage() {
             <p className="mt-4 text-sm text-gray-600">
               右側は押せない状態です。色を薄くするだけでなく、カーソルの形も変えています。
             </p>
+          </Item>
+
+          <Item
+            name="主導線のリンク"
+            note="同じ塗りでも、青は「移動する」・黒は「ここで何かが起きる」。リンクの色が青なので、色がそのまま挙動を表します。"
+          >
+            <CtaLink href={routes.submit}>投稿する</CtaLink>
           </Item>
         </Section>
 

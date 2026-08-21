@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NavLink } from "@/components/ui/nav-link";
 import { routes } from "@/constants/routes";
 import { logout } from "@/features/account/actions/auth";
+import { CtaLink } from "@/components/ui/cta-link";
 
 // 常時出すナビ項目。デスクトップ列・モバイルメニューの両方で使い回す。
 //
@@ -251,12 +252,9 @@ export function HeaderNav({
       )}
 
       {/* 主 CTA（常時表示） */}
-      <Link
-        href={routes.submit}
-        className="whitespace-nowrap text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-      >
+      <CtaLink href={routes.submit} className="whitespace-nowrap">
         投稿する
-      </Link>
+      </CtaLink>
 
       <MobileMenu userName={userName} isAdmin={isAdmin} />
     </div>
