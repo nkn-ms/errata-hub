@@ -31,11 +31,11 @@ const STACK = [
 const IMPLEMENTATION = [
   {
     name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ので、ページのデータ取得は src/features/*/service.ts の関数（Prisma で DB を読む層）をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
+    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ので、ページのデータ取得は src/features/*/service.ts の関数（Prisma で DB を読む層）をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る4本だけ（書籍検索が2本、画像アップロードと認証コールバックが1本ずつ）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
-    why: "Google・GitHub でのログインは認可コードフロー（PKCE / RFC 7636）で動く。利用者を認可 URL へ送り、戻ってきた code をセッションに交換するところまでがアプリの仕事で、client secret と code verifier は Supabase が預かる。メール認証のリンクも、同じように code を交換して有効になる。",
+    why: "Google・GitHub でのログインは認可コードフロー（PKCE / RFC 7636）で動く。利用者を認可 URL へ送り、戻ってきた code をセッションに交換するところまでがアプリの仕事で、プロバイダの client secret は Supabase が預かる。交換に要る code verifier（認可を始めたのが自分だと示す値）はこちら側の cookie が持っていて、code と引き換えるときにだけ送る。メール認証のリンクも、同じように code を交換して有効になる。",
   },
   {
     name: "Prisma v7 (ORM)",
@@ -43,7 +43,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "OpenBD / Google Books API",
-    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
+    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。Google Books の API キーをブラウザに置かないためと、閲覧者の IP を外部サービスへ渡さないため。",
   },
   {
     name: "Vitest / Playwright",
@@ -60,7 +60,7 @@ const PRACTICES = [
   },
   {
     name: "レート制限（Postgres）",
-    why: "投稿・画像アップロード・書籍検索には、利用者ごとに一定時間あたりの回数制限をかけている。回数の記録に専用のサービスは足さず、すでに使っている PostgreSQL の1テーブルで数える。加算と上限の判定を1つの SQL 文で行うので、同時に複数のリクエストが来ても二重に数えられない。",
+    why: "投稿・追記・画像アップロード・書籍検索・出版社の回答・賛同には、利用者ごとに一定時間あたりの回数制限をかけている。回数の記録に専用のサービスは足さず、すでに使っている PostgreSQL の1テーブルで数える。加算と上限の判定を1つの SQL 文で行うので、同時に複数のリクエストが来ても二重に数えられない。",
   },
   // 認証（本物のセッションか）→ 認可（何をしてよいか）の順に並べる。
   // 別の関心事なので1枚にまとめない。「認可」の語の説明は後者の冒頭に置く。
@@ -74,7 +74,7 @@ const PRACTICES = [
   },
   {
     name: "操作ログ（監査ログ）",
-    why: "削除・退会・権限変更のような取り消せない操作は、変更前と変更後の内容を添えて記録している。記録と操作は1つのトランザクションにまとめてあり、どちらか片方だけが残ることはない。",
+    why: "投稿・アカウント・権限への変更は、削除や退会のような取り消せないものだけでなく、更新も含めて記録している。変更前と変更後の内容を添えるので、誰が何をどう変えたかを後から辿れる。記録と操作は1つのトランザクションにまとめてあり、どちらか片方だけが残ることはない。",
   },
 ] as const;
 
@@ -137,7 +137,7 @@ export default function TechPage() {
           <div className="flex flex-col items-center gap-3 text-sm">
             <Box label="ブラウザ" sub="ユーザー" />
             <Arrow />
-            <Box label="Vercel" sub="Next.js 16（サーバーコンポーネント / API Route）" highlight />
+            <Box label="Vercel" sub="Next.js 16（サーバーコンポーネント / Route Handler）" highlight />
             <Arrow />
             <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
               <Box label="Supabase" sub="Auth + Postgres + Storage" />
