@@ -98,28 +98,6 @@ export default function DesignPage() {
 
       <div className="mt-8 space-y-10">
         <Section id="color" title="色">
-          <p className="text-sm text-gray-700">
-            色は <code className="text-xs">globals.css</code> の CSS 変数だけで管理しています。
-            ダークモードのために各所へ <code className="text-xs">dark:</code> を書くのではなく、
-            <strong>同じ変数の中身を差し替える</strong>方式です。
-          </p>
-          <p className="text-sm text-gray-700">
-            <code className="text-xs">dark:</code> 方式では、色を指定している 1,000 箇所以上のクラスに、
-            対になる指定を1つずつ書き足すことになります。書き漏らした1箇所は、
-            ダークで開いたときだけ白く光ります。変数を差し替える方式なら、
-            <strong>書き漏らしという状態がそもそも生まれません</strong>。
-          </p>
-          <p className="text-sm text-gray-700">
-            例外は管理画面の帯だけです。ここはライトでもダークでも暗い面のままにしたいので、
-            そこに限って <code className="text-xs">dark:</code> で当て直しています。
-          </p>
-          <p className="text-sm text-gray-700">
-            代償は、階調の数字が明るさを表さなくなることです。役割は動かしていないので{" "}
-            <code className="text-xs">gray-700</code> は本文、<code className="text-xs">gray-200</code>{" "}
-            は枠線のままですが、ダークでは 700 の方が 200 より明るくなります。
-            下の見本は CSS 変数を直接読んでいるので、テーマを切り替えると実際の値が入れ替わります。
-          </p>
-
           <div className="rounded-lg border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">グレーの階調</h3>
@@ -252,11 +230,14 @@ export default function DesignPage() {
             </p>
           </Item>
 
-          <Item
-            name="主導線のリンク"
-            note="同じ塗りでも、青は「移動する」・黒は「ここで何かが起きる」。リンクの色が青なので、色がそのまま挙動を表します。"
-          >
+          <Item name="主導線のリンク" note="青い塗りは「移動する」、黒い塗りは「ここで何かが起きる」。">
             <CtaLink href={routes.submit}>投稿する</CtaLink>
+            <p className="mt-3 text-sm text-gray-600">
+              見た目はボタンでも、実体は <code className="text-xs">&lt;a&gt;</code> のままにしています。
+              新しいタブで開く・URL をコピーする・カーソルを乗せて遷移先を確かめるといったブラウザ標準の動作が
+              そのまま使え、読み上げにも「リンク」として伝わるためです。
+              <code className="text-xs">&lt;button&gt;</code> にして JavaScript で移動させると、これらは全部失われます。
+            </p>
           </Item>
         </Section>
 
@@ -319,10 +300,7 @@ export default function DesignPage() {
         </Section>
 
         <Section id="display" title="表示の部品">
-          <Item
-            name="ステータス"
-            note="1つの軸に8つの値。中間の状態は「出版社へ連絡済み」に統合しています。"
-          >
+          <Item name="ステータス">
             <div data-status-samples className="flex flex-wrap gap-2">
               {(Object.keys(STATUS_LABELS) as ReportStatus[]).map((status) => (
                 <StatusBadge key={status} status={status} />
