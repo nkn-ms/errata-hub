@@ -5,10 +5,10 @@ import { routes } from "@/constants/routes";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
-  description: "Errata Hub の使用技術と、選定の理由・実装の要点・システム構成の紹介。",
+  description: "Errata Hub の使用技術と、実装の要点・システム構成の紹介。",
 };
 
-// 「何を使っているか」の網羅はこの一覧が持ち、下の REASONS / IMPLEMENTATION は文章だけを書く。
+// 「何を使っているか」の網羅はこの一覧が持ち、下の IMPLEMENTATION は文章だけを書く。
 // 一覧と文章を1枚のカードに混ぜると、技術名を拾いたい読み手が本文を読み飛ばせない
 // （＝網羅性を足すたびに文章が増える）。ここに足しても文量は1行しか増えない。
 const STACK = [
@@ -25,34 +25,9 @@ const STACK = [
   { area: "ホスティング", items: "Vercel" },
 ] as const;
 
-// 「なぜその形にしたか」だけを書く節。見出しは技術名ではなく判断そのものにする
-// （下の IMPLEMENTATION と技術名が並ぶと、同じ見出しが2回出て読み手が対応を取らされる）。
-// 選定に判断があったものだけを載せ、4枚を上限にする。増やしたくなったら
-// IMPLEMENTATION かリポジトリの docs/ へ回す（面談で聞かれるたびに1枚ずつ増えると、
-// この節に付加情報が混ざって「理由」でなくなるため）。
-const REASONS = [
-  {
-    name: "1つの基盤に寄せる（Supabase）",
-    why: "認証・データ・画像を別々のサービスに分けると、障害のときに切り分ける対象がその数だけ増える。個人が運用する規模では、個々の最適さよりも構成の単純さを優先し、3つとも Supabase に置いた。",
-  },
-  {
-    name: "画面のためだけの API を作らない",
-    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ため、DB を直接読める。ここに画面用の API を挟むと型の効かない境界と認可の確認点が増えるので、HTTP の受け口（Route Handler）は外部から呼ばれるものに限り、画面のデータ取得はサービス層の関数呼び出しに統一している。",
-  },
-  {
-    name: "型は DB スキーマから生成する（Prisma）",
-    why: "Prisma はスキーマ定義から TypeScript の型を生成し、テーブルの定義とコード上の型が一箇所に集約される。TypeScript と PostgreSQL を組み合わせる構成では採用例が多く、実装時に参照できる情報も豊富にあるため。",
-  },
-  {
-    name: "和書の書誌は OpenBD を正とする",
-    why: "Google Books は和書のタイトルをローマ字で返すことがあり、出版社が空のものもある。書誌の正確さでは OpenBD が上回るため ISBN 検索の基準とし、OpenBD にほとんど登録がない書影だけを Google Books で補っている。",
-  },
-] as const;
-
 // 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
 // （App Router なら画面の材料が1つのフォルダに集まる、Prisma なら型が生成される）は
 // 実装ではないので書かない。書くのは、こちらが決めた置き方・分け方だけ。
-// 用語の補足は初出の側に置く（サーバーコンポーネントと Route Handler は上の REASONS が初出）。
 const IMPLEMENTATION = [
   {
     name: "Next.js 16 (App Router)",
@@ -60,7 +35,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "ページのデータ取得は、サーバーコンポーネントから src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、Route Handler を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
+    why: "ページのデータ取得は、画面を作るコード自体がサーバーで動く仕組み（サーバーコンポーネント）から src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
@@ -113,7 +88,7 @@ export default function TechPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">使用技術</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Errata Hub を構成する技術と、それを選んだ理由、実際の組み方をまとめています。
+          Errata Hub を構成する技術と、実際の組み方をまとめています。
         </p>
       </div>
 
@@ -132,21 +107,8 @@ export default function TechPage() {
         </dl>
       </section>
 
-      {/* 選んだ理由 → 実装の要点 の順に置く。読み手が降りる深さを自分で選べるようにするため、
-          一覧（何を使うか）→ 理由（なぜその形か）→ 要点（どう組んだか）と段を作っている。 */}
-      <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">選んだ理由</h2>
-        <div className="space-y-3">
-          {REASONS.map((r) => (
-            <div key={r.name} className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-900">{r.name}</h3>
-              <p className="mt-1 text-sm text-gray-600">{r.why}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 実装の要点 */}
+      {/* 一覧（何を使うか）→ 要点（どう組んだか）の順に置く。
+          読み手が降りる深さを自分で選べるようにするため。 */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">実装の要点</h2>
         <div className="space-y-3">
