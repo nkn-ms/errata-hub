@@ -30,6 +30,9 @@ test.describe("デザインシステム", () => {
   test("ボタンは4種類を、押せる状態と押せない状態の対で並べる", async ({ page }) => {
     // variant が増減したらこのページも直す必要がある、を検知する（見本1件につき2つ描く）。
     await expect(page.locator("#button button")).toHaveCount(8);
+    // 主導線のリンク（CtaLink）は <a> なので上の数には入らない。ヘッダーにも同じ文言が
+    // あるので、節の中に限って数える。
+    await expect(page.locator("#button").getByRole("link", { name: "投稿する" })).toBeVisible();
     // 押せないボタンがマウスに反応しないこと自体がこの部品を作った理由なので、そこを測る。
     const disabled = page.locator("#button button[disabled]").first();
     const before = await disabled.evaluate((e) => getComputedStyle(e).backgroundColor);

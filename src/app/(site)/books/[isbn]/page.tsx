@@ -11,6 +11,7 @@ import { toCanonicalIsbn } from "@/utils/isbn";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { BookCover } from "@/features/book/components/book-cover";
+import { CtaLink } from "@/components/ui/cta-link";
 
 type Props = {
   params: Promise<{ isbn: string }>;
@@ -97,12 +98,7 @@ export default async function BookDetailPage({ params }: Props) {
         <h2 className="text-lg font-semibold text-gray-900">
           投稿 <span className="text-sm font-normal text-gray-500">{reports.length}件</span>
         </h2>
-        <Link
-          href={routes.submitForBook(book.isbn)}
-          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-        >
-          この本に投稿する
-        </Link>
+        <CtaLink href={routes.submitForBook(book.isbn)}>この本に投稿する</CtaLink>
       </div>
 
       {/* 免責バナー */}

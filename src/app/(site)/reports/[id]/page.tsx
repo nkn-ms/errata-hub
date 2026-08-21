@@ -21,6 +21,7 @@ import {
   type PublisherCommentPermission,
 } from "@/services/publisher-access";
 import { formatJstDateTime } from "@/utils/format";
+import { CtaLink } from "@/components/ui/cta-link";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -321,12 +322,7 @@ export default async function ReportDetailPage({ params }: Props) {
           <Link href={routes.book(report.isbn)} className="text-sm text-blue-600 hover:underline">
             この本の投稿一覧
           </Link>
-          <Link
-            href={routes.submitForBook(report.isbn)}
-            className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-500 transition-colors"
-          >
-            この本に投稿する
-          </Link>
+          <CtaLink href={routes.submitForBook(report.isbn)}>この本に投稿する</CtaLink>
         </div>
       </div>
       </>
