@@ -1,11 +1,18 @@
 "use client";
 
 import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
+  useTable,
+  tableFeatures,
+  columnFilteringFeature,
+  columnVisibilityFeature,
+  globalFilteringFeature,
+  rowPaginationFeature,
+  rowSortingFeature,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  filterFns,
+  sortFns,
   flexRender,
   ColumnDef,
   SortingState,
@@ -43,7 +50,25 @@ import { Button } from "@/components/ui/button";
 //   賛同・投稿者   → 「投稿」に統合（日付と同じ「誰がいつ」の情報）
 //
 // 検索（globalFilter）の対象は列を絞る前と同じに保つため、隠し列 searchText にまとめている。
-const columns: ColumnDef<Report>[] = [
+
+// 使う機能だけを組み立てて渡す（v9 で導入された形。読み込むコードもここに挙げた分だけになる）。
+// ⚠️ 機能を1つ落とすと、対応する table.getXxx() が型ごと消える。追加ではなく削除で壊れる。
+const features = tableFeatures({
+  columnFilteringFeature, // 列ごとの絞り込み（種別・ステータス）
+  columnVisibilityFeature, // 隠し列 searchText
+  globalFilteringFeature, // 検索ボックス
+  rowPaginationFeature,
+  rowSortingFeature,
+  filteredRowModel: createFilteredRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  // 組み込みの絞り込み・並べ替え関数の一式。globalFilter が既定の includesString を
+  // 引けるようにするために要る（列側で filterFn を書いていても、検索は別経路）
+  filterFns,
+  sortFns,
+});
+
+const columns: ColumnDef<typeof features, Report>[] = [
   {
     // 表示しない検索用の列。TanStack の globalFilter は「accessorFn を持つ列」を見るだけで
     // 表示状態は問わないので、隠し列でも検索対象になる（table-core: getCanGlobalFilter）。
@@ -186,7 +211,7 @@ export function ReportTable({
   initialType?: ReportType;
   initialStatus?: ReportStatus;
 }) {
-  // TanStack Table の useReactTable は React Compiler と非互換（返り値の関数を
+  // TanStack Table の useTable は React Compiler と非互換（返り値の関数を
   // メモ化すると stale UI になる）ため、このコンポーネントだけ最適化対象から外す。
   "use no memo";
 
@@ -201,21 +226,19 @@ export function ReportTable({
   // 一覧ページの ?q= を初期検索語として引き継ぐ（トップの検索ボックスからの遷移）。
   const [globalFilter, setGlobalFilter] = useState(initialQuery);
 
-  // 上の "use no memo" で対処済みだが、このルールは opt-out 済みの関数にも警告を出すため行単位で抑制する
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  // ⚠️ v9 では react-hooks/incompatible-library が反応しなくなったが、"use no memo" は残している。
+  // ルールが v9 の形をまだ知らないだけの可能性があり、外して壊れると症状が「たまに古い表示」になる。
+  const table = useTable({
+    features,
     data,
     columns,
     state: { sorting, columnFilters, globalFilter },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     // searchText は検索専用の隠し列（列としては描かない）
-    initialState: { pagination: { pageSize: 10 }, columnVisibility: { searchText: false } },
+    // v9 の pagination は pageIndex も必須（v8 は pageSize だけ渡せた）
+    initialState: { pagination: { pageIndex: 0, pageSize: 10 }, columnVisibility: { searchText: false } },
   });
 
   // TanStack Table の ColumnFilter.value は unknown なので <select> にそのまま渡せず、キャストが要る。
@@ -340,7 +363,7 @@ export function ReportTable({
       {/* ページネーション */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          {table.getState().pagination.pageIndex + 1} / {table.getPageCount()} ページ
+          {table.state.pagination.pageIndex + 1} / {table.getPageCount()} ページ
         </div>
         <div className="flex gap-2">
           <Button
