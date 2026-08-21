@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateProfileLinks } from "@/features/account/actions/auth";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 type Props = {
   currentGithubUsername: string | null;
@@ -76,14 +77,14 @@ export function ProfileLinksForm({
       </p>
 
       {state?.error && (
-        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+        <Notice variant="error">
           {state.error}
-        </p>
+        </Notice>
       )}
       {state?.success && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+        <Notice variant="success">
           公開リンクを更新しました。
-        </p>
+        </Notice>
       )}
 
       <Button type="submit" disabled={pending}>

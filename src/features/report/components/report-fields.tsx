@@ -6,6 +6,7 @@ import { toIntOrNull } from "@/utils/parse";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 
 // 投稿の「中身」の入力欄。**新規投稿（report-form）と投稿者による編集（report-edit-form）で共有する**。
 // 分けて書くと、欄の追加・上限の変更・検証条件が2か所に散り、片方だけ直る事故が起きる。
@@ -163,10 +164,7 @@ function ErrorItem({ field, message }: { field?: string; message: string }) {
 export function ErrorPanel({ errors }: { errors: { field?: string; message: string }[] }) {
   if (errors.length === 0) return null;
   return (
-    <div
-      role="alert"
-      className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
-    >
+    <Notice variant="error" role="alert" className="py-3">
       {errors.length === 1 ? (
         <ErrorItem {...errors[0]} />
       ) : (
@@ -181,7 +179,7 @@ export function ErrorPanel({ errors }: { errors: { field?: string; message: stri
           </ul>
         </>
       )}
-    </div>
+    </Notice>
   );
 }
 

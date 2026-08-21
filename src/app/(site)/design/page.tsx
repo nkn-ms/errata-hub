@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button, type ButtonVariant } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { ReportCard } from "@/features/report/components/report-card";
 import { ReportTable } from "@/features/report/components/report-table";
@@ -64,11 +65,12 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-function Item({ name, note, children }: { name: string; note: string; children: React.ReactNode }) {
+// note は任意。見本そのもので伝わるものには添えない（説明のための説明を書かない）。
+function Item({ name, note, children }: { name: string; note?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="text-sm font-semibold text-gray-900">{name}</h3>
-      <p className="mt-1 text-sm text-gray-600">{note}</p>
+      {note && <p className="mt-1 text-sm text-gray-600">{note}</p>}
       <div className="mt-4">{children}</div>
     </div>
   );
@@ -175,6 +177,13 @@ export default function DesignPage() {
               エラー文言のように、操作しなければ画面に出ない文字もあります。
               こうした色は、状態を切り替えるテストの中で測っています。ページを開いて眺めるだけでは見つかりません。
             </p>
+          </Item>
+
+          <Item name="エラーと成功の通知">
+            <div className="space-y-2">
+              <Notice variant="error">メールアドレスまたはパスワードが正しくありません。</Notice>
+              <Notice variant="success">表示名を更新しました。</Notice>
+            </div>
           </Item>
         </Section>
 
