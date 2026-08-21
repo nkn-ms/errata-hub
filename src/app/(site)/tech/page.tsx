@@ -31,7 +31,7 @@ const STACK = [
 const IMPLEMENTATION = [
   {
     name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "ページのデータ取得は、画面を作るコード自体がサーバーで動く仕組み（サーバーコンポーネント）から src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
+    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ので、ページのデータ取得は src/features/*/service.ts の関数（Prisma で DB を読む層）をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
