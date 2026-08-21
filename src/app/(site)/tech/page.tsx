@@ -5,10 +5,10 @@ import { routes } from "@/constants/routes";
 
 export const metadata: Metadata = {
   title: "使用技術 | Errata Hub",
-  description: "Errata Hub の使用技術と、実装の要点・システム構成の紹介。",
+  description: "Errata Hub の使用技術と、選定の理由・実装の要点・システム構成の紹介。",
 };
 
-// 「何を使っているか」の網羅はこの一覧が持ち、下の IMPLEMENTATION は文章だけを書く。
+// 「何を使っているか」の網羅はこの一覧が持ち、下の REASONS / IMPLEMENTATION は文章だけを書く。
 // 一覧と文章を1枚のカードに混ぜると、技術名を拾いたい読み手が本文を読み飛ばせない
 // （＝網羅性を足すたびに文章が増える）。ここに足しても文量は1行しか増えない。
 const STACK = [
@@ -25,9 +25,38 @@ const STACK = [
   { area: "ホスティング", items: "Vercel" },
 ] as const;
 
+// 「なぜその技術を選んだか」だけを書く節。守る形は3つ。
+// ① 見出しは技術名ではなく判断そのものにする（下の IMPLEMENTATION と技術名が並ぶと、
+//    同じ見出しが2回出て読み手が対応を取らされる）。
+// ② 本文は「一般論 → このアプリの事情」の2段で書き、一般論の側では比較対象を名指しする。
+//    書き手が何を検討したかは読み手が知らないので、経緯を前提にした書き出しは通じない。
+// ③ 使っていない機能を利点として挙げない。「速い」「1つで揃う」のようにどのサービスにも
+//    当てはまる文も、選定の理由にならないので書かない。
+// 選定に判断があったものだけを載せ、4枚を上限にする。増やしたくなったら
+// IMPLEMENTATION かリポジトリの docs/ へ回す。
+const REASONS = [
+  {
+    name: "画面とサーバーを同じコードに置く（Next.js）",
+    why: "Next.js は画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ため、画面と DB の間に HTTP の層を置かずに済む。React だけで画面を作る場合は、データを取るサーバーを別に用意し、同じ型を両側で持ち直すことになる。このアプリは投稿や管理操作のたびにサーバーで権限を判定しているので、境界を増やせば確認すべき入口もその数だけ増える。",
+  },
+  {
+    name: "土台に PostgreSQL を選ぶ（Supabase）",
+    why: "認証・データベース・ファイル保存をまとめて提供するサービスのうち、Supabase は土台が PostgreSQL である点で Firebase などと異なる。このアプリは投稿を1件表示するだけでも、本・出版社・画像・追記・出版社からの回答・投稿者を結合して組み立てるため、表をまたぐ読み出しが要る。認証にもメール確認・パスワード再発行・ソーシャルログインが要り、その両方を自前で実装せずに済むのが Supabase だった。",
+  },
+  {
+    name: "型は DB スキーマから生成する（Prisma）",
+    why: "スキーマの定義から TypeScript の型を生成するので、列を増やす・型を変えるといった変更の影響が、実行前にビルドで分かる。SQL を文字列で書く場合、同じ変更はコードを素通りして実行時に落ちる。テーブルは11あり、投稿の作成と操作ログの記録のように複数のテーブルへまとめて書き込む処理もあるため、影響の届く先を手で追うのは現実的でない。",
+  },
+  {
+    name: "和書の書誌は OpenBD を正とする",
+    why: "Google Books は和書のタイトルをローマ字で返すことがあり、出版社が空のものもある。書誌の正確さでは OpenBD が上回るため ISBN 検索の基準とし、OpenBD にほとんど登録がない書影（サムネイル）だけを Google Books で補っている。",
+  },
+] as const;
+
 // 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
 // （App Router なら画面の材料が1つのフォルダに集まる、Prisma なら型が生成される）は
 // 実装ではないので書かない。書くのは、こちらが決めた置き方・分け方だけ。
+// 用語の補足は初出の側に置く（サーバーコンポーネントと書影は上の REASONS が初出）。
 const IMPLEMENTATION = [
   {
     name: "Next.js 16 (App Router)",
@@ -35,7 +64,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "ページのデータ取得は、画面を作るコード自体がサーバーで動く仕組み（サーバーコンポーネント）から src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
+    why: "ページのデータ取得は、サーバーコンポーネントから src/services/* の関数をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る3本だけ（書籍検索が2本と画像アップロードが1本）。",
   },
   {
     name: "Supabase (Auth + Postgres + Storage)",
@@ -47,7 +76,7 @@ const IMPLEMENTATION = [
   },
   {
     name: "OpenBD / Google Books API",
-    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
+    why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。API キーを隠すためと、閲覧者の IP を外部サービスへ渡さないため。",
   },
   {
     name: "Vitest / Playwright",
@@ -88,7 +117,7 @@ export default function TechPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">使用技術</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Errata Hub を構成する技術と、実際の組み方をまとめています。
+          Errata Hub を構成する技術と、それを選んだ理由、実際の組み方をまとめています。
         </p>
       </div>
 
@@ -107,8 +136,21 @@ export default function TechPage() {
         </dl>
       </section>
 
-      {/* 一覧（何を使うか）→ 要点（どう組んだか）の順に置く。
-          読み手が降りる深さを自分で選べるようにするため。 */}
+      {/* 選んだ理由 → 実装の要点 の順に置く。読み手が降りる深さを自分で選べるようにするため、
+          一覧（何を使うか）→ 理由（なぜその技術か）→ 要点（どう組んだか）と段を作っている。 */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">選んだ理由</h2>
+        <div className="space-y-3">
+          {REASONS.map((r) => (
+            <div key={r.name} className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">{r.name}</h3>
+              <p className="mt-1 text-sm text-gray-600">{r.why}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 実装の要点 */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">実装の要点</h2>
         <div className="space-y-3">
