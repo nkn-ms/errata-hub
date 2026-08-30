@@ -37,11 +37,8 @@ const eslintConfig = defineConfig([
             { target: "./src/utils", from: "./src/features" },
 
             // フィーチャーがルーティング層を知ってはいけない。
-            // ⚠️ `actions` だけ除外している。Server Action はどこに置いてもよく、
-            //    `app/actions/` にあるのは慣習で、ルーティングではないため。
-            //    残りのフィーチャー（book / publisher / user / auth）を切り出すときに
-            //    `src/actions/` などへ移し、この except を外すのが最終形。
-            { target: "./src/features", from: "./src/app", except: ["./actions"] },
+            // 逆向き（app → features）は自由。app は合成層なので、フィーチャーを束ねて画面を作る。
+            { target: "./src/features", from: "./src/app" },
 
             // フィーチャー同士は直接つながない（合成は app 層で行う）。
             // ⚠️ フィーチャーを足したら、その分の zone をここに足すこと。

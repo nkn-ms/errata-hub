@@ -34,7 +34,7 @@ DB に `@unique` を付けても、文字列が違えば別物扱いなので防
 
 - 正規化ロジック: [`src/utils/isbn.ts`](../src/utils/isbn.ts) の `toCanonicalIsbn(raw)`
   - ハイフン等を除去 → ISBN-10 なら ISBN-13 へ変換 → チェック数字を検証 → 不正なら `null`
-- 投稿時に通す場所: [`src/app/actions/report.ts`](../src/app/actions/report.ts) の `createReport`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
+- 投稿時に通す場所: [`src/features/report/actions/report.ts`](../src/features/report/actions/report.ts) の `createReport`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
   - `toCanonicalIsbn` で正規化し、不正ならエラーを返す。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
 - DB: `Book.isbn` は **必須 + `@unique`**（ISBN-13 を保存）。
 
@@ -237,7 +237,7 @@ Supabase のセッション維持は「短命のアクセストークンを裏�
 |---|---|---|
 | **Route Handler** | `app/**/route.ts` の `GET` / `POST` … 関数 | App Router の言葉（**現行**） |
 | **API Route** | `pages/api/*.ts` | Pages Router の言葉（**旧称。同じもの**） |
-| **Server Action** | `"use server"` を付けた async 関数（`app/actions/*.ts`） | Route Handler と**対になる**書き込み口 |
+| **Server Action** | `"use server"` を付けた async 関数（`features/<name>/actions/*.ts`） | Route Handler と**対になる**書き込み口 |
 
 公式は Route Handler を「`pages` の API Routes と equivalent」と明記している。
 `docs/design.md` §7 が「API Route（Route Handler）」と併記しているのは、この新旧2つの名前を繋ぐため。
@@ -522,7 +522,7 @@ Profile を作る経路はこの callback だけ（パスワードログイン�
 GDPR の消去権が対象とするのは **PII**。**匿名化して個人と結びつかなくなったデータは GDPR の対象外**になる。
 → 退会では **PII だけ消し、コンテンツ（レポート）は匿名で残せる**。これが UGC（ユーザー投稿）サービスの定石。
 
-### このアプリの退会方針（実装済: `app/actions/auth.ts` の `withdraw`）
+### このアプリの退会方針（実装済: `features/account/actions/auth.ts` の `withdraw`）
 
 1. `auth.users` を Admin API で削除（**auth 側 PII** ＝メール/メタデータとログイン情報を消す）
 2. `Profile` は**消さず PII だけスクラブ**：`email`→匿名ダミー（@unique+必須なので null 不可）、`displayName`→null（UI で「退会済みユーザー」表示）
@@ -613,12 +613,12 @@ App Router は「アプリのコードがフレームワークを呼ぶ」ので
 | `metadata`（オブジェクト・静的） | `<head>` 内の `<title>` や `<meta>` を生成 |
 | `generateMetadata`（関数・動的） | 描画前に実行し、返り値から同じく `<head>` を生成 |
 
-考えてみればページコンポーネント自体も同じで、`page.tsx` の `export default` を import して呼んでいるコードは無い。ファイル配置（`app/reports/[id]/page.tsx` という置き場所）を見て Next.js が勝手に呼んでいる。`metadata` / `generateMetadata` はその予約名の仲間。
+考えてみればページコンポーネント自体も同じで、`page.tsx` の `export default` を import して呼んでいるコードは無い。ファイル配置（`app/(site)/reports/[id]/page.tsx` という置き場所）を見て Next.js が勝手に呼んでいる。`metadata` / `generateMetadata` はその予約名の仲間。
 
 ### 静的 `metadata` と動的 `generateMetadata` の使い分け
 
 - `export const metadata = {...}` — **静的**。ビルド時に決まる固定値。本プロジェクトでは `app/layout.tsx` がサイト全体のデフォルト（`title: "Errata Hub"` ＋公開前の一時的な `robots: noindex`）を持つ。
-- `export async function generateMetadata()` — **動的**。リクエストごとに実行され、DB を引いて値を作れる。`app/reports/[id]/page.tsx` がこれで投稿の概要を `<title>` に入れている。**サーバーコンポーネント限定**。
+- `export async function generateMetadata()` — **動的**。リクエストごとに実行され、DB を引いて値を作れる。`app/(site)/reports/[id]/page.tsx` がこれで投稿の概要を `<title>` に入れている。**サーバーコンポーネント限定**。
 - 副作用の注意: `generateMetadata` とページ本体が**同じデータを別々に取りに行く**構造になるため、素朴に書くと同一リクエスト内で同じ DB クエリが2回走る。`reports/[id]/page.tsx` では React の `cache()` で `findReportById` を包み、リクエスト内で1回に重複排除している（`getReport`）。
 
 ### layout と page のマージ規則（ページが勝つ・フィールド単位）
