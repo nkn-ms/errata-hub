@@ -121,9 +121,9 @@ fixedEdition / fixedPrinting は FIXED に付随
 ※ §1〜6 は将来像（未実装の提案を含む）。この §7 は**現時点で確定・実装済みの方針**を集約する（背景・解説は `docs/learnings.md`、個別の判断ログは Claude メモリ参照）。
 
 ### 削除と退会（別々の2系統）
-- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `app/actions/report.ts` の `deleteReport`（ADMIN限定）。
-- **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `app/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
-- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `app/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`services/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
+- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `features/report/actions/report.ts` の `deleteReport`（ADMIN限定）。
+- **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `features/account/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
+- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `features/account/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`lib/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
 
 ### 出版社からの回答（2026-08-12 確定）
 - **`PublisherAccess` を持つ担当者が、自社の書籍の投稿に公開ページから直接回答できる**（規約 第8条）。それまでは管理者が代筆する運用で、`PublisherAccess` は表示に使うだけで認可を何もゲートしていなかった。⚠️ **この行は今後「公開ページへの書き込み権限」そのもの**なので、付与前に本人確認を行うこと（技術的な検証は無い）。
@@ -135,7 +135,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **`OTHER` が要求する説明は `Report.statusNote` へ分離した**。旧 `publisherComment` 列は「出版社の回答」と「運営者の事情説明」（例:「出版社が廃業しており連絡が取れません」）を兼ねており、テーブルへ移すと後者を出版社の発言として掲示してしまうため。旧 `publisherComment` 列は expand-contract で1リリース残したのち削除済み（#200 で移行 → 次のリリースで DROP）。⭐ **スキーマから消す変更は「移す」と「消す」を別のリリースに分ける**と、間に切り戻せる期間ができる。
 
 ### 投稿を後から直せる範囲（投稿者本人）
-- 境界は `ReportStatus`。**未対応（PENDING）の間は本文を編集でき、出版社へ連絡した後（PENDING 以外）は追記だけ**。理由は、出版社が見た内容と後から書き換えられた内容が食い違うと出版社側の対応が宙に浮くため。外に出す前は自由に直せて、外に出した後は上書きせず足す。実装は `app/actions/report.ts` の `updateOwnReport` / `addReportAddendum`。
+- 境界は `ReportStatus`。**未対応（PENDING）の間は本文を編集でき、出版社へ連絡した後（PENDING 以外）は追記だけ**。理由は、出版社が見た内容と後から書き換えられた内容が食い違うと出版社側の対応が宙に浮くため。外に出す前は自由に直せて、外に出した後は上書きせず足す。実装は `features/report/actions/report.ts` の `updateOwnReport` / `addReportAddendum`。
 - **追記は列1本ではなく別テーブル（`ReportAddendum`）**。列だと2回目の追記が1回目を書き換えられ、避けたい問題が追記の側で再発する。不変条件を1行で言える形にした＝**本文は PENDING の間だけ可変・追記は作った時点で不変**。`Report.note`（備考）は投稿の一部で別物。
 - **画像は追加＝いつでも可・削除＝PENDING の間だけ**。追加は追記と同じ「足すだけ」の操作だが、削除を認めると本文を凍結しても出版社が見た内容が結局変わるため。追加は `POST /api/reports/[id]/images`、削除は `deleteOwnReportImage`（権利者対応のための管理者削除 `deleteReportImage` はステータスに関わらず可＝別物）。
 - **画像の操作は本文と同じ場所・同じボタンで確定する**。PENDING の間は編集画面の中で追加・削除して「更新する」で確定し、連絡後は追記フォームの中で説明と一緒に足して「確認する → 追記する」で確定する。**管理者の画像削除も同じ**で、`/admin/reports/[id]` の編集フォームの中に置き「保存する」で確定する（× は画面から外すだけ＝離脱すれば無かったことになる）。選んだ瞬間に送る作りは採らない（押していないのに反映済み・キャンセルしても戻らない、では確定ボタンの意味が無くなる）。公開ページの画像は閲覧のみ。
@@ -150,7 +150,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 - 「記事ゼロの Book / Publisher（孤児行）」は**放置で許容**。Book は ISBN で upsert、Publisher は名前照合で、再投稿時に**再利用**される（重複も不整合も作らない）。連動削除は入れない（複雑化＝バグの温床を避ける）。「出版社不明の本」は元データ不完全ゆえの**正規の状態**（publisherId は optional のまま）。
 
 ### 出版社削除ガード（案A・実装済）
-- 「**書籍が紐づかない出版社のみ削除可**」。保証=DB（`Book.publisherId` の onDelete を SetNull→**Restrict** に変更済み）、UX=アプリ（`app/actions/publisher.ts` の件数チェック＋親切エラー）。
+- 「**書籍が紐づかない出版社のみ削除可**」。保証=DB（`Book.publisherId` の onDelete を SetNull→**Restrict** に変更済み）、UX=アプリ（`features/publisher/actions/publisher.ts` の件数チェック＋親切エラー）。
 - PublisherAccess は **Cascade のまま**と決着（権限レコードは出版社と運命共同体でよい。Restrict にすると権限保持者がいるだけで削除できず掃除の妨げになる）。
 
 ### 認証エラー表示・パスワード再発行
@@ -165,7 +165,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### データアクセスの境界（2026-07 に Server Actions へ統一）
 - **読み取り（ページ表示）= サーバーコンポーネントからサービス関数/Prisma を直接 await**。内部利用のためだけの自前 API Route は挟まない（同一プロセス内で HTTP 往復と JSON 二重シリアライズを増やすだけで、分離の実も速度も得られないため）。
-- **自アプリ UI からの更新 = Server Actions**（`app/actions/*.ts`）。理由：関数呼び出しの型安全（引数・戻り値をコンパイル時検証）、`useActionState` 等 React 統合、更新と画面反映が1往復で完結（アクション内の `refresh()` / `redirect()`）。エラーは `{ error?: string }` を返し、成功時に一覧へ戻る操作は `redirect()`（publisher.ts 発祥のパターン）。**認可はレンダリングではなく各アクション内で必ず検証する**（アクションは直接 POST 可能な公開エンドポイントであるため。管理系は `requireAdminServerAction`）。
+- **自アプリ UI からの更新 = Server Actions**（`features/<name>/actions/*.ts`）。理由：関数呼び出しの型安全（引数・戻り値をコンパイル時検証）、`useActionState` 等 React 統合、更新と画面反映が1往復で完結（アクション内の `refresh()` / `redirect()`）。エラーは `{ error?: string }` を返し、成功時に一覧へ戻る操作は `redirect()`（publisher.ts 発祥のパターン）。**認可はレンダリングではなく各アクション内で必ず検証する**（アクションは直接 POST 可能な公開エンドポイントであるため。管理系は `requireAdminServerAction`）。
 - **API Route（Route Handler）は「HTTP 境界が本当に必要なもの」だけ**に限定。現存は次の2種のみ：①画像アップロード `POST /api/reports/[id]/images`（Server Actions のボディ上限は既定 1MB。`bodySizeLimit` を緩めると全アクション共通に効いて DDoS 耐性を削るため、大きいバイナリの受口だけ Route Handler に隔離）②外部書誌 API のプロキシ `GET /api/books/openbd`・`/api/books/search`（外部データ源への読み取り窓口）。
 
 ### ステータス（1軸8値・2026-07 確定）
@@ -221,7 +221,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 - **CSP は nonce ＋ `strict-dynamic`**（Next.js 公式の推奨形）。`script-src` に `'unsafe-inline'` を置かないため、注入されたインラインスクリプトは実行されない。`strict-dynamic` により「信頼されたスクリプトが動的に読み込んだスクリプト」は通るので、Vercel Analytics / Speed Insights のようにホストを列挙できない読み込みも壊れない。
 - **代償: 全ページが動的レンダリングになる**。静的に生成された HTML には nonce を差し込めず、`strict-dynamic` 下ではスクリプトが全部ブロックされるため。`app/layout.tsx` が `headers()` を読むことで全ルートが動的になる。**この変更で静的だったのは13ルート**（`/terms`・`/privacy`・`/how-to-use`・`/tech`・`/login`・`/register`・`/auth/*`・`/account/withdraw(n)`）で、いずれも文章だけの低トラフィックページ。主要ページ（`/`・`/reports`・`/reports/[id]`・`/books/[isbn]`）は DB を読むため元から動的だった。CDN キャッシュが効かなくなる代わりに XSS 耐性を取った判断で、`'unsafe-inline'` 方式に緩めれば静的に戻せる（＝後戻り可能）。
-- **`style-src` だけは `'unsafe-inline'` を許す**。nonce は `<style>` 要素にしか効かず、React の `style` 属性（例: `components/book-cover.tsx` の `aspectRatio`）には効かないため、厳格にするとレイアウトが崩れる。CSS 経由の攻撃は script より影響が小さいので、`script-src` を厳格に保つ方を優先した。
+- **`style-src` だけは `'unsafe-inline'` を許す**。nonce は `<style>` 要素にしか効かず、React の `style` 属性（例: `features/book/components/book-cover.tsx` の `aspectRatio`）には効かないため、厳格にするとレイアウトが崩れる。CSS 経由の攻撃は script より影響が小さいので、`script-src` を厳格に保つ方を優先した。
 - **`img-src` の外部ホストは書影の保存時検証と同じ集合**（`utils/cover-image.ts` の `ALLOWED_COVER_HOSTS` を import）。「保存を許すホスト」と「ブラウザが読み込めるホスト」が自動で一致し、片方だけ増やして表示が壊れる／検証が緩むのを防ぐ。
 - **HSTS は書かない**。Vercel が既に `max-age=63072000; includeSubDomains; preload` を付けており（2026-07-26 に本番の応答ヘッダで実測）、ここで短い `max-age` を書くと**弱くなる**だけ。
 - **dev だけの緩和**は `'unsafe-eval'`（React がサーバー側スタックの再構成に eval を使う）と `ws:`（HMR）、および `upgrade-insecure-requests` を付けないこと（ローカル Supabase が `http://127.0.0.1:54321` なので付けると壊れる）。
