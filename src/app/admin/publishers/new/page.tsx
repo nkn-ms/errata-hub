@@ -1,4 +1,4 @@
-import PublisherForm from "@/features/publisher/components/admin/publisher-form";
+import PublisherForm from "../publisher-form";
 
 export default function NewPublisherPage() {
   return (

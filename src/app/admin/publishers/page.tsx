@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
 import { routes } from "@/constants/routes";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";

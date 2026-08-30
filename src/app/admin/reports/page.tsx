@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
 import { STATUS_LABELS, STATUS_COLORS } from "@/features/report/constants/report-status";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
