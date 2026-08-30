@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { AdminBookTable } from "@/features/book/components/admin/book-table";
-import { ADMIN_PAGE_SIZE, AdminPagination } from "@/components/admin/pagination";
+import { AdminBookTable } from "./book-table";
+import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
 import { routes } from "@/constants/routes";
 import { paginate } from "@/utils/pagination";
 import { toPageNumber } from "@/utils/parse";

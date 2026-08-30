@@ -233,7 +233,8 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 
 ```
 src/
-├── app/          Next.js ルーティング（ページ・API Route）。合成だけを行い、中身は features から取る
+├── app/          Next.js ルーティング（ページ・API Route）。フィーチャーの合成と、
+│              その画面でしか使わない部品を置く
 ├── features/     関心事ごとのまとまり（下記）
 ├── components/   フィーチャーに属さない UI（下記）
 ├── constants/    横断する定数（routes, site, rate-limits など）
@@ -273,7 +274,7 @@ src/features/
 └── account/      登録・ログイン・アカウント設定・退会・ユーザー管理
 
 src/features/report/
-├── components/   画面の部品（admin/ に管理画面専用）
+├── components/   画面の部品
 ├── actions/      Server Action
 ├── service.ts    読み取り
 ├── constants/    ステータス・ラベル・文字数上限
@@ -297,24 +298,32 @@ src/features/report/
 
 ```
 src/components/
-├── ui/         ドメインもルーティングも知らない部品（button, icons, nav-link, number-field,
-│               select-field, theme-toggle）
-├── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
-│               breadcrumbs, legal, legal-shell, error-content, not-found-content）
-└── admin/      管理画面の共通 UI（ページ送り）
+├── ui/         ドメインもルーティングも知らない部品（button, cta-link, icons, nav-link,
+│               notice, number-field, select-field, theme-toggle）
+└── layout/     全ページの外側を作るもの（site-shell, site-header, header-nav, footer,
+                breadcrumbs, legal, legal-shell, error-content, not-found-content）
 ```
 
 新しいファイルの置き場所は、上から順に当てはめて決める。
 
-1. **ひとつの関心事に属する**（投稿・書籍・出版社・アカウント）→ `features/<name>/`
-2. **複数のフィーチャーをまたぐ**（束ねて画面にする）→ `app/` に置く。フィーチャー同士を直接つながない
-3. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
-4. **ドメインもルーティングも知らない** → `components/ui/`
-5. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
+1. **その画面でしか使わない** → `app/` の**使う場所の隣**。使う画面が1つならそのディレクトリに、
+   複数なら共通の親に置く（管理画面の5つの一覧が使うページ送りは `app/admin/pagination.tsx`）
+2. **複数の画面から使われ、ひとつの関心事に属する**（投稿・書籍・出版社・アカウント）→ `features/<name>/`
+3. **複数のフィーチャーをまたぐ**（束ねて画面にする）→ `app/` に置く。フィーチャー同士を直接つながない
+4. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
+5. **ドメインもルーティングも知らない** → `components/ui/`
+6. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
 
 「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
 （`features/report/components/report-fields.tsx` は投稿・編集・追記・取り下げ・出版社からの回答が
 共有している部品だが、投稿を知っているので `components/ui/` には入らない）。
+
+⚠️ **「管理画面用」でディレクトリを切らない。** ディレクトリツリーが表せる軸は1本だけで、
+ここでは**関心事**（投稿・書籍・出版社・アカウント）に使っている。そこへ**利用者**（公開／管理）という
+2本目の軸を混ぜると、同じ部品の置き場所が2通りになって規約が決まらなくなる。
+管理画面専用であることは、フォルダ名ではなく**置かれている場所**（`app/admin/` の配下にある）と
+**認可**（`app/admin/layout.tsx` の `requireAdminPage()`）が既に示している。
+実測でも、管理画面の部品8つのうち7つは呼び出し元が1ページしか無く、まとめる意味が無かった。
 
 ### テストの置き場所と分担
 
