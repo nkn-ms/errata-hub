@@ -68,6 +68,39 @@ const PRACTICES = [
   },
 ] as const;
 
+// データモデルの簡略図。座標は viewBox（760x290）の中の値で、箱は 150x56 で統一している。
+//
+// ⚠️ 自動生成の docs/erd.svg（全11モデル・全カラム・359KB）はここに載せない。縮めると読めず、
+//    生成は `npx prisma generate` を手で回す運用なので、公開ページに置くとスキーマを変えた日に
+//    古い設計を主張することになる。ここは「投稿が何に紐づくか」だけを描き、正は
+//    prisma/schema.prisma に置いて、そこへのリンクで受ける。
+//
+// 省いたのは ReportImage / Upvote / AuditLog / RateLimit の4つ。前2つは投稿にぶら下がるだけ、
+// 後2つはアプリのデータではなく運用のためのテーブルなので、関連の形を見るのに要らない。
+const ERD_BOX = { w: 150, h: 56 } as const;
+
+const ERD_ENTITIES: { x: number; y: number; label: string; model: string; highlight?: boolean }[] = [
+  { x: 20, y: 24, label: "出版社", model: "Publisher" },
+  { x: 210, y: 24, label: "書籍", model: "Book" },
+  // 中心を塗るのは、この図で言いたいことが「投稿が何に紐づくか」だから
+  // （システム構成図で Vercel を塗っているのと同じ扱い）。
+  { x: 400, y: 24, label: "投稿", model: "Report", highlight: true },
+  { x: 590, y: 24, label: "利用者", model: "Profile" },
+  { x: 20, y: 210, label: "出版社の回答", model: "PublisherComment" },
+  { x: 590, y: 210, label: "追記", model: "ReportAddendum" },
+];
+
+// 矢印は 1:N（矢の先が「多」側）。線は箱の縁で止め、先端は marker が描く。
+// 折れ線の縦棒は箱を避けた x に置いてあるので、座標を動かすときは線の交差を目で確かめること。
+const ERD_RELATIONS: { d: string; labelX: number; labelY: number; anchor?: "start" }[] = [
+  { d: "M170,52 H210", labelX: 190, labelY: 44 },
+  { d: "M360,52 H400", labelX: 380, labelY: 44 },
+  { d: "M590,52 H550", labelX: 570, labelY: 44 },
+  { d: "M95,80 V210", labelX: 104, labelY: 150, anchor: "start" },
+  { d: "M440,80 V238 H170", labelX: 305, labelY: 230 },
+  { d: "M520,80 V238 H590", labelX: 555, labelY: 230 },
+];
+
 export default function TechPage() {
   return (
     <div className="space-y-10">
@@ -144,6 +177,49 @@ export default function TechPage() {
         </div>
       </section>
 
+      {/* データモデル */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">データモデル</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          {/* 図は縮めず、入らない幅では横にスクロールさせる。全体を w-full で縮めると
+              スマホで文字が 6px 相当になって読めなくなるため（ページ自体は横に溢れない）。 */}
+          <div className="overflow-x-auto">
+            <ErdDiagram />
+          </div>
+          {/* 入りきらない幅では図が切れるので、スクロールできることを言葉で示す
+              （切れた端だけでは操作できると分からない）。sm 以上は 760px が収まるので出さない。 */}
+          <p className="mt-2 text-xs text-gray-500 sm:hidden">図は横にスクロールできます。</p>
+          <p className="mt-6 text-xs text-gray-500 leading-relaxed">
+            {/* 改行は JSX が半角スペースに畳むので、全角の括弧や読点の直前では折らない */}
+            主要な6つのテーブルだけを描いています。矢印は1対多の関連で、矢の先が「多」側です。
+            投稿は利用者と書籍のどちらにも必ず紐づき（どちらも必須の参照）、書籍には出版社が任意で付きます。
+            出版社の回答が投稿と出版社の両方を参照しているのは、書籍の出版社を管理者が後から直せるためです。
+            書籍から辿る形にすると、過去の発言の帰属が後から変わってしまいます。
+            追記と回答はどちらも作った時点で不変で、2回目が1回目を書き換えることはありません。
+          </p>
+          <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+            画像・賛同・操作ログ・レート制限のテーブルは、関連の形を見るのに要らないので省きました。
+            全11テーブルの図（自動生成）と、型・制約・その判断をした理由はリポジトリにあります。
+            <a
+              href={`${site.repoUrl}/blob/main/prisma/schema.prisma`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-blue-600 hover:underline"
+            >
+              schema.prisma
+            </a>
+            <a
+              href={`${site.repoUrl}/blob/main/docs/erd.svg`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 text-blue-600 hover:underline"
+            >
+              ER 図（全テーブル）
+            </a>
+          </p>
+        </div>
+      </section>
+
       {/* ⚠️ この節がこのページの役割の線引き。設計判断の詳細（何を選び何を捨てたか）は
           README とリポジトリの docs/ に置き、このページでは繰り返さない。
           2か所に同じ説明を持つと、実装を変えたときに片方だけ古くなる。 */}
@@ -178,6 +254,79 @@ function Box({ label, sub, highlight }: { label: string; sub: string; highlight?
       <div className="font-semibold">{label}</div>
       <div className={`mt-0.5 text-xs ${highlight ? "text-gray-300" : "text-gray-500"}`}>{sub}</div>
     </div>
+  );
+}
+
+// 色は Tailwind のクラス（fill-* / stroke-*）で当てる。これらはテーマ変数を経由するので、
+// ダークモードでも globals.css の変数の差し替えだけで一緒に反転する（style で var() を直に
+// 書くとその段が使われていない場合に解決できない）。
+function ErdDiagram() {
+  return (
+    <svg
+      viewBox="0 0 760 290"
+      className="w-[760px] max-w-none"
+      role="img"
+      aria-label="データモデルの関連図。投稿を中心に、利用者・書籍・出版社・出版社の回答・追記が紐づく。関連の内容は図の下に文章で書いています。"
+    >
+      <defs>
+        <marker id="erd-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" className="fill-gray-400" />
+        </marker>
+      </defs>
+
+      {ERD_RELATIONS.map((r) => (
+        <g key={r.d}>
+          <path
+            d={r.d}
+            fill="none"
+            className="stroke-gray-400"
+            strokeWidth="1.5"
+            markerEnd="url(#erd-arrow)"
+          />
+          <text
+            x={r.labelX}
+            y={r.labelY}
+            textAnchor={r.anchor ?? "middle"}
+            fontSize="10"
+            className="fill-gray-500"
+          >
+            1:N
+          </text>
+        </g>
+      ))}
+
+      {ERD_ENTITIES.map((e) => (
+        <g key={e.model} data-erd-entity>
+          <rect
+            x={e.x}
+            y={e.y}
+            width={ERD_BOX.w}
+            height={ERD_BOX.h}
+            rx="6"
+            className={e.highlight ? "fill-gray-900 stroke-gray-900" : "fill-gray-50 stroke-gray-300"}
+          />
+          <text
+            x={e.x + ERD_BOX.w / 2}
+            y={e.y + 24}
+            textAnchor="middle"
+            fontSize="13"
+            fontWeight="600"
+            className={e.highlight ? "fill-white" : "fill-gray-900"}
+          >
+            {e.label}
+          </text>
+          <text
+            x={e.x + ERD_BOX.w / 2}
+            y={e.y + 42}
+            textAnchor="middle"
+            fontSize="11"
+            className={e.highlight ? "fill-gray-300" : "fill-gray-500"}
+          >
+            {e.model}
+          </text>
+        </g>
+      ))}
+    </svg>
   );
 }
 

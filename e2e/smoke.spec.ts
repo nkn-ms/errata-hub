@@ -215,6 +215,21 @@ test.describe("情報ページ", () => {
     const res = await page.goto("/tech");
     expect(res?.status()).toBeLessThan(400);
   });
+
+  test("データモデルの図が6つの箱で描かれ、ページを横に溢れさせない", async ({ page }) => {
+    // 図は SVG なので、座標を間違えても「何も出ない」形では壊れず、
+    // 箱が消えたことに気づけない。数を数える（省いたテーブルを足すならここも直す）。
+    await page.goto("/tech");
+    await expect(page.locator("[data-erd-entity]")).toHaveCount(6);
+
+    // 図は縮めずに横スクロールさせているので、囲みの外へ溢れるとページごと横に動く。
+    // スマホ幅で測る（760px の図が入りきらない側）。
+    await page.setViewportSize({ width: 390, height: 800 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
 });
 
 test.describe("検索エンジン向けのファイル", () => {
