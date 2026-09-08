@@ -106,7 +106,7 @@ function refineReportBody(data: z.infer<typeof ReportBodyBase>, ctx: z.Refinemen
 const ReportSchema = z.object({
   book: BookSchema,
   ...reportBodyShape,
-  // 投稿者が見つけた出版社の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する。
+  // 投稿者が見つけた公式の正誤表 URL の申告（任意）。公開せず、管理者が採用の可否を判断する。
   // 投稿の中身ではなく本に関する情報なので、編集（ReportBodySchema）の対象には入れない
   reportedErratumUrl: limited(REPORT_LIMITS.reportedErratumUrl, "正誤表のURL").nullable().optional(),
 }).superRefine((data, ctx) => {

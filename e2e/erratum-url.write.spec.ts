@@ -5,7 +5,7 @@ import { openReportByTitle } from "./find-report";
 import { confirmAndSubmit } from "./submit-report";
 import { openBookEditor, saveErratumUrl } from "./admin-book-editor";
 
-// 出版社の正誤表URL の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
+// 公式の正誤表URL の e2e。ローカル dev＋ローカル Supabase 限定（write-local project）。
 // 前提は他の書き込みテストと同じ: `supabase start` ＋ `npm run seed:local` 済みであること。
 //
 // このフローの肝は「読者の申告をそのまま公開しない」こと。外部リンクはフィッシング等の
@@ -112,7 +112,7 @@ test.describe("正誤表URLの申告と採用", () => {
       // 登録済みのURLを投稿者に再申告させても、管理者の採用作業が増えるだけで情報は増えない
       await page.goto(`/submit?isbn=${BOOK_B.isbn}`);
       await expect(page.getByText("申告は不要です")).toBeVisible();
-      await expect(page.getByLabel("出版社の正誤表URL（任意）")).toHaveCount(0);
+      await expect(page.getByLabel("公式の正誤表URL（任意）")).toHaveCount(0);
 
       // --- 後片付け: テストが作った投稿を消し、本の正誤表URLを元へ戻す ---
       await adminPage.goto(`/admin/reports/${reportId}`);
