@@ -37,7 +37,7 @@ test.describe("投稿フォームのラベル", () => {
     await expect(page.getByLabel(/^版/)).toBeVisible();
     await expect(page.getByLabel("刷（任意）", { exact: true })).toBeVisible();
     await expect(page.getByLabel("備考（任意）", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("出版社の正誤表URL（任意）")).toBeVisible();
+    await expect(page.getByLabel("公式の正誤表URL（任意）")).toBeVisible();
 
     // 実際に値が入る（＝ラベルが指しているのが目当ての入力欄であることの確認）
     await page.getByLabel("概要").fill("ラベル紐づけの確認");

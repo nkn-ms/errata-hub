@@ -38,7 +38,7 @@ test.describe("書籍マスタの編集（管理者）", () => {
     // 公開側の書籍ページに反映される
     await page.goto(`/books/${BOOK_EDITABLE.isbn}`);
     await expect(page.getByRole("heading", { name: newTitle })).toBeVisible();
-    const publicLink = page.getByRole("link", { name: /出版社の正誤表を見る/ });
+    const publicLink = page.getByRole("link", { name: /正誤表を見る/ });
     await expect(publicLink).toHaveAttribute("href", newErratumUrl);
 
     // 後片付け: 元の値へ戻す

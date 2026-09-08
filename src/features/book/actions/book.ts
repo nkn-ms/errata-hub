@@ -27,7 +27,8 @@ const BookUpdateSchema = z.object({
     .refine((v) => !v || sanitizeCoverImageUrl(v) !== null, {
       message: "書影URLは OpenBD / Google Books 由来（cover.openbd.jp・books.google.com・books.googleusercontent.com）のURLのみ設定できます",
     }),
-  // 出版社の公式な正誤表ページ。公開ページにリンクとして出るので、管理者だけが設定できる
+  // 公式の正誤表ページ（出版社とは限らない。著者本人が持っている本もある）。
+  // 公開ページにリンクとして出るので、管理者だけが設定できる
   // （読者の申告は Report.reportedErratumUrl に入り、管理画面から採用する）。
   // ホストは出版社ごとに異なり許可リストを作れないため、リンクとして安全な形だけを強制する
   // （http も通す。理由は utils/external-url.ts。http のときは表示側で注記を出す）。

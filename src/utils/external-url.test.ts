@@ -14,7 +14,7 @@ describe("sanitizeExternalUrl", () => {
     expect(sanitizeExternalUrl("   ")).toBeNull();
   });
 
-  // 出版社の正誤表が http のまま置かれていることが実際にあり、弾くと正誤表への導線を失う。
+  // 公式の正誤表が http のまま置かれていることが実際にあり、弾くと正誤表への導線を失う。
   // http か https かは destinationLabelOf() が行き先の表記に出して開示する。
   it("http の URL も通す（表示側で注記を出す前提）", () => {
     expect(sanitizeExternalUrl("http://example.com/errata")).toBe("http://example.com/errata");
