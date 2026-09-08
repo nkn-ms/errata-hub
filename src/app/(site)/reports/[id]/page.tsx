@@ -154,7 +154,7 @@ export default async function ReportDetailPage({ params }: Props) {
                   rel="noopener noreferrer nofollow"
                   className="text-sm text-blue-700 hover:underline"
                 >
-                  出版社の正誤表を見る（{destinationLabelOf(raw.book.erratumUrl)}）→
+                  正誤表を見る（{destinationLabelOf(raw.book.erratumUrl)}）→
                 </a>
               </div>
             )}
