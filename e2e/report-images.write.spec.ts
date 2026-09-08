@@ -1,5 +1,5 @@
 import zlib from "node:zlib";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { SEED_ADMIN as ADMIN, SEED_READER as READER } from "./seed-accounts";
 import { login } from "./login";
 import { openReportByTitle } from "./find-report";
@@ -246,8 +246,9 @@ test.describe("画像添付つき投稿（書き込み）", () => {
   });
 });
 
-// 1MB を超える PNG を作る。圧縮は「1MB 以下なら触らない」ので、閾値を超える画像でないと
-// 圧縮経路そのものを通れない（= REPORT_IMAGE_SKIP_BYTES）。
+// 指定した寸法の PNG を作る。用途は2つで、寸法の選び方がそのまま何を試すかになる:
+//  - 800x800 … 1MB を超えるので圧縮経路に入る（圧縮は「1MB 以下なら触らない」= REPORT_IMAGE_SKIP_BYTES）
+//  - 60x30  … 1MB に満たないので圧縮を通らない。横長なので回転の前後を寸法で確かめられる
 //
 // 画像生成ライブラリを足さずに済ませるため、PNG を手で組み立てる:
 //  - deflate を level 0（無圧縮）にすると、出力サイズが生データとほぼ同じになる。
@@ -255,7 +256,7 @@ test.describe("画像添付つき投稿（書き込み）", () => {
 //  - 画素はなだらかなグラデーションにする。ランダムだと webp でも縮まず、
 //    compressImage が「縮まなかったので元のまま返す」経路に落ちてテストが不安定になる
 // PNG の構造の出典: https://www.w3.org/TR/png/#5DataRep
-function makeLargePng(size = 800): Buffer {
+function makePng(width: number, height: number): Buffer {
   const chunk = (type: string, data: Buffer) => {
     const length = Buffer.alloc(4);
     length.writeUInt32BE(data.length);
@@ -266,18 +267,18 @@ function makeLargePng(size = 800): Buffer {
   };
 
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8; // ビット深度
   ihdr[9] = 2; // カラータイプ 2 = RGB
 
-  const stride = 1 + size * 3; // 行頭の1バイトはフィルタ種別（0 = None）
-  const raw = Buffer.alloc(stride * size);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
+  const stride = 1 + width * 3; // 行頭の1バイトはフィルタ種別（0 = None）
+  const raw = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const offset = y * stride + 1 + x * 3;
-      raw[offset] = (x * 255) / size;
-      raw[offset + 1] = (y * 255) / size;
+      raw[offset] = (x * 255) / width;
+      raw[offset + 1] = (y * 255) / height;
       raw[offset + 2] = 128;
     }
   }
@@ -293,7 +294,7 @@ function makeLargePng(size = 800): Buffer {
 test.describe("画像の圧縮", () => {
   test("1MBを超える画像はアップロード前にwebpへ圧縮される", async ({ page, browser }) => {
     const uniqueTitle = `E2E圧縮テスト ${Date.now()}`;
-    const largePng = makeLargePng();
+    const largePng = makePng(800, 800);
     expect(largePng.byteLength).toBeGreaterThan(1024 * 1024); // 圧縮経路に入る前提の確認
 
     await login(page, READER);
@@ -370,3 +371,71 @@ test.describe("添付画像の拡大表示", () => {
     await expect(page.locator("dialog[open]")).toHaveCount(0);
   });
 });
+
+test.describe("画像の回転", () => {
+  // 横向きに構えて撮った写真が横倒しのまま載ることへの手当て。**見た目だけ回すのでは足りない**
+  // （CSS で回しても送られるのは元のファイルのまま）ので、保存された画像の原寸が
+  // 入れ替わっているところまで見る。
+  test("回転させてから投稿すると、回した向きのまま保存される", async ({ page, browser }) => {
+    const uniqueTitle = `E2E回転テスト ${Date.now()}`;
+
+    await login(page, READER);
+    await mockBookApis(page);
+    await page.goto("/submit");
+
+    await page.getByPlaceholder("例: 9784873116860", { exact: true }).fill(BOOK_B.isbn);
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    await expect(page.getByText(BOOK_B.title)).toBeVisible();
+
+    await page.getByPlaceholder("例: 1", { exact: true }).fill("1");
+    await page.getByPlaceholder("例: 58", { exact: true }).fill("42");
+    await page.getByPlaceholder("例: p.58「わたし」→「私」の誤植", { exact: true }).fill(uniqueTitle);
+    await page.getByPlaceholder("誤りのある文章をそのまま入力してください").fill("誤った文");
+    await page.getByPlaceholder("正しいと思われる内容を入力してください").fill("正しい文");
+
+    // 横長（60x30）。1MB に満たないので圧縮は通らず、回転だけを見られる
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "wide.png",
+      mimeType: "image/png",
+      buffer: makePng(60, 30),
+    });
+    const selected = page.getByAltText("wide.png");
+    await expect(selected).toBeVisible();
+    await expect.poll(() => naturalSize(selected)).toEqual({ width: 60, height: 30 });
+
+    await page.getByRole("button", { name: "wide.png を右に90度回転" }).click();
+
+    // 回転は webp に焼き直すので名前も変わる（wide.png のままなら回っていない）
+    const rotated = page.getByAltText("wide.webp");
+    await expect(rotated).toBeVisible();
+    await expect.poll(() => naturalSize(rotated)).toEqual({ width: 30, height: 60 });
+
+    await confirmAndSubmit(page);
+    await page.waitForURL(/\/$/);
+
+    // 保存された画像も縦長＝回した後のファイルが送られている
+    const reportId = await openReportByTitle(page, uniqueTitle);
+    const saved = page.getByAltText("証拠画像").first();
+    await expect(saved).toBeVisible();
+    await expect.poll(() => naturalSize(saved)).toEqual({ width: 30, height: 60 });
+
+    // 後片付け: 他のテストと同じく管理画面から削除する（ReportImage と Storage も掃除される）
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, ADMIN);
+    await adminPage.goto(`/admin/reports/${reportId}`);
+    adminPage.once("dialog", (dialog) => dialog.accept());
+    await adminPage.getByRole("button", { name: "削除", exact: true }).click();
+    await adminPage.waitForURL(/\/admin\/reports$/);
+    await adminContext.close();
+  });
+});
+
+// 読み込み済みの画像の原寸。回転したかは寸法の入れ替わりでしか確かめられない
+// （表示の向きは CSS でも変えられるため、見えている姿は証拠にならない）
+async function naturalSize(image: Locator): Promise<{ width: number; height: number }> {
+  return image.evaluate((element: HTMLImageElement) => ({
+    width: element.naturalWidth,
+    height: element.naturalHeight,
+  }));
+}

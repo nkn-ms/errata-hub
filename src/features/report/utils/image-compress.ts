@@ -33,22 +33,29 @@ export async function compressImage(file: File): Promise<File> {
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
 
-    // webp に寄せる。スクリーンショットの PNG が容量の主因で、webp なら文字の多い画像でも
-    // PNG より小さくなり透過も保てる（許可 MIME に webp は既に入っている）。
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/webp", REPORT_IMAGE_QUALITY)
-    );
+    const encoded = await encodeWebp(canvas, file.name);
 
     // 縮まなかったなら元のまま使う（既に webp の小さい画像を再エンコードして太らせない）
-    if (!blob || blob.size >= file.size) return file;
+    if (!encoded || encoded.size >= file.size) return file;
 
-    return new File([blob], toWebpName(file.name), { type: "image/webp" });
+    return encoded;
   } catch {
     return file;
   }
 }
 
-/** 拡張子だけ webp に差し替える（保存時の拡張子は MIME から決まるので表示上の整合のため） */
-function toWebpName(name: string): string {
-  return `${name.replace(/\.[^.]+$/, "")}.webp`;
+/**
+ * canvas の中身を webp の File にする。回転（utils/selected-images.ts）とも共有する。
+ *
+ * webp に寄せる理由: スクリーンショットの PNG が容量の主因で、webp なら文字の多い画像でも
+ * PNG より小さくなり透過も保てる（許可 MIME に webp は既に入っている）。
+ * 失敗（toBlob が null）は null で返し、呼び出し側が倒す方向を決める。
+ */
+export async function encodeWebp(canvas: HTMLCanvasElement, name: string): Promise<File | null> {
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", REPORT_IMAGE_QUALITY)
+  );
+  if (!blob) return null;
+  // 拡張子だけ webp に差し替える（保存時の拡張子は MIME から決まるので表示上の整合のため）
+  return new File([blob], `${name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp" });
 }

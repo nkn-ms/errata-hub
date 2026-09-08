@@ -23,6 +23,13 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import {
+  revokeSelectedImage,
+  rotateSelectedImage,
+  toSelectedImage,
+  type SelectedImage,
+} from "@/features/report/utils/selected-images";
+import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
 import { Button } from "@/components/ui/button";
 
 type BookData = {
@@ -99,7 +106,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
     setFields((prev) => ({ ...prev, ...patch }));
   const [reportedErratumUrl, setReportedErratumUrl] = useState("");
   // File と表示用の object URL をペアで持つ（URL は削除時・投稿後に revoke する）
-  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [images, setImages] = useState<SelectedImage[]>([]);
   // 検証を通った送信内容。ここに値が入るとフォームを畳んで確認画面に差し替える。
   // 「入力中か確認中か」を別のフラグで持たず送信内容そのもので表すのは、確認画面に出すものと
   // createReport に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
@@ -140,10 +147,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
         REPORT_IMAGE_MAX_COUNT - images.length
       );
       setError(error);
-      setImages([
-        ...images,
-        ...accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
-      ]);
+      setImages([...images, ...accepted.map(toSelectedImage)]);
     } finally {
       setCompressing(false);
     }
@@ -151,9 +155,25 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
 
   function removeImage(index: number) {
     setImages((prev) => {
-      URL.revokeObjectURL(prev[index].previewUrl);
+      revokeSelectedImage(prev[index]);
       return prev.filter((_, i) => i !== index);
     });
+  }
+
+  // 回転は選択時の圧縮と同じく数百ms かかるので、同じ compressing で入口（選択・送信）を塞ぐ
+  async function rotateImage(index: number) {
+    setError("");
+    setCompressing(true);
+    try {
+      const rotated = await rotateSelectedImage(images[index]);
+      if (!rotated) {
+        setError("画像を回転できませんでした");
+        return;
+      }
+      setImages((prev) => prev.map((image, i) => (i === index ? rotated : image)));
+    } finally {
+      setCompressing(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -222,12 +242,12 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
           //   - フォームに留めると再送信＝二重投稿になる（投稿はもう作られている）
           //   - かといって router.push した後に setError しても、その画面はもう無い
           // 差し替えなら form が消えるので二重投稿はあり得ず、知らせは遷移と競合しない。
-          images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+          images.forEach(revokeSelectedImage);
           setImageUploadFailure({ reportId: created.id, failedCount });
           return;
         }
       }
-      images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      images.forEach(revokeSelectedImage);
       router.push(routes.home);
     } catch {
       setError("投稿に失敗しました。もう一度お試しください。");
@@ -568,6 +588,11 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
                       className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
                     />
                   </button>
+                  <RotateImageButton
+                    fileName={file.name}
+                    disabled={compressing}
+                    onClick={() => void rotateImage(index)}
+                  />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
