@@ -15,7 +15,7 @@ describe("sanitizeExternalUrl", () => {
   });
 
   // 出版社の正誤表が http のまま置かれていることが実際にあり、弾くと正誤表への導線を失う。
-  // http であることは destinationLabelOf() が行き先の表記に出して開示する。
+  // http か https かは destinationLabelOf() が行き先の表記に出して開示する。
   it("http の URL も通す（表示側で注記を出す前提）", () => {
     expect(sanitizeExternalUrl("http://example.com/errata")).toBe("http://example.com/errata");
   });
@@ -37,8 +37,8 @@ describe("sanitizeExternalUrl", () => {
 });
 
 describe("destinationLabelOf", () => {
-  it("https はホスト名だけ・http はスキームまで出す", () => {
-    expect(destinationLabelOf("https://example.com/errata")).toBe("example.com");
+  it("https も http も同じ形式（スキームまで）で出す", () => {
+    expect(destinationLabelOf("https://example.com/errata")).toBe("https://example.com");
     expect(destinationLabelOf("http://example.com/errata")).toBe("http://example.com");
   });
 
