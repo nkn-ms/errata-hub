@@ -113,6 +113,10 @@ export default function HowToUsePage() {
               </div>
             ))}
           </div>
+          <p className="mt-3 text-sm text-gray-500">
+            誤りかどうか確信が持てない場合も投稿できます。断定を避け、確認した範囲や根拠を備考にお書きください。
+            運営者が正誤を判定することはありません。
+          </p>
         </section>
 
         {/* ステータスの意味 */}
