@@ -19,6 +19,11 @@ type Props = {
 //
 // 書影は外部API由来でホストが可変のため unoptimized（remotePatterns 未登録のホストで落ちない）。
 //
+// ⚠️ **self-start は見た目の趣味ではなく必須**。呼び出し元はどちらも横並び（flex）の中に置いており、
+//    flex の既定の align-items: stretch は「高さが auto の項目」を行の高さまで引き伸ばす。
+//    ここは h-auto なので、隣の書誌テキストが伸びるほど書影の箱が縦に伸び、
+//    object-cover が原寸の比率を捨てて左右を切り落としていた（実測: 64x90 のはずが 64x120 で表示）。
+//
 // ※ 新着フィード（report-card.tsx）は行の高さを揃えるため書影を固定寸法で切り抜いており、
 //    ここ（原寸の比率のまま出す）とは別の見せ方なので共通化していない。
 export function BookCover({ src, alt, width, height, className = "" }: Props) {
@@ -30,7 +35,7 @@ export function BookCover({ src, alt, width, height, className = "" }: Props) {
         width={width}
         height={height}
         unoptimized
-        className={`h-auto rounded object-cover shadow-sm ${className}`}
+        className={`h-auto self-start rounded object-cover shadow-sm ${className}`}
       />
     );
   }
@@ -40,7 +45,7 @@ export function BookCover({ src, alt, width, height, className = "" }: Props) {
     <div
       aria-hidden
       style={{ aspectRatio: `${width} / ${height}` }}
-      className={`flex items-center justify-center rounded border border-gray-200 bg-gray-50 ${className}`}
+      className={`flex items-center justify-center self-start rounded border border-gray-200 bg-gray-50 ${className}`}
     >
       <BookMarked className="w-1/3 h-auto text-gray-300" />
     </div>

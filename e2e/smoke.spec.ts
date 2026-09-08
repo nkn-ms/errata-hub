@@ -189,6 +189,42 @@ test.describe("投稿一覧ページ（/reports）", () => {
     await expect(placeholder).toHaveCount(1);
   });
 
+  // 書影は「幅だけをクラスで決め、高さは原寸の比から決まる」形で置いている（BookCover）。
+  // flex の既定 align-items: stretch は**高さが auto の項目を行の高さまで引き伸ばす**ので、
+  // self-start を外すと隣の書誌テキストの高さがそのまま書影の高さになり、比が壊れる
+  // （画像側は object-cover が左右を切り落とす）。2026-07-14 に正誤表リンクが1行増えて以降、
+  // 正誤表 URL のある本の投稿詳細で実際に起きていた＝**目視では2か月見逃した壊れ方**なので測る。
+  //
+  // 幅の狭い画面ほど書誌が折り返して背が高くなるため、スマホ幅で見る。
+  // 測る対象がプレースホルダなのはシードの2冊に書影が無いため（同じ部品の同じ箱）。
+  test("書影の箱は隣の書誌より背が低くても引き伸ばされない", async ({ page }) => {
+    await page.goto("/reports");
+    const rows = page.locator("tbody tr");
+    test.skip((await rows.count()) === 0, "投稿データが0件のためスキップ（一覧が空）");
+
+    // 一覧はスマホ幅だとカードに変わる（表の行が無い）ので、遷移は PC 幅のまま行い、
+    // 投稿詳細に着いてから幅を狭める
+    await rows.first().locator("td:not(:has(a))").first().click();
+    await expect(page).toHaveURL(/\/reports\/[^/]+$/);
+    await page.setViewportSize({ width: 375, height: 800 });
+
+    const cover = page.locator("svg.lucide-book-marked").locator("xpath=..");
+    const info = cover.locator("xpath=following-sibling::div[1]");
+    // スマホ幅では w-16（64px）。ここが変わったら下の比の宣言（64x90）も見直す
+    await expect.poll(async () => (await cover.boundingBox())?.width).toBe(64);
+    const coverBox = (await cover.boundingBox())!;
+    const infoBox = (await info.boundingBox())!;
+
+    // 宣言している比は 64x90（reports/[id]/page.tsx）＝この幅なら本来の高さは 90px
+    const naturalHeight = coverBox.width * (90 / 64);
+    // 前提の確認: 書誌テキストの方が背が高い＝引き伸ばしが起こりうる状況にいる。
+    // ここが崩れると、下の検査は壊れていても通ってしまう（素通りする検査になる）。
+    // ⚠️ 比較相手は「本来の高さ」。描画された高さと比べると、伸びているときに
+    //    両者が一致して**この前提の側が落ちる**（何が壊れたのか読めない失敗になる）
+    expect(infoBox.height).toBeGreaterThan(naturalHeight);
+    expect(coverBox.height).toBeCloseTo(naturalHeight, 0);
+  });
+
   test("非正規な ISBN の書籍 URL は正規の ISBN-13 へ寄せられる", async ({ page }) => {
     await page.goto("/reports");
     const bookLinks = page.locator('tbody a[href^="/books/"]');

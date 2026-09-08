@@ -131,7 +131,10 @@ export default async function ReportDetailPage({ params }: Props) {
 
         {/* 書籍情報 */}
         <div className="flex gap-4 p-4 bg-gray-50 rounded-md">
-          <BookCover src={report.coverImage} alt={report.bookTitle} width={64} height={90} className="w-16 shrink-0" />
+          {/* 幅だけをクラスで決め、高さは原寸の比から決まる（BookCover 側の h-auto）。
+              画面が広いときだけ一段大きくする＝next/image の width/height は縦横比の宣言であって
+              表示サイズではないので、レスポンシブは CSS 側の仕事 */}
+          <BookCover src={report.coverImage} alt={report.bookTitle} width={64} height={90} className="w-16 sm:w-20 shrink-0" />
           <div>
             <Link href={routes.book(report.isbn)} className="font-medium text-blue-700 hover:underline">
               {report.bookTitle}

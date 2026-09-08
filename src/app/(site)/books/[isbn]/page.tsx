@@ -63,7 +63,9 @@ export default async function BookDetailPage({ params }: Props) {
       {/* 書籍情報 */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <div className="flex gap-5">
-          <BookCover src={book.coverImageUrl} alt={book.title} width={96} height={134} className="w-24 shrink-0" />
+          {/* 書影が主役のページなので投稿詳細より一段大きい。幅と画面幅の関係は
+              投稿詳細（reports/[id]/page.tsx）のコメント参照 */}
+          <BookCover src={book.coverImageUrl} alt={book.title} width={96} height={134} className="w-24 sm:w-32 shrink-0" />
           <div>
             <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
             {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
