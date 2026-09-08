@@ -203,13 +203,18 @@ export default async function ReportDetailPage({ params }: Props) {
         {/* 誤り → 正しい表記 */}
         {(report.wrong || report.correct) && (
           <div>
+            {/* ⭐ **読ませる本文はここから 16px**（誤/正の中身・詳細内容・備考・運営者の補足、
+                下の追記と出版社の回答も同じ）。ラベルは 12px のままにしてあり、**サイズの差が
+                そのまま「見出しか本文か」の区別**になる。
+                一覧やカードは 14px の密度のままで、詳細だけ大きいのは意図的
+                ＝ここは読む場所なので、拾い読みする一覧と同じ密度にする理由が無い。 */}
             <p className="text-xs text-gray-500 mb-2">正誤情報</p>
             <div className="flex items-center gap-3">
               {/* 色は枠と小さいラベル（誤/正）だけに担わせ、内容は通常の文字色にする。
                   地・文字・枠を全部塗ると色が重なって読みにくいため（特にダーク）。
                   ラベルは 700＝淡い地の上でも AA を満たす値 */}
               {report.wrong && (
-                <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-sm text-gray-800 tabular-nums">
+                <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-base text-gray-800 tabular-nums">
                   <p className="text-xs text-red-700 mb-1">誤</p>
                   {report.wrong}
                 </div>
@@ -218,7 +223,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 <span className="text-gray-400 text-lg">→</span>
               )}
               {report.correct && (
-                <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-sm text-gray-800 tabular-nums">
+                <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-base text-gray-800 tabular-nums">
                   <p className="text-xs text-green-700 mb-1">正</p>
                   {report.correct}
                 </div>
@@ -231,7 +236,7 @@ export default async function ReportDetailPage({ params }: Props) {
         {report.content && (
           <div>
             <p className="text-xs text-gray-500 mb-1">詳細内容</p>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.content}</p>
+            <p className="text-base text-gray-800 whitespace-pre-wrap">{report.content}</p>
           </div>
         )}
 
@@ -239,7 +244,7 @@ export default async function ReportDetailPage({ params }: Props) {
         {report.note && (
           <div>
             <p className="text-xs text-gray-500 mb-1">備考</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{report.note}</p>
+            <p className="text-base text-gray-700 whitespace-pre-wrap">{report.note}</p>
           </div>
         )}
 
@@ -291,7 +296,7 @@ export default async function ReportDetailPage({ params }: Props) {
         {report.statusNote && (
           <div className="rounded-md bg-gray-50 border border-gray-200 px-4 py-3">
             <p className="text-xs text-gray-500 mb-1 font-medium">運営者からの補足</p>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.statusNote}</p>
+            <p className="text-base text-gray-800 whitespace-pre-wrap">{report.statusNote}</p>
           </div>
         )}
 

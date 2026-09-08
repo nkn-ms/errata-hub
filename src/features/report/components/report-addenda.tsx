@@ -155,7 +155,8 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
             {addenda.map((addendum) => (
               <div key={addendum.id} className="px-3 py-2">
                 <p className="text-xs text-gray-500 tabular-nums">{addendum.createdAt}</p>
-                <p className="mt-0.5 text-sm text-gray-800 whitespace-pre-wrap">{addendum.body}</p>
+                {/* 本文は 16px（投稿本体と揃える。理由は reports/[id]/page.tsx のコメント） */}
+                <p className="mt-0.5 text-base text-gray-800 whitespace-pre-wrap">{addendum.body}</p>
                 {/* 画像はその追記の中に置く。ここが本体の「証拠画像」と分かれている意味 */}
                 {addendum.images.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
