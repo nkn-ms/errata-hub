@@ -76,7 +76,8 @@ export function PublisherComments({ reportId, initialComments, commentAs }: Prop
                   {comment.byAdmin && <span>（運営者が代理で記載）</span>}
                   <span className="tabular-nums">{comment.createdAt}</span>
                 </p>
-                <p className="mt-0.5 text-sm text-blue-900 whitespace-pre-wrap">{comment.body}</p>
+                {/* 本文は 16px（投稿本体と揃える。理由は reports/[id]/page.tsx のコメント） */}
+                <p className="mt-0.5 text-base text-blue-900 whitespace-pre-wrap">{comment.body}</p>
               </div>
             ))}
           </div>
