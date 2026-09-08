@@ -63,7 +63,7 @@ test.describe("出版社からの回答", () => {
     await page.goto(`/reports/${reportId}`);
     await expect(page.getByLabel(COMMENT_FORM)).toHaveCount(0);
 
-    await setStatus(page, reportId, "出版社へ連絡済み");
+    await setStatus(page, reportId, "連絡済み");
 
     // 連絡後は回答欄が出る。管理者は権限を持たないので「代理で記載」になる
     await page.goto(`/reports/${reportId}`);
@@ -107,7 +107,7 @@ test.describe("出版社からの回答", () => {
     const body = `E2E 確認いたしました ${Date.now()}`;
     await login(page, ADMIN);
     const reportId = await createThrowawayReport(page, title);
-    await setStatus(page, reportId, "出版社へ連絡済み");
+    await setStatus(page, reportId, "連絡済み");
 
     // 権限の無い一般ユーザーには入力欄自体が出ない
     await login(page, READER);

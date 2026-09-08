@@ -43,7 +43,7 @@ export async function checkPublisherCommentPermission(
   // ⚠️ 技術的にも必要: PENDING の間は投稿者が本文を直せるので、ここで回答を許すと
   //    「出版社が読んだ内容が後から書き換わる」＝追記を別テーブルにして避けた問題が再発する
   if (report.status === "PENDING") {
-    return { error: "この投稿はまだ出版社へ連絡していないため、回答できません。" };
+    return { error: "この投稿はまだ「連絡済み」になっていないため、回答できません。" };
   }
 
   // Book.publisherId は nullable。出版社が分からない本には「どの出版社としての発言か」を

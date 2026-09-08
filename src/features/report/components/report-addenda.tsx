@@ -187,7 +187,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
               追記する
             </label>
             <p className="text-xs text-gray-500 mb-2">
-              出版社へ連絡済みのため、元の内容は変更できません。補足があれば追記してください。
+              連絡済みのため、元の内容は変更できません。補足があれば追記してください。
             </p>
             <textarea
               id="addendum"

@@ -31,7 +31,7 @@ export default async function ReportEditPage({ params }: Props) {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">投稿を編集する</h1>
         <p className="mt-1 text-sm text-gray-500">
-          出版社へ連絡するまでは、投稿の内容を修正できます。
+          出版社や著者へ連絡するまでは、投稿の内容を修正できます。
         </p>
       </div>
       <ReportEditForm

@@ -322,7 +322,7 @@ export async function updateOwnReport(id: string, input: ReportBodyInput): Promi
       if (!before) return { error: "投稿が見つかりません" };
       if (before.userId !== user.id) return { error: "この投稿を編集する権限がありません" };
       if (before.status !== "PENDING") {
-        return { error: "出版社へ連絡した後の投稿は編集できません。追記でご対応ください。" };
+        return { error: "連絡済みの投稿は編集できません。追記でご対応ください。" };
       }
 
       // editedAt は投稿者が本文を触ったときだけ動かす（updatedAt は管理者の操作でも動くため）
@@ -412,7 +412,7 @@ export async function withdrawOwnReport(id: string): Promise<ReportActionState> 
         return { error: "この投稿を取り下げる権限がありません" };
       }
       if (found.status !== "PENDING") {
-        return { error: "出版社へ連絡した後は取り下げられません。追記でご対応ください。" };
+        return { error: "連絡済みの投稿は取り下げられません。追記でご対応ください。" };
       }
 
       await tx.report.delete({ where: { id } });
@@ -672,7 +672,7 @@ export async function deleteOwnReportImage(imageId: string): Promise<ReportActio
         return { error: "この画像を削除する権限がありません" };
       }
       if (found.report.status !== "PENDING") {
-        return { error: "出版社へ連絡した後は画像を削除できません。" };
+        return { error: "連絡済みの投稿は画像を削除できません。" };
       }
 
       await tx.reportImage.delete({ where: { id: imageId } });

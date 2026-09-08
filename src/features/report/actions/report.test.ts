@@ -424,12 +424,12 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
   });
 
-  it("出版社へ連絡した後は取り下げられない", async () => {
+  it("連絡済みの投稿は取り下げられない", async () => {
     prismaMock.report.findUnique.mockResolvedValue({ ...report, status: "FORWARDED" });
 
     const result = await withdrawOwnReport("report-1");
 
-    expect(result.error).toContain("出版社へ連絡した後");
+    expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
   });
 
@@ -438,7 +438,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
 
     const result = await withdrawOwnReport("report-1");
 
-    expect(result.error).toContain("出版社へ連絡した後");
+    expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
   });
 
@@ -509,7 +509,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
 
   // この機能の肝。出版社へ連絡した後に根拠を消せると、本文を凍結していても
   // 「出版社が見た内容」は結局変わってしまう
-  it("出版社へ連絡した後は削除できない", async () => {
+  it("連絡済みの投稿は画像を削除できない", async () => {
     prismaMock.reportImage.findUnique.mockResolvedValue({
       ...image,
       report: { userId: "user-1", status: "FORWARDED" },
@@ -517,7 +517,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
 
     const result = await deleteOwnReportImage("image-1");
 
-    expect(result.error).toContain("出版社へ連絡した後");
+    expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
   });
 
@@ -529,7 +529,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
 
     const result = await deleteOwnReportImage("image-1");
 
-    expect(result.error).toContain("出版社へ連絡した後");
+    expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
   });
 

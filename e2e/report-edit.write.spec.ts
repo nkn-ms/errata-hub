@@ -14,10 +14,10 @@ import {
 //   未対応（PENDING）の間 = 本文を修正できる／画像を追加も削除もできる
 //   出版社へ連絡した後     = 本文は直せず、追記だけできる／画像は追加だけできる
 
-// 管理者として「出版社へ連絡済み」にする（＝この時点から本文は直せなくなる）
+// 管理者として「連絡済み」にする（＝この時点から本文は直せなくなる）
 async function forwardAsAdmin(page: Page, reportId: string) {
   await page.goto(`/admin/reports/${reportId}`);
-  await page.getByRole("button", { name: "出版社へ連絡済み", exact: true }).click();
+  await page.getByRole("button", { name: "連絡済み", exact: true }).click();
   await page.getByRole("button", { name: "更新する" }).click();
   await expect(page.getByText("更新しました")).toBeVisible();
 }

@@ -75,7 +75,7 @@ describe("checkPublisherCommentPermission（出版社として回答できるか
 
     const result = await checkPublisherCommentPermission(PROFILE_ID, REPORT_ID);
 
-    expect(result.error).toBe("この投稿はまだ出版社へ連絡していないため、回答できません。");
+    expect(result.error).toBe("この投稿はまだ「連絡済み」になっていないため、回答できません。");
   });
 
   it("管理者でも、未対応の投稿には代理記載できない", async () => {
@@ -87,7 +87,7 @@ describe("checkPublisherCommentPermission（出版社として回答できるか
 
     const result = await checkPublisherCommentPermission(PROFILE_ID, REPORT_ID);
 
-    expect(result.error).toBe("この投稿はまだ出版社へ連絡していないため、回答できません。");
+    expect(result.error).toBe("この投稿はまだ「連絡済み」になっていないため、回答できません。");
   });
 
   // Book.publisherId は nullable。「どの出版社としての発言か」を埋められない
