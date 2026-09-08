@@ -12,6 +12,13 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import {
+  revokeSelectedImage,
+  rotateSelectedImage,
+  toSelectedImage,
+  type SelectedImage,
+} from "@/features/report/utils/selected-images";
+import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
 import { Button } from "@/components/ui/button";
 
 // ⚠️ **一覧と入力欄を1つのクライアント部品にまとめてあるのは、書きかけを失わないため。**
@@ -28,7 +35,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
   const [addenda, setAddenda] = useState<Addendum[]>(initialAddenda);
   const [body, setBody] = useState("");
   // 追記と一緒に送る画像。本文と同じで「追記する」を押すまでは送らない
-  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [images, setImages] = useState<SelectedImage[]>([]);
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -52,10 +59,23 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
     try {
       const selected = await selectReportImages(files, remaining);
       setErrors(selected.error ? [{ message: selected.error }] : []);
-      setImages((prev) => [
-        ...prev,
-        ...selected.accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
-      ]);
+      setImages((prev) => [...prev, ...selected.accepted.map(toSelectedImage)]);
+    } finally {
+      setCompressing(false);
+    }
+  }
+
+  // 選択時の圧縮と同じく数百ms かかるので、同じ compressing で入口（選択・追記）を塞ぐ
+  async function rotateImage(index: number) {
+    setErrors([]);
+    setCompressing(true);
+    try {
+      const rotated = await rotateSelectedImage(images[index]);
+      if (!rotated) {
+        setErrors([{ message: "画像を回転できませんでした" }]);
+        return;
+      }
+      setImages((prev) => prev.map((image, i) => (i === index ? rotated : image)));
     } finally {
       setCompressing(false);
     }
@@ -197,11 +217,16 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
                       alt={file.name}
                       className="h-24 w-auto rounded border border-gray-200 object-contain bg-white"
                     />
+                    <RotateImageButton
+                      fileName={file.name}
+                      disabled={compressing || submitting}
+                      onClick={() => void rotateImage(index)}
+                    />
                     <button
                       type="button"
                       onClick={() =>
                         setImages((prev) => {
-                          URL.revokeObjectURL(prev[index].previewUrl);
+                          revokeSelectedImage(prev[index]);
                           return prev.filter((_, i) => i !== index);
                         })
                       }

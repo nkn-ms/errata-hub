@@ -20,6 +20,13 @@ import {
   REPORT_IMAGE_MAX_SOURCE_MB,
 } from "@/features/report/constants/report-images";
 import { selectReportImages } from "@/features/report/utils/report-image-select";
+import {
+  revokeSelectedImage,
+  rotateSelectedImage,
+  toSelectedImage,
+  type SelectedImage,
+} from "@/features/report/utils/selected-images";
+import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
 import { Button } from "@/components/ui/button";
 
 type BookSummary = {
@@ -60,7 +67,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
   //   added      … 「更新する」で送る新しい画像（送るまではローカルの blob URL）
   const [images, setImages] = useState<ReportImageItem[]>(initialImages);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const [added, setAdded] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [added, setAdded] = useState<SelectedImage[]>([]);
   const [compressing, setCompressing] = useState(false);
   const isRemoved = (imageId: string) => removedIds.includes(imageId);
   // 枠を数えるのは「残す画像＋これから足す画像」（消す印を付けた分は空きとして扱う）
@@ -74,10 +81,25 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
     try {
       const selected = await selectReportImages(files, REPORT_IMAGE_MAX_COUNT - imageCount);
       setErrors(selected.error ? [{ message: selected.error }] : []);
-      setAdded((prev) => [
-        ...prev,
-        ...selected.accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
-      ]);
+      setAdded((prev) => [...prev, ...selected.accepted.map(toSelectedImage)]);
+    } finally {
+      setCompressing(false);
+    }
+  }
+
+  // 回すのは**これから足す画像だけ**。既にアップロード済みの画像は消して選び直す
+  // （向きを直すには焼き直したファイルを送り直すことになり、それは差し替えであって編集ではない）。
+  // 選択時の圧縮と同じく数百ms かかるので、同じ compressing で入口を塞ぐ
+  async function rotateAdded(index: number) {
+    setErrors([]);
+    setCompressing(true);
+    try {
+      const rotated = await rotateSelectedImage(added[index]);
+      if (!rotated) {
+        setErrors([{ message: "画像を回転できませんでした" }]);
+        return;
+      }
+      setAdded((prev) => prev.map((image, i) => (i === index ? rotated : image)));
     } finally {
       setCompressing(false);
     }
@@ -248,11 +270,16 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
                     alt={file.name}
                     className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
                   />
+                  <RotateImageButton
+                    fileName={file.name}
+                    disabled={compressing || submitting}
+                    onClick={() => void rotateAdded(index)}
+                  />
                   <button
                     type="button"
                     onClick={() =>
                       setAdded((prev) => {
-                        URL.revokeObjectURL(prev[index].previewUrl);
+                        revokeSelectedImage(prev[index]);
                         return prev.filter((_, i) => i !== index);
                       })
                     }
