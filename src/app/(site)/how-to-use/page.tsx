@@ -142,8 +142,20 @@ export default function HowToUsePage() {
         {/* 出版社からの回答 */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">出版社からの回答</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 mb-2">
             出版社の担当者は、自社の書籍への投稿にこのサイトから直接回答できます。
+          </p>
+          {/* ⚠️ ここで「一覧で確認できます」とは書かない。権限を付けても担当者が自分宛の投稿に
+              辿り着く手段はまだ無く（運営者が URL を送る）、匂わせると嘘になる。
+              必要な証明の中身（名刺・メールのドメイン一致など）も決めていないので書かない＝
+              いまの正確な線は「運営者が確認のうえ」まで */}
+          <p className="text-sm text-gray-500 mb-4">
+            回答には権限が必要です。会員登録のうえ、担当されている出版社名を添えて{" "}
+            <a href={`mailto:${site.contactEmail}`} className="text-blue-600 hover:underline">
+              {site.contactEmail}
+            </a>{" "}
+            までご連絡ください。運営者が確認のうえ、そのアカウントに自社書籍への回答権限を付与します。
+            権限が付くと、対象の投稿ページに回答の入力欄が表示されます。
           </p>
           <ul className="bg-white rounded-lg border border-gray-200 p-4 space-y-2">
             {PUBLISHER_ANSWERS.map((item) => (
