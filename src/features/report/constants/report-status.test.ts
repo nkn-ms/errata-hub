@@ -23,7 +23,7 @@ describe("report-status の定義", () => {
 
   it("既知のラベルが期待どおり", () => {
     expect(STATUS_LABELS.PENDING).toBe("未対応");
-    expect(STATUS_LABELS.FORWARDED).toBe("出版社へ連絡済み");
+    expect(STATUS_LABELS.FORWARDED).toBe("連絡済み");
     expect(STATUS_LABELS.LISTED).toBe("正誤表に掲載");
     expect(STATUS_LABELS.FIXED).toBe("修正済み");
     expect(STATUS_LABELS.WONT_FIX).toBe("修正なし");

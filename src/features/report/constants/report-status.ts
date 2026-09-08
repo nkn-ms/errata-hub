@@ -2,10 +2,12 @@ import type { ReportStatus } from "@/generated/prisma/client";
 
 // 管理画面・API 側: Prisma enum キーで参照
 // 並び順は進行順（未対応 → 連絡済み → 正誤表に掲載 → 修正予定 → 修正済み）＋終端・例外。
+// ⭐ FORWARDED に相手を書かないのは、連絡先が案件ごとに違うため（正誤表を著者本人が持つ本がある）。
+//    相手を名乗ると、そうでない案件で嘘になる。運営がやった事実だけを言う = docs/design.md のラベルの原則
 // 管理画面のボタン列と /how-to-use の説明はこの順で表示される。
 export const STATUS_LABELS: Record<ReportStatus, string> = {
   PENDING: "未対応",
-  FORWARDED: "出版社へ連絡済み",
+  FORWARDED: "連絡済み",
   LISTED: "正誤表に掲載",
   WILL_FIX: "修正予定",
   FIXED: "修正済み",
@@ -30,11 +32,12 @@ const STATUS_COLOR_VALUES = {
 
 const STATUS_TOOLTIP_VALUES = {
   PENDING: "投稿を受け付けました。管理者が確認中です。",
-  FORWARDED: "管理者が出版社へ連絡しました。回答があれば「出版社からの回答」に表示されます。",
-  LISTED: "出版社が誤りと認め、公式の正誤表に掲載しました。",
-  WILL_FIX: "出版社が誤りを認め、今後の刷または改訂版で修正すると回答しました。",
+  FORWARDED:
+    "管理者が出版社または著者へ連絡しました。出版社から回答があれば「出版社からの回答」に表示されます。",
+  LISTED: "出版社または著者が誤りと認め、公式の正誤表に掲載しました。",
+  WILL_FIX: "出版社または著者が誤りを認め、今後の刷または改訂版で修正すると回答しました。",
   FIXED: "実際の本で修正されました（重版・改訂版・電子版の更新）。どの版・刷で直ったかは詳細に表示されます。",
-  WONT_FIX: "出版社が修正を行わないと判断しました。",
+  WONT_FIX: "出版社または著者が修正を行わないと判断しました。",
   DISMISSED: "管理者が無効な投稿と判断しました。",
   OTHER: "上記のいずれにも当てはまらない事情があります。「運営者からの補足」をご覧ください。",
 } as const satisfies Record<ReportStatus, string>;
