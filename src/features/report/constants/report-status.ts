@@ -2,8 +2,6 @@ import type { ReportStatus } from "@/generated/prisma/client";
 
 // 管理画面・API 側: Prisma enum キーで参照
 // 並び順は進行順（未対応 → 連絡済み → 正誤表に掲載 → 修正予定 → 修正済み）＋終端・例外。
-// ⭐ FORWARDED に相手を書かないのは、連絡先が案件ごとに違うため（正誤表を著者本人が持つ本がある）。
-//    相手を名乗ると、そうでない案件で嘘になる。運営がやった事実だけを言う = docs/design.md のラベルの原則
 // 管理画面のボタン列と /how-to-use の説明はこの順で表示される。
 export const STATUS_LABELS: Record<ReportStatus, string> = {
   PENDING: "未対応",
