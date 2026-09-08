@@ -145,10 +145,6 @@ export default function HowToUsePage() {
           <p className="text-sm text-gray-500 mb-2">
             出版社の担当者は、自社の書籍への投稿にこのサイトから直接回答できます。
           </p>
-          {/* ⚠️ ここで「一覧で確認できます」とは書かない。権限を付けても担当者が自分宛の投稿に
-              辿り着く手段はまだ無く（運営者が URL を送る）、匂わせると嘘になる。
-              必要な証明の中身（名刺・メールのドメイン一致など）も決めていないので書かない＝
-              いまの正確な線は「運営者が確認のうえ」まで */}
           <p className="text-sm text-gray-500 mb-4">
             回答には権限が必要です。会員登録のうえ、担当されている出版社名を添えて{" "}
             <a href={`mailto:${site.contactEmail}`} className="text-blue-600 hover:underline">
