@@ -84,7 +84,7 @@ export default async function BookDetailPage({ params }: Props) {
                   rel="noopener noreferrer nofollow"
                   className="text-sm text-blue-700 hover:underline"
                 >
-                  正誤表を見る（{destinationLabelOf(book.erratumUrl)}）→
+                  公式の正誤表を見る（{destinationLabelOf(book.erratumUrl)}）→
                 </a>
               </div>
             )}
