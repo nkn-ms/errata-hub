@@ -48,7 +48,7 @@
     "eslint-config-next": "16.3.3",
     "jsdom": "^30.0.1",
     "prisma": "^7.10.0",
-    "prisma-erd-generator": "^2.5.0",
+    "prisma-erd-generator": "^3.2.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^6",
