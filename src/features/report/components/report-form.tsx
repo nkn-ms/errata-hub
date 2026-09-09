@@ -31,6 +31,7 @@ import {
 } from "@/features/report/utils/selected-images";
 import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
 import { Button } from "@/components/ui/button";
+import { ExternalLinkMark } from "@/components/ui/external-link-mark";
 
 type BookData = {
   googleBooksId: string;
@@ -461,7 +462,8 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
                 rel="noopener noreferrer nofollow"
                 className="underline font-medium"
               >
-                正誤表を確認する →
+                正誤表を確認する
+                <ExternalLinkMark className="h-3 w-3" />
               </a>
               <br />
               すでに掲載されている誤りは投稿不要です。
