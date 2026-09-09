@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdminBookEditor } from "./book-editor";
 import { routes } from "@/constants/routes";
 import { hostnameOf } from "@/utils/external-url";
+import { ExternalLinkMark } from "@/components/ui/external-link-mark";
 
 export default async function AdminBookDetailPage({
   params,
@@ -63,11 +64,12 @@ export default async function AdminBookDetailPage({
                   className="text-blue-700 hover:underline break-all"
                 >
                   {url}
+                  <ExternalLinkMark className="h-3 w-3" />
                 </a>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs">
                   <span className="text-gray-400">リンク先ホスト: {hostnameOf(url)}</span>
                   <Link href={routes.admin.report(reportId)} className="text-blue-600 hover:underline">
-                    投稿を開いて採用する →
+                    申告元の投稿を開く →
                   </Link>
                 </div>
               </li>

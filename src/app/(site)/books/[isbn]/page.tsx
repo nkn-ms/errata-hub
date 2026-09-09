@@ -11,6 +11,7 @@ import { toCanonicalIsbn } from "@/utils/isbn";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 import { BookCover } from "@/features/book/components/book-cover";
+import { ExternalLinkMark } from "@/components/ui/external-link-mark";
 import { CtaLink } from "@/components/ui/cta-link";
 
 type Props = {
@@ -85,6 +86,7 @@ export default async function BookDetailPage({ params }: Props) {
                   className="text-sm text-blue-700 hover:underline"
                 >
                   公式の正誤表を見る（{destinationLabelOf(book.erratumUrl)}）
+                  <ExternalLinkMark />
                 </a>
               </div>
             )}

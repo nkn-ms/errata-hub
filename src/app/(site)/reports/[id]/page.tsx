@@ -22,6 +22,7 @@ import {
 } from "@/services/publisher-access";
 import { formatJstDateTime } from "@/utils/format";
 import { CtaLink } from "@/components/ui/cta-link";
+import { ExternalLinkMark } from "@/components/ui/external-link-mark";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -155,6 +156,7 @@ export default async function ReportDetailPage({ params }: Props) {
                   className="text-sm text-blue-700 hover:underline"
                 >
                   公式の正誤表を見る（{destinationLabelOf(raw.book.erratumUrl)}）
+                  <ExternalLinkMark />
                 </a>
               </div>
             )}
