@@ -83,7 +83,7 @@ test.describe("正誤表URLの申告と採用", () => {
       await expect(adminPage.getByText(/未採用の正誤表URLの申告/)).toBeVisible();
       // 件数ではなく「今回の申告が並んでいるか」を見る（過去の実行が残した申告があっても成立する）
       const adoptEntry = adminPage.getByRole("listitem").filter({ hasText: reportedUrl });
-      await adoptEntry.getByRole("link", { name: /投稿を開いて採用する/ }).click();
+      await adoptEntry.getByRole("link", { name: /申告元の投稿を開く/ }).click();
       await adminPage.waitForURL(`**/admin/reports/${reportId}`);
 
       // 管理画面では申告 URL とリンク先ホストが見える（採用前に中身を確認するため）
