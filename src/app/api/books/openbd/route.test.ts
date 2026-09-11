@@ -84,3 +84,42 @@ describe("GET /api/books/openbd の失敗と「該当なし」の区別", () => 
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("GET /api/books/openbd のキャッシュ指示", () => {
+  beforeEach(() => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitMock.mockResolvedValue({ allowed: true });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("上流から答えが返ったときだけブラウザにしまわせる（共有キャッシュには載せない）", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify([{ summary: { isbn: VALID_ISBN } }]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      )
+    );
+
+    const res = await GET(request(VALID_ISBN));
+
+    // private が無いと CDN に載り得る。このルートは認証の内側なので共有キャッシュは不可。
+    expect(res.headers.get("cache-control")).toBe("private, max-age=300");
+  });
+
+  it("上流の失敗はキャッシュさせない（直っても再試行しなくなるため）", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 503 })));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await GET(request(VALID_ISBN));
+
+    expect(res.status).toBe(502);
+    // 失敗の応答にはこちらから何も指示しない（Next.js 側の既定に任せる）
+    expect(res.headers.get("cache-control")).toBeNull();
+  });
+});

@@ -112,3 +112,37 @@ describe("GET /api/books/search の上流リトライ", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("GET /api/books/search のキャッシュ指示", () => {
+  beforeEach(() => {
+    vi.stubEnv("GOOGLE_BOOKS_API_KEY", "test-key");
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    checkRateLimitsMock.mockResolvedValue({ allowed: true });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("上流から答えが返ったときだけブラウザにしまわせる（共有キャッシュには載せない）", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ items: [] }, 200)));
+
+    const res = await GET(request());
+
+    // private が無いと CDN に載り得る。このルートは認証の内側なので共有キャッシュは不可。
+    expect(res.headers.get("cache-control")).toBe("private, max-age=300");
+  });
+
+  it("上流の失敗はキャッシュさせない（直っても再試行しなくなるため）", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: { code: 503 } }, 503)));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(502);
+    // 失敗の応答にはこちらから何も指示しない（Next.js 側の既定に任せる）
+    expect(res.headers.get("cache-control")).toBeNull();
+  });
+});
