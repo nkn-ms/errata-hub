@@ -14,6 +14,14 @@ const UPSTREAM_RETRY_DELAY_MS = 300;
 // 「待たされるより早く失敗を伝える」方が体感が良い（失敗時の文言は次の行動を書いてある）。
 const UPSTREAM_TIMEOUT_MS = 5_000;
 
+// 同じ検索語を問い直したときに上流を叩き直さない（デバウンスの後に消して打ち直す、戻る操作）。
+// OpenBD 側（books/openbd/route.ts）と違い、ここには **Google Books の無料枠を守る**効果もある
+// （枠はプロジェクト全体で共有＝下のレート制限と同じ目的を、往復そのものを消す側から助ける）。
+//
+// ⚠️ `private`＝ブラウザだけがしまう。CDN に載せられない理由は books/openbd/route.ts と同じ
+//    （認証の内側にあるが、CDN のキャッシュキーに cookie は入らない）。
+const SUCCESS_CACHE_CONTROL = "private, max-age=300";
+
 /**
  * Google Books を叩く。**5xx と通信エラーのときだけ1回やり直す。**
  *
@@ -94,7 +102,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
     const data = await res.json();
-    return NextResponse.json(data);
+    // ⚠️ 付けるのは上流から答えが返ったときだけ。502 に付けると「一時的な失敗」を
+    //    ブラウザが覚え込み、Google が直っても再試行しなくなる。
+    return NextResponse.json(data, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
