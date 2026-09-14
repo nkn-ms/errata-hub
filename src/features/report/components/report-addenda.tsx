@@ -19,6 +19,7 @@ import {
   type SelectedImage,
 } from "@/features/report/utils/selected-images";
 import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
+import { ImageZoomPreview } from "@/features/report/components/report-image-zoom-preview";
 import { Button } from "@/components/ui/button";
 
 // ⚠️ **一覧と入力欄を1つのクライアント部品にまとめてあるのは、書きかけを失わないため。**
@@ -211,9 +212,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
               <div className="mb-2 flex flex-wrap gap-2">
                 {images.map(({ file, previewUrl }, index) => (
                   <div key={previewUrl} className="relative">
-                    {/* 送信前のローカルプレビュー（blob: URL）なので next/image は使わない */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <ImageZoomPreview
                       src={previewUrl}
                       alt={file.name}
                       className="h-24 w-auto rounded border border-gray-200 object-contain bg-white"

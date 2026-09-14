@@ -27,6 +27,7 @@ import {
   type SelectedImage,
 } from "@/features/report/utils/selected-images";
 import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
+import { ImageZoomPreview } from "@/features/report/components/report-image-zoom-preview";
 import { Button } from "@/components/ui/button";
 
 type BookSummary = {
@@ -263,9 +264,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
               ))}
               {added.map(({ file, previewUrl }, index) => (
                 <div key={previewUrl} className="relative">
-                  {/* 選択中ファイルのローカルプレビュー（blob: URL）なので next/image は使わない */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <ImageZoomPreview
                     src={previewUrl}
                     alt={file.name}
                     className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
