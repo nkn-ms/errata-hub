@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { RotateCcw, RotateCw, Undo2, X } from "lucide-react";
-import { Button, type ButtonVariant } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import type { RotateDirection } from "@/features/report/utils/selected-images";
 
 // 添付画像のサムネイル1枚ぶんの枠と、その下に並ぶ操作ボタン。投稿・編集・追記の3つのフォームが同じ形で使う。
@@ -32,14 +32,11 @@ export function ImageTile({ children, rotate, remove }: TileProps) {
   );
 }
 
-function IconButton({
-  variant = "secondary",
-  ...props
-}: ComponentProps<"button"> & { variant?: ButtonVariant }) {
+function IconButton(props: ComponentProps<"button">) {
   return (
     <Button
       type="button"
-      variant={variant}
+      variant="secondary"
       className="flex h-8 w-8 items-center justify-center p-0"
       {...props}
     />
@@ -89,17 +86,15 @@ type RemoveProps = {
   onClick: () => void;
 };
 
-// 削除は赤（取り消せない操作の色・管理画面の削除や取り下げと同じ dangerOutline）。
-// 削除をやめる（↩）は元に戻す操作なので赤にしない
+// 削除は × の線だけを赤にする（枠は回転と同じ灰色）。削除をやめる（↩）は元に戻す操作なので赤にしない
 export function RemoveImageButton({ label, undo = false, onClick }: RemoveProps) {
   return (
-    <IconButton
-      variant={undo ? "secondary" : "dangerOutline"}
-      onClick={onClick}
-      aria-label={label}
-      title={undo ? "削除をやめる" : "削除"}
-    >
-      {undo ? <Undo2 className="h-4 w-4" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
+    <IconButton onClick={onClick} aria-label={label} title={undo ? "削除をやめる" : "削除"}>
+      {undo ? (
+        <Undo2 className="h-4 w-4" aria-hidden />
+      ) : (
+        <X className="h-4 w-4 text-red-700" aria-hidden />
+      )}
     </IconButton>
   );
 }
