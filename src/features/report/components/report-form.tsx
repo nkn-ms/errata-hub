@@ -30,6 +30,7 @@ import {
   type SelectedImage,
 } from "@/features/report/utils/selected-images";
 import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
+import { ImageZoomPreview } from "@/features/report/components/report-image-zoom-preview";
 import { Button } from "@/components/ui/button";
 import { ExternalLinkMark } from "@/components/ui/external-link-mark";
 
@@ -115,10 +116,6 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
   const [submitting, setSubmitting] = useState(false);
   // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
   const [compressing, setCompressing] = useState(false);
-  // 添付画像の拡大表示。圧縮で文字が読めなくなっていないかを投稿前に自分で確かめられるようにする。
-  // <dialog> を使うのは ESC で閉じる挙動とフォーカス管理がネイティブで付いてくるため。
-  const zoomRef = useRef<HTMLDialogElement>(null);
-  const [zoomed, setZoomed] = useState<{ url: string; name: string } | null>(null);
   // エラーは配列で持ち、投稿時の検証は**全項目を見てからまとめて出す**。
   // 1件ずつ出すと「押す→スクロールして直す→また押す」を必須項目の数だけ繰り返させることになる
   // （このフォームは縦に長く、必須が離れて散っている）。
@@ -571,25 +568,11 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
             <div className="mt-3 flex flex-wrap gap-3">
               {images.map(({ file, previewUrl }, index) => (
                 <div key={previewUrl} className="relative">
-                  {/* クリックで拡大。縮小後に紙面の文字が読めるかを投稿前に確かめるための導線
-                      （プレビューが小さいままだと劣化に気づけない）。button にしてキーボードでも開ける */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setZoomed({ url: previewUrl, name: file.name });
-                      zoomRef.current?.showModal();
-                    }}
-                    className="cursor-zoom-in"
-                    aria-label={`${file.name} を拡大`}
-                  >
-                    {/* 選択中ファイルのローカルプレビュー（blob: URL）なので next/image は使わない */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={previewUrl}
-                      alt={file.name}
-                      className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
-                    />
-                  </button>
+                  <ImageZoomPreview
+                    src={previewUrl}
+                    alt={file.name}
+                    className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                  />
                   <RotateImageButton
                     fileName={file.name}
                     disabled={compressing}
@@ -609,30 +592,6 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
           )}
         </div>
       </section>
-
-      {/* 添付画像の拡大表示。backdrop クリックでも閉じられるよう、中身を1枚の button で覆う。
-          ⚠️ <dialog> の閉じる操作（ESC）はネイティブ任せで、onClose で state を捨てる */}
-      <dialog
-        ref={zoomRef}
-        onClose={() => setZoomed(null)}
-        className="m-auto max-h-[90dvh] max-w-[90vw] rounded-lg bg-transparent p-0 backdrop:bg-black/60"
-      >
-        {zoomed && (
-          <button
-            type="button"
-            onClick={() => zoomRef.current?.close()}
-            className="block cursor-zoom-out"
-            aria-label="拡大表示を閉じる"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={zoomed.url}
-              alt={zoomed.name}
-              className="max-h-[90dvh] max-w-[90vw] rounded-lg bg-white object-contain"
-            />
-          </button>
-        )}
-      </dialog>
 
       <ErrorPanel errors={errors} />
 

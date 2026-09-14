@@ -37,6 +37,15 @@ async function attachImage(page: Page) {
   });
 }
 
+// 送る前の画像は押すと拡大でき、外側の暗い部分を押すと閉じる（投稿フォームと同じ部品）。
+// 画像は 1x1 なので、画面の隅は必ず画像の外＝::backdrop に当たる
+async function zoomAndCloseByBackdrop(page: Page) {
+  await page.getByRole("button", { name: "errata.png を拡大" }).click();
+  await expect(page.locator("dialog[open]").getByAltText("errata.png")).toBeVisible();
+  await page.mouse.click(5, 5);
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
+}
+
 // 追記は取り消せないので、送る前に確認のダイアログを挟む（新規投稿の確認画面と同じ形）
 async function confirmAddendum(page: Page) {
   await page.getByRole("button", { name: "確認する" }).click();
@@ -173,6 +182,7 @@ test.describe("投稿者による画像の追加・削除（編集画面）", ()
 
     await page.goto(`/reports/${reportId}/edit`);
     await attachImage(page);
+    await zoomAndCloseByBackdrop(page);
 
     // ⚠️ ここが要点: 選んだだけでは保存しない。押していないのに反映済み、では
     //    「更新する」が何をするボタンなのか分からなくなる
@@ -345,6 +355,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await page.goto(`/reports/${reportId}`);
       await page.getByLabel("追記する").fill("該当箇所の写真を追加します（追記）");
       await attachImage(page);
+      await zoomAndCloseByBackdrop(page);
       // 追記も画像も確認のダイアログを通してから確定する（押すまでは送らない）
       await expect(page.getByAltText("追記の画像")).toHaveCount(0);
 

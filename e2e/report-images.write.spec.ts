@@ -369,6 +369,13 @@ test.describe("添付画像の拡大表示", () => {
     // ESC で閉じられる（<dialog> のネイティブ挙動に頼っている部分なので担保しておく）
     await page.keyboard.press("Escape");
     await expect(page.locator("dialog[open]")).toHaveCount(0);
+
+    // 外側の暗い部分を押しても閉じられる（ESC の無いスマホではこれが主な閉じ方）。
+    // 画像は 1x1 なので、画面の隅は必ず画像の外＝::backdrop に当たる
+    await page.getByRole("button", { name: "errata.png を拡大" }).click();
+    await expect(dialog).toBeVisible();
+    await page.mouse.click(5, 5);
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
   });
 });
 
