@@ -52,25 +52,27 @@ type RotateProps = {
 
 // 左回りと右回りの2つを置くのは、横倒しの写真がどちらに倒れているかは構え方しだいで決まらないため。
 // 片方だけだと、逆に倒れた写真は3回押すことになる
+//
+// 並びは「右回り → 左回り」で、矢印の先が互いに内側を向く。
 export function RotateImageButtons({ fileName, disabled = false, onRotate }: RotateProps) {
   return (
     <>
       <IconButton
-        onClick={() => onRotate("left")}
-        disabled={disabled}
-        aria-label={`${fileName} を左に90度回転`}
-        // 読み上げは aria-label が勝つので二重には読まれない。マウスの人にだけ役割を見せる
-        title="左に90度回転"
-      >
-        <RotateCcw className="h-4 w-4" aria-hidden />
-      </IconButton>
-      <IconButton
         onClick={() => onRotate("right")}
         disabled={disabled}
         aria-label={`${fileName} を右に90度回転`}
+        // 読み上げは aria-label が勝つので二重には読まれない。マウスの人にだけ役割を見せる
         title="右に90度回転"
       >
         <RotateCw className="h-4 w-4" aria-hidden />
+      </IconButton>
+      <IconButton
+        onClick={() => onRotate("left")}
+        disabled={disabled}
+        aria-label={`${fileName} を左に90度回転`}
+        title="左に90度回転"
+      >
+        <RotateCcw className="h-4 w-4" aria-hidden />
       </IconButton>
     </>
   );
