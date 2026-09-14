@@ -32,7 +32,7 @@ export function ImageZoomPreview({ src, alt, className }: Props) {
           setOpen(true);
           dialogRef.current?.showModal();
         }}
-        className="cursor-zoom-in"
+        className="block w-full cursor-zoom-in"
         aria-label={`${alt} を拡大`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

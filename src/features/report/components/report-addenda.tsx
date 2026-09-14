@@ -16,9 +16,14 @@ import {
   revokeSelectedImage,
   rotateSelectedImage,
   toSelectedImage,
+  type RotateDirection,
   type SelectedImage,
 } from "@/features/report/utils/selected-images";
-import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
+import {
+  ImageTile,
+  RemoveImageButton,
+  RotateImageButtons,
+} from "@/features/report/components/report-image-tile";
 import { ImageZoomPreview } from "@/features/report/components/report-image-zoom-preview";
 import { Button } from "@/components/ui/button";
 
@@ -67,11 +72,11 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
   }
 
   // 選択時の圧縮と同じく数百ms かかるので、同じ compressing で入口（選択・追記）を塞ぐ
-  async function rotateImage(index: number) {
+  async function rotateImage(index: number, direction: RotateDirection) {
     setErrors([]);
     setCompressing(true);
     try {
-      const rotated = await rotateSelectedImage(images[index]);
+      const rotated = await rotateSelectedImage(images[index], direction);
       if (!rotated) {
         setErrors([{ message: "画像を回転できませんでした" }]);
         return;
@@ -209,33 +214,35 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
           <div>
             <p className="block text-sm font-medium text-gray-700 mb-1">画像（任意）</p>
             {images.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
+              <div className="mb-2 flex flex-wrap gap-3">
                 {images.map(({ file, previewUrl }, index) => (
-                  <div key={previewUrl} className="relative">
+                  <ImageTile
+                    key={previewUrl}
+                    rotate={
+                      <RotateImageButtons
+                        fileName={file.name}
+                        disabled={compressing || submitting}
+                        onRotate={(direction) => void rotateImage(index, direction)}
+                      />
+                    }
+                    remove={
+                      <RemoveImageButton
+                        label={`${file.name} を削除`}
+                        onClick={() =>
+                          setImages((prev) => {
+                            revokeSelectedImage(prev[index]);
+                            return prev.filter((_, i) => i !== index);
+                          })
+                        }
+                      />
+                    }
+                  >
                     <ImageZoomPreview
                       src={previewUrl}
                       alt={file.name}
-                      className="h-24 w-auto rounded border border-gray-200 object-contain bg-white"
+                      className="h-24 w-full rounded border border-gray-200 object-contain bg-white"
                     />
-                    <RotateImageButton
-                      fileName={file.name}
-                      disabled={compressing || submitting}
-                      onClick={() => void rotateImage(index)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImages((prev) => {
-                          revokeSelectedImage(prev[index]);
-                          return prev.filter((_, i) => i !== index);
-                        })
-                      }
-                      aria-label={`${file.name} を削除`}
-                      className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
-                    >
-                      ×
-                    </button>
-                  </div>
+                  </ImageTile>
                 ))}
               </div>
             )}

@@ -416,6 +416,19 @@ test.describe("画像の回転", () => {
     const rotated = page.getByAltText("wide.webp");
     await expect(rotated).toBeVisible();
     await expect.poll(() => naturalSize(rotated)).toEqual({ width: 30, height: 60 });
+    // 右に回した＝元の左下（緑）が左上に来ている
+    await expect.poll(async () => (await topLeftColor(rotated)).green).toBeGreaterThan(128);
+    expect((await topLeftColor(rotated)).red).toBeLessThan(128);
+
+    // 続けて左に2回。1回目で回転0＝元のファイル（wide.png）に戻り、2回目で元から左に90度になる
+    // ＝元の右上（赤）が左上に来る。左右のボタンが同じ向きに回していたら、ここは緑のままになる
+    await page.getByRole("button", { name: "wide.webp を左に90度回転" }).click();
+    await expect(page.getByAltText("wide.png")).toBeVisible();
+    await page.getByRole("button", { name: "wide.png を左に90度回転" }).click();
+    const rotatedLeft = page.getByAltText("wide.webp");
+    await expect.poll(() => naturalSize(rotatedLeft)).toEqual({ width: 30, height: 60 });
+    await expect.poll(async () => (await topLeftColor(rotatedLeft)).red).toBeGreaterThan(128);
+    expect((await topLeftColor(rotatedLeft)).green).toBeLessThan(128);
 
     await confirmAndSubmit(page);
     await page.waitForURL(/\/$/);
@@ -437,6 +450,23 @@ test.describe("画像の回転", () => {
     await adminContext.close();
   });
 });
+
+// 左上の画素の色。回転の**向き**は寸法では区別できない（左右どちらに回しても縦横が入れ替わるだけ）ので、
+// makePng のグラデーション（右へ行くほど赤・下へ行くほど緑）がどの角に来たかで見る。
+//   右に90度: 元の左下（緑が強い）が左上に来る
+//   左に90度: 元の右上（赤が強い）が左上に来る
+// 角の1画素は webp の劣化を受けやすいので、少し内側を読む
+async function topLeftColor(image: Locator): Promise<{ red: number; green: number }> {
+  return image.evaluate((element: HTMLImageElement) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = element.naturalWidth;
+    canvas.height = element.naturalHeight;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(element, 0, 0);
+    const [red, green] = context.getImageData(3, 3, 1, 1).data;
+    return { red, green };
+  });
+}
 
 // 読み込み済みの画像の原寸。回転したかは寸法の入れ替わりでしか確かめられない
 // （表示の向きは CSS でも変えられるため、見えている姿は証拠にならない）
