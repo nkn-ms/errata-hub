@@ -1,7 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
-import { RotateCcw, RotateCw, Undo2, X } from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { RotateDirection } from "@/features/report/utils/selected-images";
 
 // 添付画像のサムネイル1枚ぶんの枠と操作ボタン。投稿・編集・追記の3つのフォームが同じ形で使う。
@@ -34,12 +33,12 @@ export function ImageTile({ children, rotate, remove }: TileProps) {
   );
 }
 
-function IconButton({ className, ...props }: ComponentProps<"button">) {
+function IconButton(props: ComponentProps<"button">) {
   return (
     <Button
       type="button"
       variant="secondary"
-      className={cn("flex h-8 w-8 items-center justify-center p-0", className)}
+      className="flex h-8 w-8 items-center justify-center p-0"
       {...props}
     />
   );
@@ -88,21 +87,16 @@ type RemoveProps = {
   onClick: () => void;
 };
 
-// 削除は × の線だけを赤にする（枠は回転と同じ灰色）。削除をやめる（↩）は元に戻す操作なので赤にしない
+// 削除は角に重ねる小さな丸。暗い面にするのは、どんな色の画像の上でも埋もれないため
 export function RemoveImageButton({ label, undo = false, onClick }: RemoveProps) {
   return (
-    <IconButton
+    <button
+      type="button"
       onClick={onClick}
       aria-label={label}
-      title={undo ? "削除をやめる" : "削除"}
-      // 画像の上に重なるので、面を塗って下の画像を透かさない
-      className="rounded-full bg-white"
+      className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
     >
-      {undo ? (
-        <Undo2 className="h-4 w-4" aria-hidden />
-      ) : (
-        <X className="h-4 w-4 text-red-700" aria-hidden />
-      )}
-    </IconButton>
+      {undo ? "↩" : "×"}
+    </button>
   );
 }
