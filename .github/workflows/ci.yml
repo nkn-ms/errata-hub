@@ -5,9 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-    # labeled を含めるのは「PR に e2e ラベルを付けたら e2e を回す」ため
-    # （既定の opened/synchronize/reopened に加える。types を書くと既定は上書きなので明示する）。
-    types: [opened, synchronize, reopened, labeled]
 
 # GITHUB_TOKEN の権限を最小限に固定する。指定しないとリポジトリ既定値を継承するが、
 # 既定値は設定画面から変えられるので、ワークフロー側で宣言しておく方が堅い
@@ -19,7 +16,7 @@ permissions:
 # 古くなった実行を打ち切って CI の待ち時間を短くする。レーンは PR 単位（push は ref 単位）。
 #
 # ⚠️ 打ち切るのは「新しいコミットが来たとき」= pull_request の synchronize だけに限る。
-# 1つの PR には opened / labeled / synchronize が数秒差で届き、既定の cancel-in-progress: true だと
+# 1つの PR に同じコミットに対する実行が複数届くと、既定の cancel-in-progress: true だと
 # **同じコミットに対する実行同士が互いを打ち切り合う**。必須チェックの判定は同名チェックの
 # 「最後の報告」を見るため、success の後に cancelled が届くと未達と判定されて PR がマージできなくなる
 # （2026-07-29 に Dependabot の PR #128 で発生。同一 SHA に success 1件・cancelled 4件）。
@@ -74,21 +71,18 @@ jobs:
   #   supabase start → prisma migrate deploy → prisma db seed
   #   → バケット作成 → playwright test
   #
-  # 実行タイミングは絞る（テストピラミッドの考え方＝ e2e は薄い層に保つ）:
-  #   - main への push（＝マージ後）… 何かが漏れて main に入っていないかの安全網
-  #   - PR に "e2e" ラベルが付いているとき … マージ前に任意で回す
-  #   - Dependabot の PR … ラベルが付かないので明示的に含める（下記）
-  # 開発中の毎 push では回さないので、内側の開発ループは軽い CI だけで速いまま。
-  # ラベルの付け外しは gh pr edit <PR> --add-label e2e / --remove-label e2e。
+  # **すべての PR と main への push で回す。** ルールセット protect-main の必須チェックに入れてあり、
+  # e2e が通らない（実行中も含む）PR はマージできない。
+  # 回す PR を絞る（ラベルを付けた PR だけ等）と、絞りから漏れた PR では e2e が実行されず、
+  # 必須チェックは「skipped＝成功」扱いで素通りする。テストが通らないとマージできない、を
+  # 人の注意（ラベルの付け忘れ）に頼らないために絞らない。代償は push ごとの待ち時間（約7分）。
+  #   - main への push（＝マージ後）… 各 PR は単体で緑でも、main に入った組み合わせで
+  #     壊れることがある（必須チェックは main の最新の取り込みを求めていない）ので、その安全網
   #
-  # Dependabot の PR で必ず回す理由: **コードを1行も変えていないのに挙動が変わり得る**のは
-  # 依存更新のときだから。例えばセッション Cookie の HttpOnly は @supabase/ssr が
-  # cookieOptions を Set-Cookie まで運んでくれることに依存しており（src/lib/supabase/cookie-options.ts）、
-  # ライブラリ側がそれをやめても型エラーにもならず、ログインも成功し続ける＝
-  # e2e で実際の Cookie を見る以外に気づく手立てが無い。ここを回さないと、
-  # 気づくのは main にマージして本番へ出た後（push トリガー）になってしまう。
-  # 判定に github.actor ではなく PR の作成者を使うのは、人間が Dependabot のブランチに
-  # 追加 push すると actor がその人に変わってしまうため。
+  # 依存更新（Dependabot）の PR では特に効く: **コードを1行も変えていないのに挙動が変わり得る**。
+  # 例えばセッション Cookie の HttpOnly は @supabase/ssr が cookieOptions を Set-Cookie まで
+  # 運んでくれることに依存しており（src/lib/supabase/cookie-options.ts）、ライブラリ側がそれを
+  # やめても型エラーにもならず、ログインも成功し続ける＝ e2e で実際の Cookie を見る以外に気づく手立てが無い。
   #
   # ⚠️ この job はリポジトリのシークレットを使わない（使い捨ての Supabase を CI 内に立て、
   #    接続情報は supabase status から取る）。Dependabot の PR はシークレットを読めないので、
@@ -97,10 +91,6 @@ jobs:
   e2e:
     name: e2e (Playwright)
     needs: ci # 軽いチェックが落ちているときは重い e2e を走らせない（無駄打ち防止）
-    if: >-
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.labels.*.name, 'e2e') ||
-      github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
