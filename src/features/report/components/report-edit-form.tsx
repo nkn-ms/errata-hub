@@ -24,9 +24,14 @@ import {
   revokeSelectedImage,
   rotateSelectedImage,
   toSelectedImage,
+  type RotateDirection,
   type SelectedImage,
 } from "@/features/report/utils/selected-images";
-import { RotateImageButton } from "@/features/report/components/report-image-rotate-button";
+import {
+  ImageTile,
+  RemoveImageButton,
+  RotateImageButtons,
+} from "@/features/report/components/report-image-tile";
 import { ImageZoomPreview } from "@/features/report/components/report-image-zoom-preview";
 import { Button } from "@/components/ui/button";
 
@@ -91,11 +96,11 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
   // 回すのは**これから足す画像だけ**。既にアップロード済みの画像は消して選び直す
   // （向きを直すには焼き直したファイルを送り直すことになり、それは差し替えであって編集ではない）。
   // 選択時の圧縮と同じく数百ms かかるので、同じ compressing で入口を塞ぐ
-  async function rotateAdded(index: number) {
+  async function rotateAdded(index: number, direction: RotateDirection) {
     setErrors([]);
     setCompressing(true);
     try {
-      const rotated = await rotateSelectedImage(added[index]);
+      const rotated = await rotateSelectedImage(added[index], direction);
       if (!rotated) {
         setErrors([{ message: "画像を回転できませんでした" }]);
         return;
@@ -228,15 +233,30 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
           {(images.length > 0 || added.length > 0) && (
             <div className="mb-3 flex flex-wrap gap-3">
               {images.map((image) => (
-                <div key={image.id} className="relative">
-                  <a href={image.imageUrl} target="_blank" rel="noopener noreferrer">
+                <ImageTile
+                  key={image.id}
+                  remove={
+                    <RemoveImageButton
+                      label={isRemoved(image.id) ? "この画像の削除をやめる" : "この画像を削除"}
+                      undo={isRemoved(image.id)}
+                      onClick={() =>
+                        setRemovedIds((prev) =>
+                          isRemoved(image.id)
+                            ? prev.filter((id) => id !== image.id)
+                            : [...prev, image.id]
+                        )
+                      }
+                    />
+                  }
+                >
+                  <a href={image.imageUrl} target="_blank" rel="noopener noreferrer" className="block">
                     <Image
                       src={image.imageUrl}
                       alt="証拠画像"
                       width={96}
                       height={128}
                       unoptimized
-                      className={`h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50 cursor-zoom-in ${
+                      className={`h-24 w-full rounded border border-gray-200 object-contain bg-gray-50 cursor-zoom-in ${
                         isRemoved(image.id) ? "opacity-30" : ""
                       }`}
                     />
@@ -246,48 +266,36 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
                       削除予定
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRemovedIds((prev) =>
-                        isRemoved(image.id)
-                          ? prev.filter((id) => id !== image.id)
-                          : [...prev, image.id]
-                      )
-                    }
-                    aria-label={isRemoved(image.id) ? "この画像の削除をやめる" : "この画像を削除"}
-                    className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
-                  >
-                    {isRemoved(image.id) ? "↩" : "×"}
-                  </button>
-                </div>
+                </ImageTile>
               ))}
               {added.map(({ file, previewUrl }, index) => (
-                <div key={previewUrl} className="relative">
+                <ImageTile
+                  key={previewUrl}
+                  rotate={
+                    <RotateImageButtons
+                      fileName={file.name}
+                      disabled={compressing || submitting}
+                      onRotate={(direction) => void rotateAdded(index, direction)}
+                    />
+                  }
+                  remove={
+                    <RemoveImageButton
+                      label={`${file.name} を削除`}
+                      onClick={() =>
+                        setAdded((prev) => {
+                          revokeSelectedImage(prev[index]);
+                          return prev.filter((_, i) => i !== index);
+                        })
+                      }
+                    />
+                  }
+                >
                   <ImageZoomPreview
                     src={previewUrl}
                     alt={file.name}
-                    className="h-24 w-auto rounded border border-gray-200 object-contain bg-gray-50"
+                    className="h-24 w-full rounded border border-gray-200 object-contain bg-gray-50"
                   />
-                  <RotateImageButton
-                    fileName={file.name}
-                    disabled={compressing || submitting}
-                    onClick={() => void rotateAdded(index)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAdded((prev) => {
-                        revokeSelectedImage(prev[index]);
-                        return prev.filter((_, i) => i !== index);
-                      })
-                    }
-                    aria-label={`${file.name} を削除`}
-                    className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-white text-xs hover:bg-gray-900 cursor-pointer"
-                  >
-                    ×
-                  </button>
-                </div>
+                </ImageTile>
               ))}
             </div>
           )}
@@ -317,7 +325,10 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
               </p>
             </>
           )}
-          {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
+          {/* 処理中でない間も行の高さを取っておく。出すたびに行を差し込むと、下の要素が上下に揺れる */}
+          <p className={`mt-2 text-xs text-gray-500 ${compressing ? "" : "invisible"}`}>
+            画像を処理しています…
+          </p>
         </div>
       </section>
 

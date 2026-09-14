@@ -24,18 +24,25 @@ export type SelectedImage = {
 
 export type QuarterTurns = 0 | 1 | 2 | 3;
 
+export type RotateDirection = "left" | "right";
+
 export function toSelectedImage(file: File): SelectedImage {
   return { base: file, rotation: 0, file, previewUrl: URL.createObjectURL(file) };
 }
 
 /**
- * 時計回りに90度回した項目を返す（4回で元に戻る）。失敗したら null を返し、
+ * 指定した向きに90度回した項目を返す（同じ向きに4回で元に戻る）。失敗したら null を返し、
  * 呼び出し側が「回転できなかった」と知らせる（黙って何も起きないと押し間違いと区別が付かない）。
  *
  * 成功したときは古い previewUrl をここで revoke する。返り値に差し替えれば漏れない。
  */
-export async function rotateSelectedImage(image: SelectedImage): Promise<SelectedImage | null> {
-  const rotation = ((image.rotation + 1) % 4) as QuarterTurns;
+export async function rotateSelectedImage(
+  image: SelectedImage,
+  direction: RotateDirection
+): Promise<SelectedImage | null> {
+  // 左回り90度は右回り270度と同じ（rotation は時計回りで数える）
+  const step = direction === "right" ? 1 : 3;
+  const rotation = ((image.rotation + step) % 4) as QuarterTurns;
   const rotated = rotation === 0 ? image.base : await rotateImage(image.base, rotation);
   if (!rotated) return null;
 
