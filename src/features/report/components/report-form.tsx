@@ -568,7 +568,11 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
               </p>
             </>
           )}
-          {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
+          {/* 処理中でない間も行の高さを取っておき、文字だけを出し入れする。出すたびに行を差し込むと、
+              回転や2枚目の選択のたびにサムネイルの一覧が1行ぶん上下に揺れる */}
+          <p className={`mt-2 text-xs text-gray-500 ${compressing ? "" : "invisible"}`}>
+            画像を処理しています…
+          </p>
           {images.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-3">
               {images.map(({ file, previewUrl }, index) => (

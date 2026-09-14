@@ -325,7 +325,10 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
               </p>
             </>
           )}
-          {compressing && <p className="mt-2 text-xs text-gray-500">画像を処理しています…</p>}
+          {/* 処理中でない間も行の高さを取っておく。出すたびに行を差し込むと、下の要素が上下に揺れる */}
+          <p className={`mt-2 text-xs text-gray-500 ${compressing ? "" : "invisible"}`}>
+            画像を処理しています…
+          </p>
         </div>
       </section>
 
