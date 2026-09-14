@@ -610,11 +610,17 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
         </div>
       </section>
 
-      {/* 添付画像の拡大表示。backdrop クリックでも閉じられるよう、中身を1枚の button で覆う。
-          ⚠️ <dialog> の閉じる操作（ESC）はネイティブ任せで、onClose で state を捨てる */}
+      {/* 添付画像の拡大表示。画像を押しても、外側の暗い部分を押しても閉じる。
+          ⚠️ 外側（::backdrop）を押したときのクリックは中の button ではなく dialog 自身に届く
+          （target === currentTarget）ので、dialog 側でも拾う。button だけだと画像の上しか効かず、
+          ESC の無いスマホでは閉じる手段がブラウザの「戻る」しか残らない。
+          ESC はネイティブ任せで、どの閉じ方でも onClose で state を捨てる */}
       <dialog
         ref={zoomRef}
         onClose={() => setZoomed(null)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) zoomRef.current?.close();
+        }}
         className="m-auto max-h-[90dvh] max-w-[90vw] rounded-lg bg-transparent p-0 backdrop:bg-black/60"
       >
         {zoomed && (
