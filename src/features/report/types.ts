@@ -31,6 +31,8 @@ export type Report = {
   publisher: string;
   isbn: string;
   coverImage: string;
+  // その本の公式の正誤表（無ければ undefined）。投稿詳細から辿れる一次情報
+  erratumUrl?: string;
   edition?: number;
   printing?: number;
   type: ReportType;
@@ -61,5 +63,7 @@ export type Report = {
   // 相対表記（「3時間前」等）を出すための生タイムスタンプ（ISO）。新着フィードのカードで使う。
   createdAtIso: string;
   upvoteCount: number;
-  imageUrls: string[];
+  // 投稿本体の証拠画像。**追記に添えた画像は入らない**（それらは addenda[].images 側）。
+  // 出版社が見た時点の証拠と、連絡後に足された画像を混ぜないため = schema.prisma の ReportImage.addendumId
+  images: { id: string; imageUrl: string }[];
 };

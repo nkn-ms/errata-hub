@@ -1,18 +1,29 @@
+import "server-only";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { mapReport } from "@/features/report/utils/mappers";
+import type { Report } from "@/features/report/types";
 
 /**
- * **複数の画面が共有する投稿の読み取り。** 呼ぶのはページ（サーバーコンポーネント）で、
- * 描画のために await する。HTTP 越しの自前 API は挟まない（同一プロセスなら関数呼び出しが速い）。
+ * **投稿の読み取り（Data Access Layer）。** ページ（サーバーコンポーネント）が描画のために await する。
  *
- * ここに置く基準は「**2つ以上の画面が同じ読み方を必要とするか**」。1画面しか使わない読みは
- * その page に直接書く（実際そうしている画面がある）。集約の主役は関数ではなく **include 形**で、
- * 一覧・詳細が同じ関連（書籍・出版社・画像・投稿者名）を取ることを1箇所で保証する。
+ * 満たすべき条件は3つで、Next.js のガイドがそのまま挙げているもの
+ * （`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）:
+ *   1. サーバーでしか動かない … 先頭の `import "server-only"`（クライアントから import するとビルドが落ちる）
+ *   2. 認可を行う … 公開情報なのでここでは不要。閲覧者ごとに変わる判定は呼び出し側（services/publisher-access.ts）
+ *   3. **安全で最小の DTO を返す** … 生の行ではなく `Report`（= types.ts）を返す。下の ⚠️ を参照
+ *
+ * ⚠️ **`"use server"` は付けない。** 付けると Server Action 扱いになり、
+ *    クライアントから呼べるエンドポイントとして公開されてしまう。
  *
  * ⚠️ **書き込みはここではなく `actions/`。** 分ける軸は読み書きではなく**呼ばれ方**で、
  *    ページが描画時に読むならここ、クライアントが操作中に呼ぶなら Server Action になる。
  */
-export const reportInclude = {
+
+// ⚠️ **export しない。** この形（どの関連をどう取るか）が外に出ると、呼び出し側が
+// 自前の findMany に流用でき、include の一元管理という目的が崩れる。
+// 投稿を含めて引きたい画面は、この下の関数を呼ぶ。
+const reportInclude = {
   book: { include: { publisher: true } },
   images: true,
   // 追記は古い順（読む順が 投稿 → 追記1 → 追記2 と時系列になる）。
@@ -24,22 +35,22 @@ export const reportInclude = {
     orderBy: { createdAt: "asc" },
     include: { publisher: { select: { name: true } } },
   },
-  // email は退会判定（匿名化メールか）にのみ使い、クライアントへは渡さない（mapReport で破棄）。
+  // ⚠️ email は退会判定（匿名化済みメールか）に**このファイルの中だけ**で使う。
+  // mapReport が捨てるので、戻り値の型（Report）には現れない＝ページは触れない。
   user: { select: { displayName: true, email: true } },
   _count: { select: { upvotes: true } },
 } satisfies Prisma.ReportInclude;
-
-export type ReportWithRelations = Prisma.ReportGetPayload<{
-  include: typeof reportInclude;
-}>;
 
 /**
  * トップの新着フィード用。1ページ分の投稿（新着順）と総件数を返す。
  * skip/take でサーバー側ページングするので、11件目以降も ?page=N で辿れる
  * （古い投稿が導線から消えないようにするのが目的）。
  */
-export async function findReportsPage(page: number, pageSize: number) {
-  const [reports, total] = await Promise.all([
+export async function findReportsPage(
+  page: number,
+  pageSize: number
+): Promise<{ reports: Report[]; total: number }> {
+  const [rows, total] = await Promise.all([
     prisma.report.findMany({
       include: reportInclude,
       // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
@@ -49,7 +60,7 @@ export async function findReportsPage(page: number, pageSize: number) {
     }),
     prisma.report.count(),
   ]);
-  return { reports, total };
+  return { reports: rows.map(mapReport), total };
 }
 
 /**
@@ -71,26 +82,57 @@ export async function findReportsPage(page: number, pageSize: number) {
  *   - ?page=N が付くので canonical の扱いを決める。トップと同じ「各ページに自分自身」であって、
  *     /reports に集約している今の宣言（app/(site)/reports/page.tsx）のままにはできない
  */
-export function findAllReports() {
-  return prisma.report.findMany({
+export async function findAllReports(): Promise<Report[]> {
+  const rows = await prisma.report.findMany({
     include: reportInclude,
     orderBy: { createdAt: "desc" },
   });
+  return rows.map(mapReport);
 }
 
 /** ID 指定で1件取得（存在しなければ null）。 */
-export function findReportById(id: string) {
-  return prisma.report.findUnique({
+export async function findReportById(id: string): Promise<Report | null> {
+  const row = await prisma.report.findUnique({
     where: { id },
     include: reportInclude,
   });
+  return row === null ? null : mapReport(row);
 }
 
 /** 特定ユーザーの投稿一覧（最新順）。 */
-export function findReportsByUser(userId: string) {
-  return prisma.report.findMany({
+export async function findReportsByUser(userId: string): Promise<Report[]> {
+  const rows = await prisma.report.findMany({
     where: { userId },
     include: reportInclude,
     orderBy: { createdAt: "desc" },
   });
+  return rows.map(mapReport);
+}
+
+/**
+ * 1冊（ISBN 指定）に付いた投稿の一覧（最新順）。
+ *
+ * ⭐ **書籍と一緒に1回で引かないのは、フィーチャーを跨がないため。** 書籍は features/book が持ち、
+ * 投稿は features/report が持つ。両方を必要とする書籍ページ（app 層）が2つを呼んで組み立てる
+ * ＝「またがるものは app 層で組み立てる」（README）。
+ *
+ * ⚠️ 書籍の UUID ではなく ISBN で受ける。呼び出し側に内部 ID を渡さずに済み、
+ *    問い合わせも1回で足りる（`Book.isbn` は unique）。渡す ISBN は正規形にしておくこと。
+ */
+export async function findReportsByIsbn(isbn: string): Promise<Report[]> {
+  const rows = await prisma.report.findMany({
+    where: { book: { isbn } },
+    include: reportInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(mapReport);
+}
+
+/** 閲覧者がその投稿に賛同済みか。未ログインの呼び出し側は問い合わせ自体を省く。 */
+export async function hasUpvoted(reportId: string, profileId: string): Promise<boolean> {
+  const upvote = await prisma.upvote.findUnique({
+    where: { reportId_profileId: { reportId, profileId } },
+    select: { id: true },
+  });
+  return upvote !== null;
 }

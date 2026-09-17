@@ -1,7 +1,6 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findReportById } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
+import { findReportById, hasUpvoted } from "@/features/report/queries";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +8,6 @@ import Image from "next/image";
 import { routes } from "@/constants/routes";
 import { destinationLabelOf } from "@/utils/external-url";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { UpvoteButton, type ViewerRole } from "@/features/report/components/report-upvote-button";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
@@ -38,10 +36,9 @@ const getReport = cache(findReportById);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const raw = await getReport(id);
-  if (!raw) return { title: "投稿が見つかりません | Errata Hub" };
+  const report = await getReport(id);
+  if (!report) return { title: "投稿が見つかりません | Errata Hub" };
 
-  const report = mapReport(raw);
   return {
     title: `${report.title} | Errata Hub`,
     description: `${report.bookTitle} への${TYPE_LABELS[report.type]}の投稿。`,
@@ -51,24 +48,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ReportDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const raw = await getReport(id);
+  const report = await getReport(id);
 
-  if (!raw) notFound();
-
-  const report = mapReport(raw);
+  if (!report) notFound();
 
   // 賛同ボタンの初期状態: 閲覧者の立場（未ログイン/投稿者本人/他ユーザー）と賛同済みか
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const viewer = getViewerRole(user?.id, report.userId);
-  // 投稿本体の画像（追記に添えて足されたものは、その追記の中に出す）
-  const bodyImages = raw.images.filter((image) => image.addendumId === null);
-  const upvoted = user
-    ? (await prisma.upvote.findUnique({
-        where: { reportId_profileId: { reportId: report.id, profileId: user.id } },
-        select: { id: true },
-      })) !== null
-    : false;
+  const upvoted = user ? await hasUpvoted(report.id, user.id) : false;
   // 出版社として回答できるかは閲覧者ごとに変わる。⚠️ ここで通しても書けるとは限らない
   // （送信時にアクション側が同じ判定をやり直す＝画面を開いている間の権限の剥奪に追随する）
   const commentPermission: PublisherCommentPermission = user
@@ -147,15 +135,15 @@ export default async function ReportDetailPage({ params }: Props) {
                 ISBN: <span className="font-mono">{report.isbn}</span>
               </p>
             )}
-            {raw.book.erratumUrl && (
+            {report.erratumUrl && (
               <div className="mt-2">
                 <a
-                  href={raw.book.erratumUrl}
+                  href={report.erratumUrl}
                   target="_blank"
                   rel="noopener noreferrer nofollow"
                   className="text-sm text-blue-700 hover:underline"
                 >
-                  公式の正誤表を見る（{destinationLabelOf(raw.book.erratumUrl)}）
+                  公式の正誤表を見る（{destinationLabelOf(report.erratumUrl)}）
                   <ExternalLinkMark />
                 </a>
               </div>
@@ -256,11 +244,11 @@ export default async function ReportDetailPage({ params }: Props) {
             **投稿の一部なので追記より上**（間に追記の入力欄が挟まると、本文と証拠が離れる）。
             ⚠️ 追記に添えて足された画像はここに混ぜない（下の追記の中に出る）。
                混ぜると、出版社が見た時点で何があったのかが読めなくなる */}
-        {bodyImages.length > 0 && (
+        {report.images.length > 0 && (
           <div>
             <p className="text-xs text-gray-500 mb-2">証拠画像</p>
             <div className="flex flex-wrap gap-3">
-              {bodyImages.map((img) => (
+              {report.images.map((img) => (
                 <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer">
                   <Image
                     src={img.imageUrl}

@@ -282,7 +282,7 @@ src/features/
 src/features/report/
 ├── components/   画面の部品
 ├── actions/      Server Action（フォームからの書き込み）
-├── queries.ts    複数の画面が共有する読み取り
+├── queries.ts    読み取り（Data Access Layer）
 ├── constants/    ステータス・ラベル・文字数上限
 ├── types.ts
 └── utils/
@@ -291,10 +291,27 @@ src/features/report/
 ⭐ **`actions/` と `queries.ts` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
 await するなら `queries.ts`、クライアントが操作中に呼ぶなら Server Action になる（読み取りでも）。
 
-⚠️ **`queries.ts` に置く基準は「2つ以上の画面が同じ読み方を必要とするか」。** 1画面しか使わない
-読みはその `page.tsx` に直接書く。だから `queries.ts` を持たないフィーチャーがある（`book` は
-書籍ページが `prisma.book.findUnique` を直接呼んでいて、共有する読みがまだ無い）——
-**規約から外れているのではなく、枠が空いているだけ。**
+⭐ **DB に触るのは `features/<name>/` と `services/` の中だけ。`app/` は `prisma` を import しない。**
+共有されているかどうかは基準ではない（1画面しか使わない読みも `queries.ts` に置く）。
+
+これは Next.js 自身のガイドに沿っている（`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）。
+公式は2つの方式を挙げたうえで **Data Access Layer を「新規プロジェクト向け」、`page.tsx` への直書きを
+「プロトタイプと学習向け」**とし、さらに **"We recommend choosing one data fetching approach and
+avoiding mixing them."**（混在を避けよ）と書いている。混ぜると「この画面はどちらだったか」を
+毎回確かめることになり、監査する側も追えない。
+
+`queries.ts` が満たすこと（公式が挙げる DAL の3条件）:
+
+1. **サーバーでしか動かない** … 先頭に `import "server-only"`。クライアントから import するとビルドが落ちる
+2. **認可を行う** … 公開情報には不要。閲覧者ごとに変わる判定は呼び出し側（`services/publisher-access.ts`）
+3. **安全で最小の DTO を返す** … 生の行を外に出さない。⭐ 投稿の `Report`（`types.ts`）がその形で、
+   退会判定に使う `email` は `queries.ts` の中で捨てられる＝**ページは email を持つ値に触れない**
+
+⚠️ **`queries.ts` に `"use server"` を付けない。** 付けると Server Action 扱いになり、
+クライアントから呼べるエンドポイントとして公開されてしまう。
+
+⚠️ **`services/`（横断層）だけは prisma を直接叩く。** 共有層はフィーチャーを import できないため
+（`import/no-restricted-paths`）。依存の向きを崩さないための例外。
 
 ⚠️ **`service.ts` という名前は使わない。** `service` は流派ごとに指すものが違い（Spring なら業務ロジック、
 DDD ならドメインのふるまい）、**どの読みでも「読み取りの置き場」にはならない**。読み手に予想を作らせて

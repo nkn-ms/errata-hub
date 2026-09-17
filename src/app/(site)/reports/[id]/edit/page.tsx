@@ -37,18 +37,15 @@ export default async function ReportEditPage({ params }: Props) {
       <ReportEditForm
         reportId={report.id}
         book={{
-          title: report.book.title,
-          author: report.book.author ?? "",
-          publisher: report.book.publisher?.name ?? "",
-          isbn: report.book.isbn,
-          coverImageUrl: report.book.coverImageUrl ?? "",
+          title: report.bookTitle,
+          author: report.bookAuthor,
+          publisher: report.publisher,
+          isbn: report.isbn,
+          coverImageUrl: report.coverImage,
         }}
         initialFields={toReportFieldsValue(report)}
-        // 追記の画像は別枠で、この画面では扱わない（連絡前なので本来まだ存在しないが、
-        // 「本体の画像」を渡す意図を条件で示しておく）
-        initialImages={report.images
-          .filter((image) => image.addendumId === null)
-          .map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
+        // 追記に添えた画像は Report.images に入らない（queries.ts が本体の画像だけに絞る）
+        initialImages={report.images}
       />
       {/* 取り下げられる条件は編集と同じ（PENDING かつ本人）なので、この画面の下に置く */}
       <ReportWithdraw reportId={report.id} title={report.title} />

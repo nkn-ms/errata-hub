@@ -107,6 +107,23 @@ describe("mapReport", () => {
   // isbn はここで null にしない。Book.isbn は NOT NULL（本の同一性の基準）なので、
   // null を与えると DB に存在しえない状態を検査することになる（この builder は
   // `as unknown as` で型を通すため、書けてしまうが通らない）。
+  it("images は投稿本体の画像だけ（追記に添えた画像は除く）", () => {
+    // 追記の画像は addenda[].images 側に出る。本体に混ぜると、出版社が見た時点の
+    // 証拠と連絡後に足した画像が区別できなくなる = schema.prisma の ReportImage.addendumId
+    const report = mapReport(
+      buildPrismaReport({
+        images: [
+          { id: "img-body", imageUrl: "https://example.com/body.jpg", addendumId: null },
+          { id: "img-add", imageUrl: "https://example.com/added.jpg", addendumId: "addendum-1" },
+        ],
+      })
+    );
+
+    expect(report.images).toEqual([
+      { id: "img-body", imageUrl: "https://example.com/body.jpg" },
+    ]);
+  });
+
   it("publisher が無ければ空文字にする", () => {
     const r = mapReport(
       buildPrismaReport({

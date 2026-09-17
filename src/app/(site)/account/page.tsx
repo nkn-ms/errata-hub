@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { findAccountSettings } from "@/features/account/queries";
 import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "@/features/account/components/display-name-form";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
@@ -23,10 +23,7 @@ export default async function AccountPage() {
     redirect(routes.login);
   }
 
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { displayName: true, githubUsername: true, xUsername: true, createdAt: true },
-  });
+  const profile = await findAccountSettings(user.id);
 
   // GitHub ログイン済みなら OAuth の identity から本人のアカウント名を取り、
   // 未入力時のプリフィル候補として渡す（保存＝公開は本人の操作のみ）。

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { findReportsPage } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
 import { ReportCard } from "@/features/report/components/report-card";
 import { CompactReportTable } from "@/features/report/components/compact-report-table";
 import { routes } from "@/constants/routes";
@@ -51,7 +50,7 @@ export default async function Home({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = toPageNumber(pageParam);
 
-  const { reports: rows, total } = await findReportsPage(page, PAGE_SIZE);
+  const { reports, total } = await findReportsPage(page, PAGE_SIZE);
   const { totalPages, isOutOfRange } = paginate(page, total, PAGE_SIZE);
 
   // 範囲外の ?page=N（古いリンク・打ち間違い）は最後の有効ページへ寄せる（判定の理由は utils/pagination.ts）
@@ -59,7 +58,6 @@ export default async function Home({ searchParams }: Props) {
     redirect(pageHref(totalPages));
   }
 
-  const reports = rows.map(mapReport);
 
   return (
     <>

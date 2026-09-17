@@ -33,7 +33,7 @@ const base: Report = {
   addenda: [],
   createdAtIso: "2026-08-01T09:00:00.000Z",
   upvoteCount: 3,
-  imageUrls: [],
+  images: [],
 };
 
 export const SAMPLE_REPORT: Report = base;

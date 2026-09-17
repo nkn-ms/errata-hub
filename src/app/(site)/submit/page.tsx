@@ -1,5 +1,5 @@
 import { SubmitForm } from "./submit-form";
-import { prisma } from "@/lib/prisma";
+import { findBookByIsbn } from "@/features/book/queries";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { FORM_COLUMN } from "@/constants/layout";
 
@@ -14,12 +14,7 @@ export default async function SubmitPage({ searchParams }: Props) {
   // 書籍検索をやり直させない。不正・未登録の ISBN でも 404 にはせず通常の投稿フォームに
   // フォールバックする（対象の本が分からないだけで、投稿自体はできるため）。
   const canonicalIsbn = typeof isbn === "string" ? toCanonicalIsbn(isbn) : null;
-  const preselected = canonicalIsbn
-    ? await prisma.book.findUnique({
-        where: { isbn: canonicalIsbn },
-        include: { publisher: true },
-      })
-    : null;
+  const preselected = canonicalIsbn ? await findBookByIsbn(canonicalIsbn) : null;
 
   return (
     <div className={FORM_COLUMN}>
@@ -37,10 +32,10 @@ export default async function SubmitPage({ searchParams }: Props) {
                 // DB 由来の本には存在しないので空でよい。
                 googleBooksId: "",
                 title: preselected.title,
-                author: preselected.author ?? "",
-                publisher: preselected.publisher?.name ?? "",
+                author: preselected.author,
+                publisher: preselected.publisher,
                 isbn: preselected.isbn,
-                coverImageUrl: preselected.coverImageUrl ?? "",
+                coverImageUrl: preselected.coverImageUrl,
               }
             : null
         }

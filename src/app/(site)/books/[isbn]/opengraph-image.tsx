@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { prisma } from "@/lib/prisma";
+import { findBookByIsbn } from "@/features/book/queries";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
 import { toCanonicalIsbn } from "@/utils/isbn";
 
@@ -9,15 +9,12 @@ export const contentType = OG_CONTENT_TYPE;
 
 export default async function Image({ params }: { params: Promise<{ isbn: string }> }) {
   const { isbn } = await params;
-  const book = await prisma.book.findUnique({
-    // 非正規な ISBN でも本体ページと同じ本を指すよう正規形に寄せる（見つからなければ既定の文言）
-    where: { isbn: toCanonicalIsbn(isbn) ?? isbn },
-    include: { publisher: true, _count: { select: { reports: true } } },
-  });
+  // 非正規な ISBN でも本体ページと同じ本を指すよう正規形に寄せる（見つからなければ既定の文言）
+  const book = await findBookByIsbn(toCanonicalIsbn(isbn) ?? isbn);
 
   const title = book?.title ?? "書籍が見つかりません";
-  const subLine = book ? [book.author, book.publisher?.name].filter(Boolean).join(" / ") : "";
-  const countLabel = book ? `正誤情報・改善提案 ${book._count.reports}件` : "";
+  const subLine = book ? [book.author, book.publisher].filter(Boolean).join(" / ") : "";
+  const countLabel = book ? `正誤情報・改善提案 ${book.reportCount}件` : "";
 
   const fontData = await loadJapaneseFont(`Errata Hub${title}${subLine}${countLabel}`);
 
