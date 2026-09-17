@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { findAllReports } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
 import { ReportTable } from "@/features/report/components/report-table";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
@@ -32,8 +31,7 @@ function knownOr<T extends string>(labels: Record<T, string>, value: string | un
 }
 
 export default async function ReportsPage({ searchParams }: Props) {
-  const [{ q, type, status }, rows] = await Promise.all([searchParams, findAllReports()]);
-  const reports = rows.map(mapReport);
+  const [{ q, type, status }, reports] = await Promise.all([searchParams, findAllReports()]);
 
   return (
     <>

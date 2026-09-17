@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 import { findReportById } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import type { ReportType } from "@/features/report/types";
@@ -18,9 +17,8 @@ const typeBadgeColors: Record<ReportType, { bg: string; fg: string }> = {
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const raw = await findReportById(id);
   // 存在しない ID でも画像自体は返す（OG クローラーに 500 を返さない）
-  const report = raw ? mapReport(raw) : null;
+  const report = await findReportById(id);
 
   const title = report?.title ?? "投稿が見つかりません";
   const bookLine = report ? [report.bookTitle, report.publisher].filter(Boolean).join(" / ") : "";

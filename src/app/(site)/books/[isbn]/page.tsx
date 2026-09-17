@@ -1,8 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
-import { reportInclude } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
+import { findBookByIsbn } from "@/features/book/queries";
+import { findReportsByIsbn } from "@/features/report/queries";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
@@ -19,18 +18,7 @@ type Props = {
 };
 
 // generateMetadata と本体で同じ ISBN を引くため、リクエスト内で1回に重複排除する
-const getBook = cache((isbn: string) =>
-  prisma.book.findUnique({
-    where: { isbn },
-    include: {
-      publisher: true,
-      reports: {
-        include: reportInclude,
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  })
-);
+const getBook = cache(findBookByIsbn);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { isbn } = await params;
@@ -39,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${book.title} の正誤情報・改善提案 | Errata Hub`,
-    description: `${book.title} に読者から投稿された正誤情報・改善提案の一覧（${book.reports.length}件）。`,
+    description: `${book.title} に読者から投稿された正誤情報・改善提案の一覧（${book.reportCount}件）。`,
   };
 }
 
@@ -52,11 +40,13 @@ export default async function BookDetailPage({ params }: Props) {
   if (!canonicalIsbn) notFound();
   if (canonicalIsbn !== isbn) permanentRedirect(routes.book(canonicalIsbn));
 
-  const book = await getBook(canonicalIsbn);
+  // 書籍と投稿は別のフィーチャーなので、ここ（app 層）で2つを呼んで組み立てる
+  const [book, reports] = await Promise.all([
+    getBook(canonicalIsbn),
+    findReportsByIsbn(canonicalIsbn),
+  ]);
 
   if (!book) notFound();
-
-  const reports = book.reports.map(mapReport);
 
   return (
     <>
@@ -70,7 +60,7 @@ export default async function BookDetailPage({ params }: Props) {
           <div>
             <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
             {book.author && <p className="text-sm text-gray-600 mt-1">{book.author}</p>}
-            {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher.name}</p>}
+            {book.publisher && <p className="text-sm text-gray-500 mt-0.5">{book.publisher}</p>}
             {book.isbn && (
               <p className="text-xs text-gray-400 mt-2">
                 {/* 数字だけ等幅（識別子は桁が揃うと読みやすい）。ラベルは本文書体のまま */}

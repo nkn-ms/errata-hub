@@ -32,6 +32,7 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     publisher: f.book.publisher?.name ?? "",
     isbn: f.book.isbn,
     coverImage: f.book.coverImageUrl ?? "",
+    erratumUrl: f.book.erratumUrl ?? undefined,
     edition: f.edition ?? undefined,
     printing: f.printing ?? undefined,
     type: f.type,
@@ -67,6 +68,10 @@ export function mapReport(f: PrismaReportWithRelations): Report {
     })),
     createdAtIso: f.createdAt.toISOString(),
     upvoteCount: f._count?.upvotes ?? 0,
-    imageUrls: f.images.map((image) => image.imageUrl),
+    // 投稿本体の画像だけ（addendumId が null）。追記に添えた画像は addenda 側に入っている。
+    // ⚠️ ここで絞るので、呼び出し側が生の行を触って絞り直す必要はない
+    images: f.images
+      .filter((image) => image.addendumId === null)
+      .map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
   };
 }

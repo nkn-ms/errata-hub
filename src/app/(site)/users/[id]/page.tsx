@@ -1,13 +1,12 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
+import { findPublicProfile } from "@/features/account/queries";
 import { findReportsByUser } from "@/features/report/queries";
-import { mapReport } from "@/features/report/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
+import { WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/ui/icons";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
@@ -18,28 +17,15 @@ type Props = {
 };
 
 // generateMetadata と本体で同じ ID を引くため、リクエスト内で1回に重複排除する
-const getProfile = cache((id: string) =>
-  prisma.profile.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      displayName: true,
-      email: true,
-      githubUsername: true,
-      xUsername: true,
-      createdAt: true,
-    },
-  })
-);
+const getProfile = cache(findPublicProfile);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const profile = await getProfile(id);
   if (!profile) return { title: "ユーザーが見つかりません | Errata Hub" };
 
-  const name = isWithdrawnEmail(profile.email)
-    ? WITHDRAWN_DISPLAY_NAME
-    : (profile.displayName ?? "匿名");
+  // 退会済みかどうかの解決は queries.ts の中で済んでいる（email はここまで来ない）
+  const name = profile.displayName;
   return {
     title: `${name} (@${shortId(profile.id)}) | Errata Hub`,
     description: `${name} さんの投稿一覧。`,
@@ -54,8 +40,8 @@ export default async function UserDetailPage({ params }: Props) {
   if (!profile) notFound();
 
   // 退会済みユーザーのページは「退会済みです」とだけ表示し、投稿一覧は出さない。
-  // 公開上の追跡可能性を弱めるため。email は判定にのみ使い表示はしない。
-  if (isWithdrawnEmail(profile.email)) {
+  // 公開上の追跡可能性を弱めるため。
+  if (profile.isWithdrawn) {
     return (
       <>
         <Breadcrumbs items={[{ label: "ユーザー" }]} />
@@ -74,9 +60,7 @@ export default async function UserDetailPage({ params }: Props) {
     );
   }
 
-  const reports = await findReportsByUser(id);
-
-  const mapped = reports.map(mapReport);
+  const mapped = await findReportsByUser(id);
 
   const stats = {
     total: mapped.length,

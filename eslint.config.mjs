@@ -66,6 +66,33 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // DB に触るのは features/<name>/queries.ts（Data Access Layer）と services/ の中だけ。
+    // ページは DTO を受け取って並べるだけにする。
+    //
+    // 出典: node_modules/next/dist/docs/01-app/02-guides/data-security.md
+    //   「Data Access Layer は新規プロジェクト向け／page.tsx への直書きはプロトタイプ向け」
+    //   「We recommend choosing one data fetching approach and avoiding mixing them.」
+    //
+    // ⚠️ いまは公開側だけ。**管理画面の移行が済んだら files を "src/app/**" へ広げる**
+    //    （admin の10ページと sitemap・auth/callback・画像アップロードがまだ直叩き）。
+    files: ["src/app/(site)/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/prisma",
+              message:
+                "ページから DB を直接叩かない。features/<name>/queries.ts に置いて、そこから DTO を受け取ること。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
