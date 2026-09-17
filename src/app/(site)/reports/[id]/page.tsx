@@ -211,9 +211,14 @@ export default async function ReportDetailPage({ params }: Props) {
             <div className="flex items-center gap-3">
               {/* 色は枠と小さいラベル（誤/正）だけに担わせ、内容は通常の文字色にする。
                   地・文字・枠を全部塗ると色が重なって読みにくいため（特にダーク）。
-                  ラベルは 700＝淡い地の上でも AA を満たす値 */}
+                  ラベルは 700＝淡い地の上でも AA を満たす値。
+                  ⭐ **中身は入力どおりに描く（whitespace-pre-wrap）**＝誤/正は紙面からの書き写しで
+                  複数行になることがあり、HTML の既定では改行も連続する空白も1つの空白に潰れる。
+                  潰すと「空白や改行の差を指摘した投稿」が画面上は誤と正が同一に見える
+                  （投稿フォームの確認画面・詳細内容・備考も同じ理由で pre-wrap）。
+                  break-words と min-w-0 は長い英数字の連続で枠から溢れないようにするため */}
               {report.wrong && (
-                <div className="flex-1 rounded-md border border-red-300 px-3 py-2 text-base text-gray-800 tabular-nums">
+                <div className="min-w-0 flex-1 rounded-md border border-red-300 px-3 py-2 text-base text-gray-800 whitespace-pre-wrap break-words tabular-nums">
                   <p className="text-xs text-red-700 mb-1">誤</p>
                   {report.wrong}
                 </div>
@@ -222,7 +227,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 <span className="text-gray-400 text-lg">→</span>
               )}
               {report.correct && (
-                <div className="flex-1 rounded-md border border-green-300 px-3 py-2 text-base text-gray-800 tabular-nums">
+                <div className="min-w-0 flex-1 rounded-md border border-green-300 px-3 py-2 text-base text-gray-800 whitespace-pre-wrap break-words tabular-nums">
                   <p className="text-xs text-green-700 mb-1">正</p>
                   {report.correct}
                 </div>

@@ -205,6 +205,10 @@ test.describe("投稿フォーム（書き込み）", () => {
     await expect(page.getByRole("heading", { name: uniqueTitle })).toBeVisible();
     await expect(page.getByText("正字コード")).toBeVisible();
     await expect(page.getByText("文字コード")).toBeVisible();
+    // 誤/正は入力どおりに描く＝改行も連続する空白も潰さない（HTML の既定では潰れる）。
+    // 潰れると「空白や改行の差の指摘」が画面上は誤と正が同じに見えるので、実際の描画で固定する
+    await expect(page.getByText("正字コード")).toHaveCSS("white-space", "pre-wrap");
+    await expect(page.getByText("文字コード")).toHaveCSS("white-space", "pre-wrap");
 
     // 後片付け: 管理画面の削除ボタンで削除し、本Bを「投稿0件」というシードの前提に戻す。
     // （途中のassert失敗時は残るが、ローカルDBなので seed し直せばよい）
