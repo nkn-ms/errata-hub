@@ -36,6 +36,20 @@ const eslintConfig = defineConfig([
             { target: "./src/services", from: "./src/features" },
             { target: "./src/utils", from: "./src/features" },
 
+            // 共有層の内側にも順序を入れる（2026-09-17）。棚は「何に依存してよいか」で定義する:
+            //   constants（値だけ）→ utils（純粋関数）→ lib（外部との口）→ services（DB・認証に触る横断処理）
+            // 下から上へは import できない。これで「新しい共有ファイルをどの棚に置くか」が
+            // **「外部（DB・認証・fetch）に触るか」の質問1つ**で決まり、間違えるとここが落ちる。
+            //
+            // ⚠️ この順序は宣言ではなく**実測**（移行時点で違反ゼロ）。utils/ と constants/ は
+            //    prisma・supabase・next/headers を1つも import していなかった。
+            { target: "./src/constants", from: "./src/utils" },
+            { target: "./src/constants", from: "./src/lib" },
+            { target: "./src/constants", from: "./src/services" },
+            { target: "./src/utils", from: "./src/lib" },
+            { target: "./src/utils", from: "./src/services" },
+            { target: "./src/lib", from: "./src/services" },
+
             // フィーチャーがルーティング層を知ってはいけない。
             // 逆向き（app → features）は自由。app は合成層なので、フィーチャーを束ねて画面を作る。
             { target: "./src/features", from: "./src/app" },

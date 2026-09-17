@@ -1,5 +1,10 @@
 // 退会（アカウント匿名化）に関する定数とヘルパを一元管理する。
 //
+// ⚠️ **features/account/ ではなく utils/ にあるのは、投稿の表示がこれを読むため。**
+// 退会済みの投稿者を「退会済みユーザー」と出すのは features/report/utils/mappers.ts で、
+// features 同士は直接つなげない（eslint の import/no-restricted-paths）。純粋関数なので utils/ に置ける。
+// DB に触る側（スクラブ本体）は features/account/ にある。
+//
 // 退会の方針: 投稿（Report）はコミュニティ資産として残し、投稿者の個人情報（PII）だけを
 // スクラブする。Profile.email は @unique かつ必須のため null にできないので、本人の UUID を
 // 使った衝突しないダミー値で上書きする。退会済みかどうかは「email がこのドメインで終わるか」で

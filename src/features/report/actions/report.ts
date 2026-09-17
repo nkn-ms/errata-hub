@@ -16,7 +16,7 @@ import { REPORT_IMAGE_BUCKET } from "@/features/report/constants/report-images";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
 import { RATE_LIMITS } from "@/constants/rate-limits";
-import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { storagePathFromPublicUrl } from "@/features/report/utils/report-images";
 import { routes } from "@/constants/routes";
 import { formatJstDateTime } from "@/utils/format";

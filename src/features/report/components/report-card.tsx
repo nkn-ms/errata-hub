@@ -7,7 +7,7 @@ import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-lab
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
 import { latestPublisherComment, publisherCommentLabel } from "@/features/report/utils/publisher-comment";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 export function Badge({ label, className }: { label: string; className: string }) {
   return (

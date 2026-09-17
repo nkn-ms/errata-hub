@@ -27,7 +27,7 @@ import { Report, ReportType, ReportStatus } from "@/features/report/types";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 import { latestPublisherComment, publisherCommentLabel } from "@/features/report/utils/publisher-comment";
 import {
   Badge,

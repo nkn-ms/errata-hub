@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
-import { checkRateLimits, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { checkRateLimits, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 
 const MAX_QUERY_LENGTH = 100;
 

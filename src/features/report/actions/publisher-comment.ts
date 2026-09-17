@@ -10,7 +10,7 @@ import { requireAdminServerAction } from "@/services/auth";
 import { checkPublisherCommentPermission } from "@/services/publisher-access";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { RATE_LIMITS } from "@/constants/rate-limits";
-import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { formatJstDateTime } from "@/utils/format";
 import type { PublisherCommentView } from "@/features/report/types";
 

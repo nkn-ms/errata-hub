@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
-import { buildWithdrawnEmail } from "@/lib/withdrawal";
+import { buildWithdrawnEmail } from "@/utils/withdrawal";
 
 /**
  * 退会でスクラブされる Profile の PII 列。

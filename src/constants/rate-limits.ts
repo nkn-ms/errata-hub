@@ -1,4 +1,4 @@
-// レート制限のしきい値。実装は src/lib/rate-limit.ts。
+// レート制限のしきい値。実装は src/services/rate-limit.ts。
 //
 // なぜ要るか: 危ない入口はすべてログイン必須だが、認証が確認するのは「誰か」だけで
 // 「何回まで」は見ていない。アカウントは無料で作れるので、1個作られた時点で守りが無くなる。
@@ -27,7 +27,7 @@ export const RATE_LIMITS = {
   // 書籍検索（Google Books）。分のウィンドウは 400ms デバウンスのタイプアヘッド用で、
   // 打ちながら検索しても通常はぶつからない。日のウィンドウが無料枠（1,000/日・全体共有）の防波堤。
   // ⚠️ guardsExternalQuota: 開発環境でも効かせる。dev から使った分も同じ無料枠を減らすので、
-  //    ここを外すと「開発中に本番の検索が止まる」ことが起こりうる（実装は lib/rate-limit.ts）
+  //    ここを外すと「開発中に本番の検索が止まる」ことが起こりうる（実装は services/rate-limit.ts）
   booksSearchPerMinute: { limit: 30, windowSec: 60, guardsExternalQuota: true },
   booksSearchPerDay: { limit: 300, windowSec: 24 * 60 * 60, guardsExternalQuota: true },
 

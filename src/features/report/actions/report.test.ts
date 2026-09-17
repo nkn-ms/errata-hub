@@ -38,8 +38,8 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 // レート制限は既定で「通す」に固定する。モックしないと prisma モックに $queryRaw が無いせいで
 // fail open に落ちて素通りし、上限に達したときの分岐がテストされていないことに気づけない
-vi.mock("@/lib/rate-limit", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+vi.mock("@/services/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/services/rate-limit")>()),
   checkRateLimit: checkRateLimitMock,
 }));
 vi.mock("@/lib/supabase/server", () => ({

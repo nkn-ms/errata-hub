@@ -1,13 +1,13 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { findReportsByUser } from "@/features/report/service";
+import { findReportsByUser } from "@/features/report/queries";
 import { mapReport } from "@/features/report/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
+import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/ui/icons";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";

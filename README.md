@@ -237,18 +237,18 @@ src/
 │              その画面でしか使わない部品を置く
 ├── features/     関心事ごとのまとまり（下記）
 ├── components/   フィーチャーに属さない UI（下記）
-├── constants/    横断する定数（routes, site, rate-limits など）
+├── constants/    横断する定数（routes, site, rate-limits など）。何も import しない
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
-├── lib/          外部ライブラリのラッパーと横断する小物（prisma / supabase / rate-limit / withdrawal）
-├── services/     横断するロジック・認可（auth, audit, publisher-access）
-└── utils/        横断する純粋関数（ISBN 正規化・整形など）
+├── lib/          外部との口そのもの（prisma / supabase のクライアント・OG 画像のフォント取得）
+├── services/     DB・認証に触る横断処理（auth, audit, publisher-access, rate-limit）
+└── utils/        横断する純粋関数（ISBN 正規化・整形・退会の語彙など）
 docs/             設計・学習メモ・ER 図
 ```
 
 ### 依存の向き
 
 ```
-components/ui/ constants/ lib/ services/ utils/   （shared・ドメインを知らない）
+constants/ → utils/ → lib/ → services/           （shared・ドメインを知らない）
                         ↓
                     features/
                         ↓
@@ -256,6 +256,12 @@ components/ui/ constants/ lib/ services/ utils/   （shared・ドメインを知
 ```
 
 **一方向だけ許す。** shared はどこからでも使える。features は shared だけを読む。合成層は両方を読む。
+
+⭐ **shared の中にも同じ順序がある。** `constants`（値だけ）→ `utils`（純粋関数）→ `lib`（外部との口）
+→ `services`（DB・認証に触る）で、下から上へは import できない。おかげで**新しい共有ファイルの棚は
+「外部（DB・認証・fetch）に触るか」の質問1つで決まる** — 触らないなら `utils/`、触るなら `services/`、
+触る口そのものなら `lib/`。⚠️ この順序は宣言ではなく `eslint.config.mjs` の
+`import/no-restricted-paths` が落とす（`components/ui/` は UI 部品なのでこの列には並ばない）。
 
 ⚠️ **`components/layout/` は shared ではなく合成層に立つ。** ヘッダーやフッターは再利用のための
 ライブラリではなく、**フィーチャーを組み立てて画面の枠を作る**もの。実際にヘッダーの
@@ -275,12 +281,25 @@ src/features/
 
 src/features/report/
 ├── components/   画面の部品
-├── actions/      Server Action
-├── service.ts    読み取り
+├── actions/      Server Action（フォームからの書き込み）
+├── queries.ts    複数の画面が共有する読み取り
 ├── constants/    ステータス・ラベル・文字数上限
 ├── types.ts
 └── utils/
 ```
+
+⭐ **`actions/` と `queries.ts` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
+await するなら `queries.ts`、クライアントが操作中に呼ぶなら Server Action になる（読み取りでも）。
+
+⚠️ **`queries.ts` に置く基準は「2つ以上の画面が同じ読み方を必要とするか」。** 1画面しか使わない
+読みはその `page.tsx` に直接書く。だから `queries.ts` を持たないフィーチャーがある（`book` は
+書籍ページが `prisma.book.findUnique` を直接呼んでいて、共有する読みがまだ無い）——
+**規約から外れているのではなく、枠が空いているだけ。**
+
+⚠️ **`service.ts` という名前は使わない。** `service` は流派ごとに指すものが違い（Spring なら業務ロジック、
+DDD ならドメインのふるまい）、**どの読みでも「読み取りの置き場」にはならない**。読み手に予想を作らせて
+外す名前は、名前が無いより高くつく。ファイル名は層ではなく**扱う対象**で付ける
+（`queries.ts` / `withdrawal.ts` / `audit.ts` / `publisher-access.ts`）。
 
 フィーチャー同士は直接つながない。**またがるものは app 層で組み立てる。**
 投稿フォームがその例で、`app/(site)/submit/submit-form.tsx` が
@@ -313,7 +332,9 @@ src/components/
 3. **複数のフィーチャーをまたぐ**（束ねて画面にする）→ `app/` に置く。フィーチャー同士を直接つながない
 4. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
 5. **ドメインもルーティングも知らない** → `components/ui/`
-6. **複数のフィーチャーが使う関数・定数** → `utils/` `constants/` `services/`
+6. **複数のフィーチャーが使う関数・定数** → **外部（DB・認証・fetch）に触るか**で決める。
+   触らない純粋関数 → `utils/`／値だけ → `constants/`／触る処理 → `services/`／
+   外部との口そのもの（クライアント生成） → `lib/`
 
 「共通かどうか」では分けない。共通性は使われている箇所の数であって、置き場所で表せる性質ではないため
 （`features/report/components/report-fields.tsx` は投稿・編集・追記・取り下げ・出版社からの回答が

@@ -80,7 +80,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ## 5. アーキテクチャ / 技術
 
-- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データは `services/` を直接呼ぶ（HTTP 越し自前 API は外部公開時のみ）。 — 🔶SC + `services/` 直呼びは✅・ISR は❌未導入（動的レンダリング）
+- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データはページから直接読む（`features/<name>/queries.ts` か prisma を直接呼ぶ。HTTP 越し自前 API は外部公開時のみ）。 — 🔶SC 直呼びは✅・ISR は❌未導入（動的レンダリング）
 - 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。 — ✅実装済
 - **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。 — ✅実装済（全テーブル RLS 有効・ポリシー無し=全拒否ロック。認可はサーバー層で行う。→ `docs/learnings.md`）
   - ⚠️ **「全テーブル」は放っておくと崩れる。** RLS は Prisma の管理外＝手作業で、当てたのは公開前の一括作業なので、**それより後に足したテーブルは締まらない**。実際に `RateLimit`（一括適用より後のマイグレーションで追加）と `_prisma_migrations` が漏れていた（2026-08-06 の実測で発見・同日に本番へ適用して解消）。テーブルを足したときの手順は `docs/dev-environment.md` §9
@@ -123,7 +123,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 ### 削除と退会（別々の2系統）
 - **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `features/report/actions/report.ts` の `deleteReport`（ADMIN限定）。
 - **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `features/account/actions/auth.ts` の `withdraw`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
-- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `features/account/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`lib/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
+- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `features/account/actions/user.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`features/account/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
 
 ### 出版社からの回答（2026-08-12 確定）
 - **`PublisherAccess` を持つ担当者が、自社の書籍の投稿に公開ページから直接回答できる**（規約 第8条）。それまでは管理者が代筆する運用で、`PublisherAccess` は表示に使うだけで認可を何もゲートしていなかった。⚠️ **この行は今後「公開ページへの書き込み権限」そのもの**なので、付与前に本人確認を行うこと（技術的な検証は無い）。
@@ -231,7 +231,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### レート制限（2026-07-27 追加）
 
-しきい値は `src/constants/rate-limits.ts`、実装は `src/lib/rate-limit.ts`。**ユーザー単位の固定ウィンドウカウンタを Postgres に置く**。
+しきい値は `src/constants/rate-limits.ts`、実装は `src/services/rate-limit.ts`。**ユーザー単位の固定ウィンドウカウンタを Postgres に置く**。
 
 - **なぜ要るか**: 危ない入口はすべてログイン必須だが、認証が確認するのは「誰か」だけで「何回まで」は見ない。アカウントは無料で作れるので、**1個作られた時点で守りが無くなる**。守る対象は主に外部コスト（Supabase Storage の容量／Google Books の無料枠＝プロジェクト全体で共有のため1人が使い切ると全員が検索できなくなる）。悪意が無くても、デバウンスの破壊やリトライ暴走といった**自分のバグに対する保険**として効く。
 - **なぜ DB か（Redis を増やさない）**: サーバーレスでは関数インスタンスが使い捨て＋並走するのでプロセス内メモリに数えられず、共有ストアが要る。Upstash Redis はこの用途の定番だが、①**秘密情報が増える**（このプロジェクトは接続文字列の露出を3回踏んでいる）②障害時に fail open / fail closed の分岐を実際に踏むことになる（DB なら「落ちたらどのみち投稿できない」ので分岐が発生しない）③**無料枠がレート制限側の方が先に尽きる**（Vercel の invocation 100万に対し Upstash は月50万コマンド）＝守る側が先に倒れる。関数(hnd1) と DB(日本) でリージョンが揃っており往復が軽いことも前提。

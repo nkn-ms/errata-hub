@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // 操作の結果を伝える通知。エラー＝赤・成功＝緑という一般的な割り当てに従う。
 //

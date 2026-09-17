@@ -47,7 +47,7 @@ enum Role {
 model Profile {
   id             String           @id // Supabase auth.users の UUID と一致
   // auth.users削除後も操作履歴を追跡するための記録用（Auth側と二重管理は意図的）。
-  // 退会時は deleted-<uuid>@deleted.local に書き換わり、この接尾辞が退会判定の唯一のソース（src/lib/withdrawal.ts）。
+  // 退会時は deleted-<uuid>@deleted.local に書き換わり、この接尾辞が退会判定の唯一のソース（src/utils/withdrawal.ts）。
   // 「壊れたデータ」ではないので直接UPDATEで修復しないこと。既知の罠: 退会者と同じメールでの再登録は @unique 衝突で失敗する（docs/learnings.md）
   email          String           @unique
   // 公開表示名（投稿者名として使用）。意図的にnullable — 必須化しないこと（docs/design.md「削除と退会」参照）。
@@ -319,7 +319,7 @@ model ReportImage {
   @@index([addendumId])
 }
 
-// レート制限のカウンタ（固定ウィンドウ）。しきい値は src/constants/rate-limits.ts、実装は src/lib/rate-limit.ts。
+// レート制限のカウンタ（固定ウィンドウ）。しきい値は src/constants/rate-limits.ts、実装は src/services/rate-limit.ts。
 //
 // なぜ DB に置くか: Vercel の関数はリクエストごとに使い捨てで、しかも複数インスタンスが並走するため
 // プロセス内メモリでは数えられない（Fluid Compute のインスタンス再利用は保証にならない）。
@@ -330,7 +330,7 @@ model ReportImage {
 // 期限切れ行は pg_cron ジョブ delete-old-rate-limits が削除する
 // （AuditLog の90日削除と同じ方式＝リポジトリ管理外。登録SQLは docs/dev-environment.md §9）
 model RateLimit {
-  key         String   // "<動作>:<ユーザーID>"（組み立ては src/lib/rate-limit.ts の rateLimitKey）
+  key         String   // "<動作>:<ユーザーID>"（組み立ては src/services/rate-limit.ts の rateLimitKey）
   windowStart DateTime // ウィンドウ（回数を数える時間の区切り）の開始時刻。現在時刻をウィンドウ幅で切り捨てた値なので、同じ区切りのリクエストが1行に集まる
   count       Int      // そのウィンドウで受け付けた回数。上限超過後も加算し続ける（判定は count <= limit）
 

@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({ auth: { getUser: getUserMock } })),
 }));
 
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/services/rate-limit", () => ({
   checkRateLimit: checkRateLimitMock,
   rateLimitKey: (prefix: string, id: string) => `${prefix}:${id}`,
   rateLimitMessage: () => "しばらくしてからお試しください",

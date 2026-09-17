@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { normalizeDigits, toIntOrNull } from "@/utils/parse";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // 版・刷・ページ番号・行番号など「1以上の整数」を入れる欄。投稿フォームと管理画面で共用する。
 //

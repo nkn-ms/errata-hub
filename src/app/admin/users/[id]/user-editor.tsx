@@ -10,7 +10,7 @@ import {
   updateUserRole,
   withdrawUserAsAdmin,
 } from "@/features/account/actions/user";
-import { withdrawalConfirmationLabel } from "@/lib/withdrawal";
+import { withdrawalConfirmationLabel } from "@/utils/withdrawal";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 
