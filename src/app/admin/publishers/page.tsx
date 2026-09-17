@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { findPublishersPageForAdmin } from "@/features/publisher/queries";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
@@ -16,16 +16,7 @@ export default async function AdminPublishersPage({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = toPageNumber(pageParam);
 
-  const [publishers, total] = await Promise.all([
-    prisma.publisher.findMany({
-      include: { _count: { select: { books: true, publisherAccess: true } } },
-      // 出版社名は一意ではない（同名が入りうる）。id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      skip: (page - 1) * ADMIN_PAGE_SIZE,
-      take: ADMIN_PAGE_SIZE,
-    }),
-    prisma.publisher.count(),
-  ]);
+  const { publishers, total } = await findPublishersPageForAdmin(page, ADMIN_PAGE_SIZE);
 
   const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
   if (isOutOfRange) redirect(pageHref(totalPages));
@@ -70,8 +61,8 @@ export default async function AdminPublishersPage({ searchParams }: Props) {
                 <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
                 <td className="px-4 py-3 text-gray-600">{p.email ?? "-"}</td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono">{p.emailDomain ?? "-"}</td>
-                <td className="px-4 py-3 text-gray-600">{p._count.books}</td>
-                <td className="px-4 py-3 text-gray-600">{p._count.publisherAccess}</td>
+                <td className="px-4 py-3 text-gray-600">{p.bookCount}</td>
+                <td className="px-4 py-3 text-gray-600">{p.accessCount}</td>
                 <td className="px-4 py-3">
                   <Link
                     href={routes.admin.publisher(p.id)}

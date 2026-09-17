@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { findPublisherForAdmin } from "@/features/publisher/queries";
 import { notFound } from "next/navigation";
 import PublisherForm from "../publisher-form";
 import { routes } from "@/constants/routes";
@@ -11,16 +11,7 @@ export default async function EditPublisherPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const publisher = await prisma.publisher.findUnique({
-    where: { id },
-    include: {
-      // 誰がこの出版社のアクセス権を持っているか。付与が新しい順に並べる
-      publisherAccess: {
-        include: { profile: { select: { id: true, displayName: true, email: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  const publisher = await findPublisherForAdmin(id);
 
   if (!publisher) notFound();
 
@@ -53,22 +44,22 @@ export default async function EditPublisherPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {publisher.publisherAccess.length === 0 && (
+              {publisher.members.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
                     この出版社のアクセス権を持つユーザーはいません
                   </td>
                 </tr>
               )}
-              {publisher.publisherAccess.map((access) => (
-                <tr key={access.id} className="hover:bg-gray-50">
+              {publisher.members.map((access) => (
+                <tr key={access.accessId} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">
-                      {access.profile.displayName ?? "(表示名なし)"}
+                      {access.displayName ?? "(表示名なし)"}
                     </div>
-                    <div className="text-xs text-gray-500 font-mono">{access.profile.email}</div>
+                    <div className="text-xs text-gray-500 font-mono">{access.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatJstDate(access.createdAt)}</td>
+                  <td className="px-4 py-3 text-gray-600">{formatJstDate(access.grantedAt)}</td>
                   <td className="px-4 py-3">
                     {access.grantedByEmail ? (
                       <span className="text-gray-600 text-xs font-mono">
@@ -85,7 +76,7 @@ export default async function EditPublisherPage({
                   </td>
                   <td className="px-4 py-3">
                     <Link
-                      href={routes.admin.user(access.profile.id)}
+                      href={routes.admin.user(access.profileId)}
                       className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                     >
                       ユーザーを編集

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
 import { useRouter } from "next/navigation";
-import type { Profile, Publisher, PublisherAccess } from "@/generated/prisma/client";
+import type { AdminProfileRow } from "@/features/account/queries";
+import type { PublisherOption } from "@/features/publisher/queries";
 import {
   grantPublisherAccess,
   revokePublisherAccess,
@@ -13,10 +14,6 @@ import {
 import { withdrawalConfirmationLabel } from "@/utils/withdrawal";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
-
-type ProfileWithAccess = Profile & {
-  publisherAccess: (PublisherAccess & { publisher: Publisher })[];
-};
 
 const ROLES = [
   { value: "ADMIN", label: "管理者" },
@@ -29,8 +26,8 @@ export default function AdminUserEditor({
   roleBlockedReason,
   withdrawBlockedReason,
 }: {
-  profile: ProfileWithAccess;
-  publishers: Publisher[];
+  profile: AdminProfileRow;
+  publishers: PublisherOption[];
   /** ロールを変更できない理由（自分自身）。null なら実行できる */
   roleBlockedReason: string | null;
   /** 代行退会させられない理由（自分自身・管理者・退会済み）。null なら実行できる */
@@ -51,7 +48,7 @@ export default function AdminUserEditor({
   //   removedIds … 「アクセス権を更新する」で外す既存の権限。⚠️ 一覧からは外さず薄く出す
   //   added      … 同じボタンで足す出版社（押すまでサーバーには行かない）
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const [added, setAdded] = useState<Publisher[]>([]);
+  const [added, setAdded] = useState<PublisherOption[]>([]);
   const [savingAccess, setSavingAccess] = useState(false);
   const [withdrawConfirmation, setWithdrawConfirmation] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
@@ -195,7 +192,7 @@ export default function AdminUserEditor({
             {access.map((a) => (
               <li key={a.publisherId} className="flex items-center justify-between gap-3 text-sm">
                 <span className={isRemoved(a.publisherId) ? "text-gray-500 line-through" : "text-gray-800"}>
-                  {a.publisher.name}
+                  {a.publisherName}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   {isRemoved(a.publisherId) && <span className="text-xs text-gray-500">削除予定</span>}

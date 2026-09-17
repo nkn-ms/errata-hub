@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { findAuditLogsPage } from "@/services/audit";
 import { SelectField } from "@/components/ui/select-field";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -110,22 +110,7 @@ export default async function AdminLogsPage({ searchParams }: Props) {
   const { page: pageParam, action, email } = await searchParams;
   const page = toPageNumber(pageParam);
 
-  const where = {
-    ...(action ? { action } : {}),
-    ...(email ? { userEmail: { contains: email, mode: "insensitive" as const } } : {}),
-  };
-
-  const [logs, total] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）。
-      // 監査ログは1トランザクションで複数行が同時刻に入りうるので、ここは特に効く
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      skip: (page - 1) * ADMIN_PAGE_SIZE,
-      take: ADMIN_PAGE_SIZE,
-    }),
-    prisma.auditLog.count({ where }),
-  ]);
+  const { logs, total } = await findAuditLogsPage({ page, pageSize: ADMIN_PAGE_SIZE, action, email });
 
   const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
 

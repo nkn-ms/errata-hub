@@ -1,39 +1,22 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  ADDENDUM_IMAGE_MAX_COUNT,
   REPORT_IMAGE_ALLOWED_TYPES,
   REPORT_IMAGE_BUCKET,
   REPORT_IMAGE_MAX_BYTES,
-  REPORT_IMAGE_MAX_COUNT,
   REPORT_IMAGE_MAX_MB,
 } from "@/features/report/constants/report-images";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { isSameOriginRequest } from "@/utils/same-origin";
-
-// 競合で枚数上限に達していたことを表す番兵。トランザクションを確実にロールバックさせるために投げる。
-class ImageLimitReached extends Error {}
-
-/**
- * どちらの枠で数えるかを1か所で決める（本体＝ addendumId が null の行 / 追記＝ null でない行）。
- * 早期チェックとトランザクション内の最終判定で**同じ条件**を使うためにまとめてある。
- */
-function imagePool(addendumId: string | null) {
-  return addendumId === null
-    ? {
-        limit: REPORT_IMAGE_MAX_COUNT,
-        where: (reportId: string) => ({ reportId, addendumId: null }),
-        message: `画像は${REPORT_IMAGE_MAX_COUNT}枚までです`,
-      }
-    : {
-        limit: ADDENDUM_IMAGE_MAX_COUNT,
-        where: (reportId: string) => ({ reportId, addendumId: { not: null } }),
-        message: `追記に添付できる画像は1件の投稿につき${ADDENDUM_IMAGE_MAX_COUNT}枚までです`,
-      };
-}
+import {
+  addendumBelongsToReport,
+  countImagesInPool,
+  createReportImageWithinLimit,
+  findReportOwnerId,
+  imagePool,
+} from "@/features/report/report-images";
 
 // 投稿への画像添付。multipart/form-data で1リクエスト1ファイル
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。
@@ -64,29 +47,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const report = await prisma.report.findUnique({ where: { id } });
-    if (!report) {
+    const ownerId = await findReportOwnerId(id);
+    if (ownerId === null) {
       return NextResponse.json({ error: "投稿が見つかりません" }, { status: 404 });
     }
-    if (report.userId !== user.id) {
+    if (ownerId !== user.id) {
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
     // 追記に添えて足された画像は、その追記に紐づける（未指定＝投稿本体の画像）。
     // 他人の投稿の追記 ID を渡されても付かないよう、この投稿の追記であることを確かめる。
     const addendumId = new URL(request.url).searchParams.get("addendumId");
-    if (addendumId !== null) {
-      const addendum = await prisma.reportAddendum.findUnique({ where: { id: addendumId } });
-      if (!addendum || addendum.reportId !== id) {
-        return NextResponse.json({ error: "追記が見つかりません" }, { status: 404 });
-      }
+    if (addendumId !== null && !(await addendumBelongsToReport(addendumId, id))) {
+      return NextResponse.json({ error: "追記が見つかりません" }, { status: 404 });
     }
 
     // 枠は本体と追記で別（理由は constants/report-images.ts）。どちらで数えるかは addendumId で決まる
     const pool = imagePool(addendumId);
 
-    // 早期チェック（速い失敗用）。厳密な上限判定は作成直前のトランザクションで行う（下の TOCTOU 対策）。
-    if ((await prisma.reportImage.count({ where: pool.where(id) })) >= pool.limit) {
+    // 早期チェック（速い失敗用）。厳密な上限判定は作成直前のトランザクションで行う
+    // （TOCTOU 対策の理由は features/report/report-images.ts）。
+    if ((await countImagesInPool(id, addendumId)) >= pool.limit) {
       return NextResponse.json({ error: pool.message }, { status: 400 });
     }
 
@@ -121,39 +102,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const { data: { publicUrl } } = admin.storage.from(REPORT_IMAGE_BUCKET).getPublicUrl(path);
 
-    try {
-      // 枚数上限の最終ガード。上の早期チェックは速い失敗のためのもので、並列送信では
-      // チェックと作成の間（＝時間のかかる Storage アップロードの間）に別リクエストが割り込める（TOCTOU）。
-      // 親 Report 行を FOR UPDATE でロックして同一投稿への並列アップロードを直列化し、
-      // 確定した枚数で判定してから作成する。別投稿どうしは id が違うので競合しない。
-      const image = await prisma.$transaction(async (tx) => {
-        // 生 SQL のテーブル名は @@map なしの既定（モデル名）に一致する
-        await tx.$queryRaw`SELECT 1 FROM "Report" WHERE id = ${id} FOR UPDATE`;
-        const count = await tx.reportImage.count({ where: pool.where(id) });
-        if (count >= pool.limit) {
-          throw new ImageLimitReached();
-        }
-        return tx.reportImage.create({ data: { reportId: id, addendumId, imageUrl: publicUrl } });
-      });
-      return NextResponse.json(image, { status: 201 });
-    } catch (e) {
-      // 行の作成に失敗した＝先にアップロード済みのファイルは DB 行を持たない孤児になるため、
-      // **失敗の理由に関わらず**掃除する。トランザクションなので「行はできたのに例外」は
-      // 起こり得ず、ここに来た時点で残ったファイルが孤児であることは確定している。
-      // ⚠️ 掃除自体が失敗したときはもう手掛かりを残す先が無い（DB 行が無いので監査ログにも
-      //    載らない）ので、パスを添えて記録する。
-      const { error: cleanupError } = await admin.storage
-        .from(REPORT_IMAGE_BUCKET)
-        .remove([path]);
+    // 行の作成に失敗した＝先にアップロード済みのファイルは DB 行を持たない孤児になるため、
+    // **失敗の理由に関わらず**掃除する。トランザクションなので「行はできたのに失敗」は
+    // 起こり得ず、ここに来た時点で残ったファイルが孤児であることは確定している。
+    // ⚠️ 掃除自体が失敗したときはもう手掛かりを残す先が無い（DB 行が無いので監査ログにも
+    //    載らない）ので、パスを添えて記録する。
+    const cleanUpUploadedFile = async () => {
+      const { error: cleanupError } = await admin.storage.from(REPORT_IMAGE_BUCKET).remove([path]);
       if (cleanupError) {
         console.error("アップロード失敗後の画像ファイル削除に失敗:", path, cleanupError);
       }
-      if (e instanceof ImageLimitReached) {
-        // 競合に負けて上限に達していた
-        return NextResponse.json({ error: pool.message }, { status: 400 });
-      }
+    };
+
+    let created;
+    try {
+      created = await createReportImageWithinLimit({ reportId: id, addendumId, imageUrl: publicUrl });
+    } catch (e) {
+      await cleanUpUploadedFile();
       throw e; // 想定外は下の catch で 500
     }
+    if (!created.ok) {
+      // 競合に負けて上限に達していた
+      await cleanUpUploadedFile();
+      return NextResponse.json({ error: pool.message }, { status: 400 });
+    }
+
+    return NextResponse.json(created.image, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });

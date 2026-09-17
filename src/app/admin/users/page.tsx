@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { findProfilesPageForAdmin } from "@/features/account/queries";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
@@ -27,18 +27,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = toPageNumber(pageParam);
 
-  const [profiles, total] = await Promise.all([
-    prisma.profile.findMany({
-      include: {
-        publisherAccess: { include: { publisher: true } },
-      },
-      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      skip: (page - 1) * ADMIN_PAGE_SIZE,
-      take: ADMIN_PAGE_SIZE,
-    }),
-    prisma.profile.count(),
-  ]);
+  const { profiles, total } = await findProfilesPageForAdmin(page, ADMIN_PAGE_SIZE);
 
   const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
   if (isOutOfRange) redirect(pageHref(totalPages));
@@ -80,7 +69,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 <td className="px-4 py-3 text-gray-600 text-xs">
                   {p.publisherAccess.length === 0
                     ? "-"
-                    : p.publisherAccess.map((a) => a.publisher.name).join(", ")}
+                    : p.publisherAccess.map((a) => a.publisherName).join(", ")}
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                   {formatJstDate(p.createdAt)}

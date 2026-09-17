@@ -1,16 +1,16 @@
-import { prisma } from "@/lib/prisma";
+import { findProfileForAdmin, type AdminProfileRow } from "@/features/account/queries";
+import { findPublisherOptions } from "@/features/publisher/queries";
 import { notFound } from "next/navigation";
 import AdminUserEditor from "./user-editor";
 import { requireAdminPage } from "@/services/auth";
 import { isWithdrawnEmail } from "@/utils/withdrawal";
 import { authUserExists } from "@/features/account/withdrawal";
-import type { Profile } from "@/generated/prisma/client";
 
 /**
  * ロールを変更できない理由を返す（変更できるなら null）。
  * 正の砦はサーバーアクション（updateUserRole）側。ここは理由を先に見せるための画面側の判定。
  */
-function getRoleBlockedReason(profile: Profile, adminId: string): string | null {
+function getRoleBlockedReason(profile: AdminProfileRow, adminId: string): string | null {
   if (profile.id === adminId) {
     return "自分自身のロールは変更できません。管理者が0人になるのを防ぐためです。";
   }
@@ -27,7 +27,7 @@ function getRoleBlockedReason(profile: Profile, adminId: string): string | null 
  * それは途中で止まった退会で、**ここから完了させられる必要がある**（理由は
  * services/withdrawal.ts の authUserExists）。そのため auth 側の確認を重ねる。
  */
-async function getWithdrawBlockedReason(profile: Profile, adminId: string): Promise<string | null> {
+async function getWithdrawBlockedReason(profile: AdminProfileRow, adminId: string): Promise<string | null> {
   if (profile.id === adminId) return "自分自身を退会させることはできません。";
   if (isWithdrawnEmail(profile.email) && !(await authUserExists(profile.id))) {
     return "このユーザーは既に退会済みです。";
@@ -48,11 +48,8 @@ export default async function AdminUserDetailPage({
   const admin = await requireAdminPage();
 
   const [profile, publishers] = await Promise.all([
-    prisma.profile.findUnique({
-      where: { id },
-      include: { publisherAccess: { include: { publisher: true } } },
-    }),
-    prisma.publisher.findMany({ orderBy: { name: "asc" } }),
+    findProfileForAdmin(id),
+    findPublisherOptions(),
   ]);
 
   if (!profile) notFound();

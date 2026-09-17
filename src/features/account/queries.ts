@@ -64,3 +64,71 @@ export function findAccountSettings(userId: string): Promise<AccountSettings | n
     select: { displayName: true, githubUsername: true, xUsername: true, createdAt: true },
   });
 }
+
+// ────────────────────────────────────────────────────────────────────────
+// 管理画面用。⚠️ **email を返すのはここだけ**（公開側の PublicProfile は返さない）。
+// 管理者は退会の確認入力で対象のメールを照合するため必要で、認可は
+// app/admin/layout.tsx の requireAdminPage() が担う。
+// ⚠️ ページサイズは引数で受ける（features は app の定数を import できない）。
+// ────────────────────────────────────────────────────────────────────────
+
+/** ユーザー管理の1行。 */
+export type AdminProfileRow = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: "ADMIN" | "USER";
+  createdAt: Date;
+  publisherAccess: { publisherId: string; publisherName: string }[];
+};
+
+/** ユーザー一覧（登録が古い順）と総件数。 */
+export async function findProfilesPageForAdmin(
+  page: number,
+  pageSize: number
+): Promise<{ profiles: AdminProfileRow[]; total: number }> {
+  const [rows, total] = await Promise.all([
+    prisma.profile.findMany({
+      include: { publisherAccess: { include: { publisher: { select: { name: true } } } } },
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.profile.count(),
+  ]);
+
+  return { profiles: rows.map(toAdminProfileRow), total };
+}
+
+/** ユーザー1件（存在しなければ null）。 */
+export async function findProfileForAdmin(id: string): Promise<AdminProfileRow | null> {
+  const profile = await prisma.profile.findUnique({
+    where: { id },
+    include: { publisherAccess: { include: { publisher: { select: { name: true } } } } },
+  });
+  return profile === null ? null : toAdminProfileRow(profile);
+}
+
+type ProfileRowWithAccess = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: "ADMIN" | "USER";
+  createdAt: Date;
+  publisherAccess: { publisherId: string; publisher: { name: string } }[];
+};
+
+function toAdminProfileRow(profile: ProfileRowWithAccess): AdminProfileRow {
+  return {
+    id: profile.id,
+    email: profile.email,
+    displayName: profile.displayName,
+    role: profile.role,
+    createdAt: profile.createdAt,
+    publisherAccess: profile.publisherAccess.map((access) => ({
+      publisherId: access.publisherId,
+      publisherName: access.publisher.name,
+    })),
+  };
+}
