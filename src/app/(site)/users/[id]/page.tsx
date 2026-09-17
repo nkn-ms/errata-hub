@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { findReportsByUser } from "@/features/report/service";
+import { findReportsByUser } from "@/features/report/queries";
 import { mapReport } from "@/features/report/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";

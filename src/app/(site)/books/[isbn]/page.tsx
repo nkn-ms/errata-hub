@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { reportInclude } from "@/features/report/service";
+import { reportInclude } from "@/features/report/queries";
 import { mapReport } from "@/features/report/utils/mappers";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";

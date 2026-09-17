@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import AdminUserEditor from "./user-editor";
 import { requireAdminPage } from "@/services/auth";
 import { isWithdrawnEmail } from "@/utils/withdrawal";
-import { authUserExists } from "@/features/account/service";
+import { authUserExists } from "@/features/account/withdrawal";
 import type { Profile } from "@/generated/prisma/client";
 
 /**

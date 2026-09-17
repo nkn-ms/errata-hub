@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
-import { scrubProfileForWithdrawal } from "@/features/account/service";
+import { scrubProfileForWithdrawal } from "@/features/account/withdrawal";
 import { routes } from "@/constants/routes";
 import { PROFILE_LIMITS } from "@/features/account/constants";
 

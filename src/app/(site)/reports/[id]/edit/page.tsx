@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { findReportById } from "@/features/report/service";
+import { findReportById } from "@/features/report/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ReportEditForm } from "@/features/report/components/report-edit-form";
 import { ReportWithdraw } from "@/features/report/components/report-withdraw";

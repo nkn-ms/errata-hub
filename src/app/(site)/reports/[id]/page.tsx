@@ -1,6 +1,6 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findReportById } from "@/features/report/service";
+import { findReportById } from "@/features/report/queries";
 import { mapReport } from "@/features/report/utils/mappers";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";

@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
-import { scrubProfileForWithdrawal, authUserExists } from "./service";
+import { scrubProfileForWithdrawal, authUserExists } from "./withdrawal";
 
 const PROFILE_ID = "user-1";
 const original = {

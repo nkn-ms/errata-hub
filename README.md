@@ -281,12 +281,25 @@ src/features/
 
 src/features/report/
 ├── components/   画面の部品
-├── actions/      Server Action
-├── service.ts    読み取り
+├── actions/      Server Action（フォームからの書き込み）
+├── queries.ts    複数の画面が共有する読み取り
 ├── constants/    ステータス・ラベル・文字数上限
 ├── types.ts
 └── utils/
 ```
+
+⭐ **`actions/` と `queries.ts` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
+await するなら `queries.ts`、クライアントが操作中に呼ぶなら Server Action になる（読み取りでも）。
+
+⚠️ **`queries.ts` に置く基準は「2つ以上の画面が同じ読み方を必要とするか」。** 1画面しか使わない
+読みはその `page.tsx` に直接書く。だから `queries.ts` を持たないフィーチャーがある（`book` は
+書籍ページが `prisma.book.findUnique` を直接呼んでいて、共有する読みがまだ無い）——
+**規約から外れているのではなく、枠が空いているだけ。**
+
+⚠️ **`service.ts` という名前は使わない。** `service` は流派ごとに指すものが違い（Spring なら業務ロジック、
+DDD ならドメインのふるまい）、**どの読みでも「読み取りの置き場」にはならない**。読み手に予想を作らせて
+外す名前は、名前が無いより高くつく。ファイル名は層ではなく**扱う対象**で付ける
+（`queries.ts` / `withdrawal.ts` / `audit.ts` / `publisher-access.ts`）。
 
 フィーチャー同士は直接つながない。**またがるものは app 層で組み立てる。**
 投稿フォームがその例で、`app/(site)/submit/submit-form.tsx` が
