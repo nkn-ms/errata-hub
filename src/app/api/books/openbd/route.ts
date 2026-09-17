@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
-import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 
 // OpenBD 書誌照会をサーバー経由にする。
 // ブラウザから直接 api.openbd.jp を叩くとユーザーの IP アドレス等が OpenBD 側に渡るため、

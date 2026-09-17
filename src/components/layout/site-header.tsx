@@ -3,7 +3,7 @@ import { routes } from "@/constants/routes";
 import { site } from "@/constants/site";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HeaderNav } from "@/components/layout/header-nav";
-import { getHeaderUser } from "@/lib/header-user";
+import { getHeaderUser } from "@/components/layout/header-user";
 import { PAGE_CONTAINER } from "@/constants/layout";
 
 // 公開側の共通ヘッダー。管理画面（app/admin/layout.tsx）は配色・ナビが別物なので対象外。

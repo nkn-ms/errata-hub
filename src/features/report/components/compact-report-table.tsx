@@ -4,7 +4,7 @@ import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { routes } from "@/constants/routes";
 import { formatRelativeJst } from "@/utils/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 import { Badge, getEditionLocationLabel, ErrataSummary } from "@/features/report/components/report-card";
 import { StatusBadge } from "@/features/report/components/report-status-badge";
 

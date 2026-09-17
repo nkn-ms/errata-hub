@@ -7,7 +7,7 @@ import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-lab
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
-import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
+import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 import { GitHubIcon, XIcon } from "@/components/ui/icons";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { StatusBadge } from "@/features/report/components/report-status-badge";

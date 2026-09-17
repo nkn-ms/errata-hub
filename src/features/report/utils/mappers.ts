@@ -1,6 +1,6 @@
 import type { Report as PrismaReport, Book, Publisher, ReportImage, ReportAddendum, PublisherComment, Profile } from "@/generated/prisma/client";
 import type { Report } from "@/features/report/types";
-import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/lib/withdrawal";
+import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 import { formatJstDate, formatJstDateTime, shortId } from "@/utils/format";
 
 type PrismaReportWithRelations = PrismaReport & {

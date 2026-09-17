@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // 押して操作を起こすボタン。文言と用途だけを呼び出し側に残し、見た目は variant で選ぶ。
 //

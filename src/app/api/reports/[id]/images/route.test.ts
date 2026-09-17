@@ -32,8 +32,8 @@ const { prismaMock, getUserMock, checkRateLimitMock, uploadMock, removeMock } = 
 });
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
-vi.mock("@/lib/rate-limit", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+vi.mock("@/services/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/services/rate-limit")>()),
   checkRateLimit: checkRateLimitMock,
 }));
 vi.mock("@/lib/supabase/server", () => ({

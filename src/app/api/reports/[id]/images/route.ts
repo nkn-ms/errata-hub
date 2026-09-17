@@ -11,7 +11,7 @@ import {
   REPORT_IMAGE_MAX_MB,
 } from "@/features/report/constants/report-images";
 import { RATE_LIMITS } from "@/constants/rate-limits";
-import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { isSameOriginRequest } from "@/utils/same-origin";
 
 // 競合で枚数上限に達していたことを表す番兵。トランザクションを確実にロールバックさせるために投げる。

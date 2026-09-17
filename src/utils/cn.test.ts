@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 describe("cn", () => {
   it("複数のクラス名を結合する", () => {

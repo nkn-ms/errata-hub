@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // 主導線のリンク（いまは「投稿する」だけ）。押しても何かが起きるわけではなく、
 // 投稿フォームへ移動する。

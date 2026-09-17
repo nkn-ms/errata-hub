@@ -1,6 +1,6 @@
 import type { ReportStatus } from "@/features/report/types";
 import { STATUS_LABELS, STATUS_COLORS, STATUS_TOOLTIPS } from "@/features/report/constants/report-status";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // ステータスのバッジ＋説明のツールチップ。
 //

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 // 現在地が分かるナビのリンク。公開側ヘッダーと管理画面の帯で共用する。
 //
