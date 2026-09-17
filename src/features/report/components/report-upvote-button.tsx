@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsUp } from "lucide-react";
 import type { ReportType } from "@/generated/prisma/client";
-import { toggleUpvote } from "@/features/report/actions/report";
+import { toggleUpvote } from "@/features/report/actions/upvote";
 import { routes } from "@/constants/routes";
 import { UPVOTE_LABELS } from "@/features/report/constants/report-labels";
 import { cn } from "@/utils/cn";

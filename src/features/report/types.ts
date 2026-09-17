@@ -3,6 +3,12 @@ import type { ReportType, ReportStatus, Medium } from "@/generated/prisma/client
 export type { ReportType, ReportStatus, Medium };
 
 /**
+ * Server Action の戻り値。`{ error }` を返して画面が出す（例外を投げない）。
+ * ⚠️ 複数の `actions/*.ts` が返すので、どれか1本の中ではなくここに置く。
+ */
+export type ReportActionState = { error?: string };
+
+/**
  * 出版社からの回答1件（規約 第8条）。**書いた人（authorId）は含めない** — 発言の主体は
  * 個人ではなく出版社で、担当者名を公開する約束はしていない。
  */
