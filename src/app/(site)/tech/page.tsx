@@ -25,18 +25,31 @@ const STACK = [
   { area: "ホスティング", items: "Vercel" },
 ] as const;
 
+// ディレクトリ構成。**実際の src の形から起こした図**で、飾りで足したディレクトリは無い。
+// 注釈は1行に収める（折り返すとツリーの縦線と揃わなくなるため）。
+const TREE = `src/
+├── app/                  画面と HTTP リクエストの受け付け口（URL がそのままフォルダ）
+│   ├── (site)/             公開ページ
+│   ├── admin/              管理画面
+│   └── api/                Route Handler（HTTP で直接受ける必要がある4本だけ）
+├── features/             機能ごとのまとまり（下は「投稿」の例）
+│   └── report/
+│       ├── db/             DB を読み書きする。ここと actions 以外からは DB を操作しない
+│       ├── actions/        Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
+│       ├── components/     この機能でしか使わない画面部品
+│       ├── constants/      ラベル・文字数上限
+│       ├── utils/          DB にも画面にも依存しない関数
+│       └── schema.ts       入力の検査（Zod）
+├── components/           機能に属さない画面部品（ui = 部品 / layout = 枠）
+├── services/             機能をまたぐ処理（認可・操作ログ・レート制限）
+├── lib/                  外部サービスへ接続するクライアントを作る（Prisma・Supabase）
+├── utils/ constants/     どの機能にも依存しない純粋な関数・定数
+└── proxy.ts              静的アセットを除く全リクエストが最初に通る（CSP の nonce 発行・認証の確認）`;
+
 // 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
 // （App Router なら画面の材料が1つのフォルダに集まる、Prisma なら型が生成される）は
 // 実装ではないので書かない。書くのは、こちらが決めた置き方・分け方だけ。
 const IMPLEMENTATION = [
-  {
-    name: "データアクセス（サーバーコンポーネント + サービス層）",
-    why: "画面を作るコード自体がサーバーで動く（サーバーコンポーネント）ので、ページのデータ取得は src/features/*/service.ts の関数（Prisma で DB を読む層）をそのまま呼んでいる。画面と DB の間に自前の HTTP 層はなく、HTTP の受け口（Route Handler）を置いたのは外に口が要る4本だけ（書籍検索が2本、画像アップロードと認証コールバックが1本ずつ）。",
-  },
-  {
-    name: "Prisma v7 (ORM)",
-    why: "DB への接続は用途で分けている。アプリからは接続プーラー（DB への接続を何本か開いたままにして、処理に順番に貸し出す中継役）を通す。サーバーレスは処理のたびに立ち上がるので、毎回 DB へ直接つなぐと接続の数が上限に達してしまう。テーブルを作り替えるマイグレーションのときだけは、最初から最後まで同じ接続を保つ必要があってプーラーを通せないので、直結の URL を使っている。",
-  },
   {
     name: "OpenBD / Google Books API",
     why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。Google Books の API キーをブラウザに置かないためと、閲覧者の IP を外部サービスへ渡さないため。",
@@ -52,7 +65,7 @@ const IMPLEMENTATION = [
 const PRACTICES = [
   {
     name: "CSP（nonce + strict-dynamic）",
-    why: "ページを返すたびに1回限りの識別子（nonce）を発行し、その識別子が付いたスクリプトだけをブラウザに実行させる。外部から差し込まれたスクリプトは識別子を持たないため、HTML に混ざっても実行されない。引き換えに、ページを事前に生成して配信することはできない（識別子がリクエストごとに変わるため）。",
+    why: "ページを返すたびに1回限りの識別子（nonce）を発行し、その識別子が付いたスクリプトだけをブラウザに実行させる。外部から差し込まれたスクリプトは識別子を持たないため、HTML の中にあっても実行されない。引き換えに、ページを事前に生成して配信することはできない（識別子がリクエストごとに変わるため）。",
   },
   {
     name: "レート制限（Postgres）",
@@ -126,6 +139,23 @@ export default function TechPage() {
         </dl>
       </section>
 
+      {/* 技術スタック（何を使うか）→ 構成（どこに何があるか）→ 要点（どう組んだか）の順。
+          読み手が降りる深さを自分で選べるようにする。 */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">ディレクトリ構成</h2>
+        <p className="mb-3 text-sm text-gray-600">
+          機能ごとに縦に切っています（<code className="font-mono text-xs">features/</code>）。
+          DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と{" "}
+          <code className="font-mono text-xs">actions/</code> だけで、画面側のコードから DB の
+          クライアントを読み込もうとすると lint エラーで落ちます。
+        </p>
+        {/* ツリーは横に長いので、折り返さずに横スクロールさせる（折ると縦線が繋がらなくなる）。
+            ページ自体が横に伸びないよう、スクロールはこの枠の中だけで起きる。 */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+          <pre className="p-4 text-xs leading-relaxed font-mono text-gray-700">{TREE}</pre>
+        </div>
+      </section>
+
       {/* 一覧（何を使うか）→ 要点（どう組んだか）の順に置く。
           読み手が降りる深さを自分で選べるようにするため。 */}
       <section>
@@ -169,7 +199,7 @@ export default function TechPage() {
           </div>
           <p className="mt-6 text-xs text-gray-500 leading-relaxed">
             {/* 改行は JSX が半角スペースに畳むので、全角の括弧や読点の直前では折らない */}
-            ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）が
+            ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや Server Action が
             Supabase（認証・データ永続化・画像の保存）と書誌 API に問い合わせます。
             認証は PKCE の code フロー、外部 API キーはサーバー側に隠蔽しています。
             書誌 API へはブラウザから直接アクセスせず、サーバーが代理で取得します（閲覧者の IP を外部へ渡さないため）。
