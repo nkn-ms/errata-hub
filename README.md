@@ -315,15 +315,14 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 （`import/no-restricted-paths`）。依存の向きを崩さないための例外で、監査ログの読み書き
 （`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
 
-⚠️ **Server Action ではない書き込みは `actions/` に置かない。** `actions/` は Server Actions の置き場所
-（`"use server"`）で、Route Handler から呼ぶ書き込みは**対象で名付けたファイル**に置く
-（`features/account/profile.ts` の `ensureProfile`／`features/report/report-images.ts`）。
+**DB に触るのは `queries.ts`（読み）と `actions/`（書き）の2つだけ。迷ったら `queries.ts` に書く。**
+どちらも大きくなったらディレクトリに割る（`queries.ts` → `queries/`、`actions/report.ts` →
+`actions/create.ts` `actions/update.ts` …）。⭐ **分ける基準は種類ではなく大きさ。**
 
-⭐ **対象で名付けたファイルには、その仕事のための読み取りも一緒に置く。** 分ける軸は読み書きではなく
-**「ひとつの仕事に閉じているか、複数の画面が共有する読みか」**。`report-images.ts` が
-`findReportOwnerId` と `countImagesInPool`（どちらも読み取り）を持っているのは、呼び出し元が
-その Route Handler だけで、画面に出す DTO でもなく、**上限の判定が直後の書き込みと同じ条件
-（`imagePool`）を使う**ため。切り離すと「早期チェックと最終判定で同じ条件を使う」保証が2ファイルに割れる。
+⚠️ **例外は1つだけで、Next.js の制約から来る。** `actions/` のファイルは先頭に `"use server"` が要り、
+**そこに置いた関数はすべて外から POST できる口になる**。だからフォーム以外から呼ぶ書き込み
+（Route Handler 用）は `actions/` に置けない。`features/<name>/` の直下に対象名で置く
+（`account/profile.ts` の `ensureProfile`／`report/report-images.ts` の画像の作成）。
 
 ⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
 管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。

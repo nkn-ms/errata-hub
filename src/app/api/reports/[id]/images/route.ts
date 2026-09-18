@@ -10,13 +10,12 @@ import {
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { isSameOriginRequest } from "@/utils/same-origin";
+import { createReportImageWithinLimit, imagePool } from "@/features/report/report-images";
 import {
   addendumBelongsToReport,
   countImagesInPool,
-  createReportImageWithinLimit,
   findReportOwnerId,
-  imagePool,
-} from "@/features/report/report-images";
+} from "@/features/report/queries";
 
 // 投稿への画像添付。multipart/form-data で1リクエスト1ファイル
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。

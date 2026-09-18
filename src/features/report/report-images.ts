@@ -1,12 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import {
-  ADDENDUM_IMAGE_MAX_COUNT,
-  REPORT_IMAGE_MAX_COUNT,
-} from "@/features/report/constants/report-images";
+import { ADDENDUM_IMAGE_MAX_COUNT, REPORT_IMAGE_MAX_COUNT } from "@/features/report/constants/report-images";
 
 /**
- * **添付画像の読み書き。Server Action ではない**ので `actions/` には置かない
+ * **添付画像の書き込み。Server Action ではない**ので `actions/` には置かない
  * （呼ぶのは Route Handler = app/api/reports/[id]/images。画像だけ Route Handler なのは
  * Server Actions のボディ上限 4.5MB に収めるため = README）。
  *
@@ -29,32 +26,6 @@ export function imagePool(addendumId: string | null) {
         where: (reportId: string) => ({ reportId, addendumId: { not: null } }),
         message: `追記に添付できる画像は1件の投稿につき${ADDENDUM_IMAGE_MAX_COUNT}枚までです`,
       };
-}
-
-/** 投稿の持ち主（存在しなければ null）。呼び出し側が 404 と 403 を撃ち分けるため id ではなく所有者を返す。 */
-export async function findReportOwnerId(reportId: string): Promise<string | null> {
-  const report = await prisma.report.findUnique({
-    where: { id: reportId },
-    select: { userId: true },
-  });
-  return report?.userId ?? null;
-}
-
-/**
- * その追記が本当にこの投稿のものか。
- * ⚠️ 他人の投稿の追記 ID を渡されても画像が付かないようにするための確認なので、省略しないこと。
- */
-export async function addendumBelongsToReport(
-  addendumId: string,
-  reportId: string
-): Promise<boolean> {
-  const addendum = await prisma.reportAddendum.findUnique({ where: { id: addendumId } });
-  return addendum !== null && addendum.reportId === reportId;
-}
-
-/** いま枠に入っている枚数（速い失敗のための早期チェック用）。 */
-export function countImagesInPool(reportId: string, addendumId: string | null): Promise<number> {
-  return prisma.reportImage.count({ where: imagePool(addendumId).where(reportId) });
 }
 
 /** 競合で枠が埋まっていたことを表す番兵。トランザクションを確実にロールバックさせるために投げる。 */
