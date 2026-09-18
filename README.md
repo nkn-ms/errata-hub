@@ -319,6 +319,12 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 （`"use server"`）で、Route Handler から呼ぶ書き込みは**対象で名付けたファイル**に置く
 （`features/account/profile.ts` の `ensureProfile`／`features/report/report-images.ts`）。
 
+⭐ **対象で名付けたファイルには、その仕事のための読み取りも一緒に置く。** 分ける軸は読み書きではなく
+**「ひとつの仕事に閉じているか、複数の画面が共有する読みか」**。`report-images.ts` が
+`findReportOwnerId` と `countImagesInPool`（どちらも読み取り）を持っているのは、呼び出し元が
+その Route Handler だけで、画面に出す DTO でもなく、**上限の判定が直後の書き込みと同じ条件
+（`imagePool`）を使う**ため。切り離すと「早期チェックと最終判定で同じ条件を使う」保証が2ファイルに割れる。
+
 ⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
 管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。
 
