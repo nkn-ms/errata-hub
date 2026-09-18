@@ -10,12 +10,13 @@ import {
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { isSameOriginRequest } from "@/utils/same-origin";
-import { createReportImageWithinLimit, imagePool } from "@/features/report/report-images";
 import {
   addendumBelongsToReport,
   countImagesInPool,
+  createReportImageWithinLimit,
   findReportOwnerId,
-} from "@/features/report/queries";
+  imagePool,
+} from "@/features/report/db/images";
 
 // 投稿への画像添付。multipart/form-data で1リクエスト1ファイル
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。
@@ -65,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const pool = imagePool(addendumId);
 
     // 早期チェック（速い失敗用）。厳密な上限判定は作成直前のトランザクションで行う
-    // （TOCTOU 対策の理由は features/report/report-images.ts）。
+    // （TOCTOU 対策の理由は features/report/db/images.ts）。
     if ((await countImagesInPool(id, addendumId)) >= pool.limit) {
       return NextResponse.json({ error: pool.message }, { status: 400 });
     }

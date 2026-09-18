@@ -1,4 +1,4 @@
-import { findPublishersPageForAdmin } from "@/features/publisher/queries";
+import { findPublishersPageForAdmin } from "@/features/publisher/db/queries";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";

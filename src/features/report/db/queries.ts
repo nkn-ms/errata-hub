@@ -2,7 +2,6 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { mapReport } from "@/features/report/utils/mappers";
-import { imagePool } from "@/features/report/report-images";
 import type { Report } from "@/features/report/types";
 
 /**
@@ -292,34 +291,4 @@ export async function findReportForAdmin(id: string): Promise<AdminReport | null
       createdAt: comment.createdAt,
     })),
   };
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// 画像アップロード（Route Handler）が使う読み取り。書き込み側は report-images.ts。
-// ────────────────────────────────────────────────────────────────────────
-
-/** 投稿の持ち主（存在しなければ null）。呼び出し側が 404 と 403 を撃ち分けるため id ではなく所有者を返す。 */
-export async function findReportOwnerId(reportId: string): Promise<string | null> {
-  const report = await prisma.report.findUnique({
-    where: { id: reportId },
-    select: { userId: true },
-  });
-  return report?.userId ?? null;
-}
-
-/**
- * その追記が本当にこの投稿のものか。
- * ⚠️ 他人の投稿の追記 ID を渡されても画像が付かないようにするための確認なので、省略しないこと。
- */
-export async function addendumBelongsToReport(
-  addendumId: string,
-  reportId: string
-): Promise<boolean> {
-  const addendum = await prisma.reportAddendum.findUnique({ where: { id: addendumId } });
-  return addendum !== null && addendum.reportId === reportId;
-}
-
-/** いま枠に入っている枚数（速い失敗のための早期チェック用）。 */
-export function countImagesInPool(reportId: string, addendumId: string | null): Promise<number> {
-  return prisma.reportImage.count({ where: imagePool(addendumId).where(reportId) });
 }

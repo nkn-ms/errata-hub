@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
 import { useRouter } from "next/navigation";
-import type { AdminProfileRow } from "@/features/account/queries";
-import type { PublisherOption } from "@/features/publisher/queries";
+import type { AdminProfileRow } from "@/features/account/db/queries";
+import type { PublisherOption } from "@/features/publisher/db/queries";
 import {
   grantPublisherAccess,
   revokePublisherAccess,

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 
 /**
- * **プロフィールの読み取り（Data Access Layer）。** 条件と根拠は features/report/queries.ts の冒頭と同じ。
+ * **プロフィールの読み取り（Data Access Layer）。** 条件と根拠は features/report/db/queries.ts の冒頭と同じ。
  *
  * ⭐ **このファイルの存在理由は「email を外へ出さないこと」。** 退会したかどうかは
  *    「メールが匿名化済みドメインか」でしか判定できない（= utils/withdrawal.ts）ので、

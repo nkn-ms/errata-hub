@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { findBooksPageForAdmin } from "@/features/book/queries";
+import { findBooksPageForAdmin } from "@/features/book/db/queries";
 import { AdminBookTable } from "./book-table";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
 import { routes } from "@/constants/routes";

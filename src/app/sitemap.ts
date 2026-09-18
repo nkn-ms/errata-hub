@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
-import { findAllBookIsbns } from "@/features/book/queries";
-import { findAllReportIds } from "@/features/report/queries";
+import { findAllBookIsbns } from "@/features/book/db/queries";
+import { findAllReportIds } from "@/features/report/db/queries";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
 

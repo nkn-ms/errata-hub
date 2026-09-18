@@ -56,7 +56,7 @@ export async function createAuditLog(
 /**
  * 監査ログの一覧（新しい順）と総件数。管理画面の「操作ログ」が読む。
  *
- * ⚠️ **読み取りが features/<name>/queries.ts ではなくここにあるのは、AuditLog が
+ * ⚠️ **読み取りが features/<name>/db/ ではなくここにあるのは、AuditLog が
  *    どのフィーチャーのものでもないため**（投稿・書籍・出版社・アカウントのすべてを記録する）。
  *    横断するものは services/ に置き、ここは prisma を直接叩いてよい層（= README の依存の向き）。
  *

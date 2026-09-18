@@ -26,7 +26,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/services/auth", () => ({
   requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
-vi.mock("@/features/account/withdrawal", () => ({
+vi.mock("@/features/account/db/withdrawal", () => ({
   scrubProfileForWithdrawal: scrubMock,
   authUserExists: authUserExistsMock,
 }));

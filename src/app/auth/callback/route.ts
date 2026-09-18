@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/constants/legal";
 import { toDisplayName } from "@/features/account/utils/display-name";
-import { ensureProfile } from "@/features/account/profile";
+import { ensureProfile } from "@/features/account/db/profile";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     toDisplayName(meta.full_name) ??
     toDisplayName(meta.user_name);
 
-  // Profile が無ければ作る（理由と失敗時の扱いは features/account/profile.ts）。
+  // Profile が無ければ作る（理由と失敗時の扱いは features/account/db/profile.ts）。
   const result = await ensureProfile({
     id: data.user.id,
     email,

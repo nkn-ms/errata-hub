@@ -315,14 +315,26 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 （`import/no-restricted-paths`）。依存の向きを崩さないための例外で、監査ログの読み書き
 （`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
 
-**DB に触るのは `queries.ts`（読み）と `actions/`（書き）の2つだけ。迷ったら `queries.ts` に書く。**
-どちらも大きくなったらディレクトリに割る（`queries.ts` → `queries/`、`actions/report.ts` →
-`actions/create.ts` `actions/update.ts` …）。⭐ **分ける基準は種類ではなく大きさ。**
+**prisma を触ってよいのは `db/` と `actions/` の中だけ**（`services/` と `lib/prisma.ts` を除く。
+`no-restricted-imports` で機械的に禁止）。`components/` `utils/` `constants/` `schema.ts` は DB を知らない。
 
-⚠️ **例外は1つだけで、Next.js の制約から来る。** `actions/` のファイルは先頭に `"use server"` が要り、
-**そこに置いた関数はすべて外から POST できる口になる**。だからフォーム以外から呼ぶ書き込み
-（Route Handler 用）は `actions/` に置けない。`features/<name>/` の直下に対象名で置く
-（`account/profile.ts` の `ensureProfile`／`report/report-images.ts` の画像の作成）。
+```
+features/report/
+├── db/            ← DB に触るのはここ（と actions/）
+│   ├── queries.ts     ページが描画のために読む投稿
+│   └── images.ts      添付画像の読み書き（Route Handler から呼ぶ）
+├── actions/       `"use server"` ＝ ブラウザから直接呼ばれる口
+└── components/ constants/ utils/ schema.ts types.ts
+```
+
+⭐ **`db/` の中は目的でファイルを分ける**（`withdrawal.ts` `profile.ts` `images.ts`）。
+大きくなったら増やす。**読み／書きでは分けない** —— 分ける軸は「**誰が呼ぶか**」で、
+`actions/` にあるのは `"use server"` が要るもの＝**ブラウザが呼ぶもの**。読み取りでもここに入る
+（`book/actions/book.ts` の `findErratumUrlByIsbn` は読み取りだが、書籍を選んだ瞬間に
+ブラウザから呼ぶので Server Action）。
+
+⚠️ **`actions/` に置いた関数はすべて外から POST できる口になる**（`"use server"` はファイル単位）。
+だからフォーム以外から呼ぶもの（Route Handler 用）は `actions/` に置けず、`db/` に入る。
 
 ⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
 管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。

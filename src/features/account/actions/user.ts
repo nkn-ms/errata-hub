@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
-import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/withdrawal";
-import type { AdminProfileRow } from "@/features/account/queries";
+import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/db/withdrawal";
+import type { AdminProfileRow } from "@/features/account/db/queries";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/utils/withdrawal";
 
 const RoleSchema = z.enum(["ADMIN", "USER"]);
