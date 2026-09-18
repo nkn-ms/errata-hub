@@ -38,12 +38,12 @@ const TREE = `src/
 │       ├── actions/        ブラウザから直接呼ばれる口（Server Action）
 │       ├── components/     この機能でしか使わない画面部品
 │       ├── constants/      ラベル・文字数上限
-│       ├── utils/          DB も画面も知らない関数
+│       ├── utils/          DB にも画面にも依存しない関数
 │       └── schema.ts       入力の検査（Zod）
 ├── components/           機能に属さない画面部品（ui = 部品 / layout = 枠）
 ├── services/             機能をまたぐ処理（認可・操作ログ・レート制限）
 ├── lib/                  外部との接続そのもの（Prisma・Supabase）
-├── utils/ constants/     純粋な関数・定数（外に触れない）
+├── utils/ constants/     どの機能にも依存しない純粋な関数・定数
 └── proxy.ts              全リクエストの入口（CSP の nonce 発行・認証の確認）`;
 
 // 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
@@ -147,7 +147,7 @@ export default function TechPage() {
           機能ごとに縦に切っています（<code className="font-mono text-xs">features/</code>）。
           DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と{" "}
           <code className="font-mono text-xs">actions/</code> だけで、画面側のコードから DB の
-          クライアントを読み込もうとすると lint が落ちます。
+          クライアントを読み込もうとすると lint エラーになります。
         </p>
         {/* ツリーは横に長いので、折り返さずに横スクロールさせる（折ると縦線が繋がらなくなる）。
             ページ自体が横に伸びないよう、スクロールはこの枠の中だけで起きる。 */}
