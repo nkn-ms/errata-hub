@@ -89,7 +89,7 @@ describe("updateBook（書誌の手修正）", () => {
       erratumUrl: "javascript:alert(1)",
     });
 
-    expect(result.error).toContain("正誤表URL");
+    expect(result.error).toContain("正誤表のURL");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
   });
 

@@ -20,6 +20,9 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。
 // 形式の正規化・検証は toCanonicalIsbn（ISBN-13 へ統一）で行う。
+// ⚠️ **この2件だけ「必須です」のままにしてある。** 書籍は検索 UI から選ぶもので、
+// 利用者が手で入力する欄ではない＝この文言が画面に出るのはアクション直叩きのときだけ。
+// 手入力の欄は「〜を入力してください」に揃えている（下の reportBodyShape 以降）。
 const BookSchema = z.object({
   googleBooksId: z.string().optional(),
   title: z.string().min(1, "書籍名は必須です"),
@@ -49,7 +52,7 @@ const limited = (max: number, label: string) =>
 const reportBodyShape = {
   edition: z.number().int().positive().nullable().optional(),
   printing: z.number().int().positive().nullable().optional(),
-  title: limited(REPORT_LIMITS.title, "概要").min(1, "概要は必須です"),
+  title: limited(REPORT_LIMITS.title, "概要").min(1, "概要を入力してください"),
   type: z.enum(["ERRATA", "SUGGESTION", "OTHER"]),
   medium: z.enum(["PAPER", "EBOOK", "OTHER"]),
   page: z.number().int().positive().nullable().optional(),
@@ -69,10 +72,10 @@ const ReportBodyBase = z.object(reportBodyShape);
 function refineReportBody(data: z.infer<typeof ReportBodyBase>, ctx: z.RefinementCtx) {
   if (data.type === "ERRATA") {
     if (!data.wrong?.trim()) {
-      ctx.addIssue({ code: "custom", path: ["wrong"], message: "誤（該当箇所）は必須です" });
+      ctx.addIssue({ code: "custom", path: ["wrong"], message: "誤（該当箇所）を入力してください" });
     }
     if (!data.correct?.trim()) {
-      ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）は必須です" });
+      ctx.addIssue({ code: "custom", path: ["correct"], message: "正（正しい内容）を入力してください" });
     }
     // 誤と正が同じなら指摘として成立しない。誤をコピーして直し忘れたときに起きる。
     // この時点で値は limited() によりトリム済みなので、前後の空白しか違わないものも同じと見なす
@@ -83,19 +86,19 @@ function refineReportBody(data: z.infer<typeof ReportBodyBase>, ctx: z.Refinemen
       ctx.addIssue({ code: "custom", path: ["correct"], message: IDENTICAL_WRONG_CORRECT_MESSAGE });
     }
   } else if (!data.content?.trim()) {
-    ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案は必須です" });
+    ctx.addIssue({ code: "custom", path: ["content"], message: "内容・提案を入力してください" });
   }
   if (data.medium === "PAPER" && data.edition == null) {
-    ctx.addIssue({ code: "custom", path: ["edition"], message: "版は必須です" });
+    ctx.addIssue({ code: "custom", path: ["edition"], message: "版を入力してください" });
   }
   if (data.medium === "PAPER" && data.page == null) {
-    ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号は必須です" });
+    ctx.addIssue({ code: "custom", path: ["page"], message: "ページ番号を入力してください" });
   }
   if (data.medium === "EBOOK" && !data.ebookLocation?.trim()) {
-    ctx.addIssue({ code: "custom", path: ["ebookLocation"], message: "位置は必須です" });
+    ctx.addIssue({ code: "custom", path: ["ebookLocation"], message: "位置を入力してください" });
   }
   if (data.medium === "OTHER" && !data.locationNote?.trim()) {
-    ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモは必須です" });
+    ctx.addIssue({ code: "custom", path: ["locationNote"], message: "位置メモを入力してください" });
   }
 }
 
