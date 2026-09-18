@@ -103,7 +103,9 @@ export type AdminReport = {
     publisherName: string | null;
     erratumUrl: string | null;
   };
-  images: { id: string; imageUrl: string }[];
+  /** 投稿に紐づく画像すべて。⚠️ **追記に添えた画像もここに入る**（同じ reportId を持つため）＝
+   * 本体の証拠画像と見分けるのが `addendumId`（null なら投稿本体のもの）。 */
+  images: { id: string; imageUrl: string; addendumId: string | null }[];
   addenda: {
     id: string;
     body: string;
@@ -160,7 +162,11 @@ export async function findReportForAdmin(id: string): Promise<AdminReport | null
       publisherName: report.book.publisher?.name ?? null,
       erratumUrl: report.book.erratumUrl,
     },
-    images: report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
+    images: report.images.map((image) => ({
+      id: image.id,
+      imageUrl: image.imageUrl,
+      addendumId: image.addendumId,
+    })),
     addenda: report.addenda.map((addendum) => ({
       id: addendum.id,
       body: addendum.body,

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { deleteReportAddendum } from "@/features/report/actions/delete";
 import { Button } from "@/components/ui/button";
+import { RecordId } from "./record-id";
 
 // 削除は取り消せないので確認を挟む。⚠️ `confirm()` は使わない
 // （<dialog> なら ESC とフォーカス管理が付いてくる＝出版社の回答の一覧と同じ作法）
@@ -60,7 +61,10 @@ export function AdminAddendumList({ addenda }: { addenda: AdminAddendum[] }) {
           {addenda.map((addendum) => (
             <div key={addendum.id} className="flex items-start justify-between gap-3 px-3 py-2">
               <div className="min-w-0">
-                <p className="text-xs text-gray-500 tabular-nums">{addendum.createdAt}</p>
+                <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-gray-500">
+                  <span className="tabular-nums">{addendum.createdAt}</span>
+                  <RecordId value={addendum.id} />
+                </p>
                 <p className="mt-0.5 text-sm text-gray-800 whitespace-pre-wrap">{addendum.body}</p>
                 {/* 添えた画像も出す。本文だけ見て判断すると、画像側の侵害を見落とす */}
                 {addendum.images.length > 0 && (

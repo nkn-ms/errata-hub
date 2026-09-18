@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { deletePublisherComment } from "@/features/report/actions/publisher-comment";
 import type { PublisherCommentView } from "@/features/report/types";
 import { Button } from "@/components/ui/button";
+import { RecordId } from "./record-id";
 
 // 削除は取り消せないので確認を挟む。⚠️ `confirm()` は使わない
 // （<dialog> なら ESC とフォーカス管理が付いてくる＝投稿の追記・出版社の回答と同じ作法）
@@ -59,6 +60,7 @@ export function AdminPublisherCommentList({ comments }: Props) {
                   <span className="font-medium text-gray-700">{comment.publisherName}</span>
                   {comment.byAdmin && <span>（運営者が代理で記載）</span>}
                   <span className="tabular-nums">{comment.createdAt}</span>
+                  <RecordId value={comment.id} />
                 </p>
                 <p className="mt-0.5 text-sm text-gray-800 whitespace-pre-wrap">{comment.body}</p>
               </div>
