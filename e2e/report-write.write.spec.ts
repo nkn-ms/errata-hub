@@ -30,11 +30,11 @@ const SEEDED_REPORT_TITLE = "サンプル投稿";
 async function mockBookApis(page: Page) {
   await page.route("**/api/books/openbd*", (route) =>
     route.fulfill({
-      json: [{ summary: { isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, cover: "" } }],
+      json: { books: [{ isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, coverImageUrl: "", googleBooksId: "" }] },
     })
   );
   // OpenBD に書影が無いときの Google Books フォールバック（書影なしで応答）
-  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 }
 
 test.describe("投稿フォーム（書き込み）", () => {

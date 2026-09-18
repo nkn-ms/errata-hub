@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimits, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
+import { parseGoogleBooks } from "@/features/book/upstream";
 
 const MAX_QUERY_LENGTH = 100;
 
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams.get("q")?.trim();
   if (!query) {
-    return NextResponse.json({ items: [] });
+    return NextResponse.json({ books: [] });
   }
   if (query.length > MAX_QUERY_LENGTH) {
     return NextResponse.json({ error: "検索語が長すぎます" }, { status: 400 });
@@ -101,10 +102,11 @@ export async function GET(request: NextRequest) {
       //    Google の 503 をそのまま返すと「Errata Hub 自身が使えない」の意味になってしまう。
       return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
-    const data = await res.json();
+    // 上流の形が変わっていたら例外＝下の catch で 502
+    const books = parseGoogleBooks(await res.json());
     // ⚠️ 付けるのは上流から答えが返ったときだけ。502 に付けると「一時的な失敗」を
     //    ブラウザが覚え込み、Google が直っても再試行しなくなる。
-    return NextResponse.json(data, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });
+    return NextResponse.json({ books }, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "書籍検索に失敗しました。しばらくしてからお試しください。" }, { status: 502 });

@@ -80,17 +80,18 @@ test.describe("OpenBD の差分取り込み（管理者）", () => {
     // 外部 API は叩かない（ネットワークとレスポンス内容に依存させないため差し替える）
     await page.route("**/api/books/openbd*", (route) =>
       route.fulfill({
-        json: [
-          {
-            summary: {
+        json: {
+          books: [
+            {
               isbn: BOOK_EDITABLE.isbn,
               title: openBdTitle,
               author: "井上,直也,1974-",
               publisher: "オーム社",
-              cover: "",
+              coverImageUrl: "",
+              googleBooksId: "",
             },
-          },
-        ],
+          ],
+        },
       })
     );
 

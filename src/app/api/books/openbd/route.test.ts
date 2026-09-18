@@ -70,7 +70,9 @@ describe("GET /api/books/openbd の失敗と「該当なし」の区別", () => 
     const res = await GET(request(VALID_ISBN));
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual([null]);
+    // 上流の null（その ISBN の本が無い）は、均した結果では「候補ゼロ」になる。
+    // ⚠️ 502 ではない＝「該当なし」と「上流の失敗」の区別は保たれている
+    expect(await res.json()).toEqual({ books: [] });
   });
 
   it("ISBN の形が不正なら上流を叩かずに空配列を返す", async () => {
@@ -80,7 +82,7 @@ describe("GET /api/books/openbd の失敗と「該当なし」の区別", () => 
     const res = await GET(request("not-an-isbn"));
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual([]);
+    expect(await res.json()).toEqual({ books: [] });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

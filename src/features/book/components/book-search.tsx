@@ -3,31 +3,11 @@
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
+import type { UpstreamBook } from "@/features/book/upstream";
 import { Button } from "@/components/ui/button";
 
-type BookResult = {
-  googleBooksId: string;
-  title: string;
-  author: string;
-  publisher: string;
-  isbn: string;
-  coverImageUrl: string;
-};
-
-// Google Books API レスポンスのうち利用する部分のみ
-type GoogleBooksItem = {
-  id: string;
-  volumeInfo: {
-    title?: string;
-    authors?: string[];
-    publisher?: string;
-    industryIdentifiers?: { type: string; identifier: string }[];
-    imageLinks?: { thumbnail?: string };
-  };
-};
-
 type Props = {
-  onSelect: (book: BookResult) => void;
+  onSelect: (book: UpstreamBook) => void;
   /**
    * 入力欄の名前として読み上げさせる要素の id（呼び出し側が持っている「書籍名」の見出し）。
    *
@@ -62,12 +42,6 @@ async function failureMessage(res: Response): Promise<string> {
   return SEARCH_FAILED_MESSAGE;
 }
 
-// Google Books の書影 URL は http で返ることがある。https のページから http 画像は
-// 混在コンテンツとしてブラウザにブロックされるため、https に揃える（books.google.com は https 対応）。
-function toHttpsUrl(url: string | undefined): string {
-  return url?.replace("http://", "https://") ?? "";
-}
-
 // OpenBD に書影が無いとき用に、Google Books から ISBN 一致の書影だけ取得する。
 // 失敗しても書影が無いだけなので空文字を返してプレースホルダーにフォールバック。
 async function fetchGoogleCover(isbn: string): Promise<string> {
@@ -75,37 +49,25 @@ async function fetchGoogleCover(isbn: string): Promise<string> {
   try {
     const res = await fetch(`${routes.api.booksSearch}?type=isbn&q=${encodeURIComponent(isbn)}`);
     if (!res.ok) return "";
-    const data = await res.json();
-    return toHttpsUrl(data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail);
+    const { books }: { books: UpstreamBook[] } = await res.json();
+    return books[0]?.coverImageUrl ?? "";
   } catch {
     return "";
   }
 }
 
-// OpenBD レスポンス summary のうち利用する部分
-type OpenBdSummary = {
-  isbn?: string;
-  title?: string;
-  author?: string;
-  publisher?: string;
-};
-
 // タイトル検索(Google)の結果を、得られた ISBN で OpenBD を一括照会して書誌情報を補正する。
 // 和書は Google だと書名がローマ字化・出版社が欠落しがちなため、書誌(title/author/publisher)は
 // OpenBD を正とする。書影は OpenBD がほぼ持たないため Google のものを維持する。
 // OpenBD は ISBN をカンマ区切りで 1 リクエストにまとめられる（順序保持・無ければ null）。
-async function enrichWithOpenBD(books: BookResult[], signal: AbortSignal): Promise<BookResult[]> {
+async function enrichWithOpenBD(books: UpstreamBook[], signal: AbortSignal): Promise<UpstreamBook[]> {
   const isbns = books.map((b) => b.isbn).filter(Boolean);
   if (isbns.length === 0) return books;
   try {
     const res = await fetch(`${routes.api.booksOpenbd}?isbn=${isbns.join(",")}`, { signal });
     if (!res.ok) return books;
-    const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
-    const byIsbn = new Map<string, OpenBdSummary>();
-    for (const entry of data) {
-      const s = entry?.summary;
-      if (s?.isbn) byIsbn.set(s.isbn, s);
-    }
+    const { books: found }: { books: UpstreamBook[] } = await res.json();
+    const byIsbn = new Map(found.map((book) => [book.isbn, book]));
     return books.map((b) => {
       const s = byIsbn.get(b.isbn);
       if (!s) return b; // OpenBD に無ければ Google のまま
@@ -125,10 +87,10 @@ async function enrichWithOpenBD(books: BookResult[], signal: AbortSignal): Promi
 export function BookSearch({ onSelect, labelledBy }: Props) {
   const [mode, setMode] = useState<Mode>("isbn");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<BookResult[]>([]);
+  const [results, setResults] = useState<UpstreamBook[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<BookResult | null>(null);
+  const [selected, setSelected] = useState<UpstreamBook | null>(null);
   // タイトル検索が失敗したことを伝えるための状態。
   // ⚠️ 「0件」と「失敗」を同じ表示にしてはいけない。上流（Google Books）が 503 を返しても
   //    fetch は成功扱いで data.items が undefined になるだけなので、区別しないと
@@ -168,20 +130,13 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
         setIsbnError(await failureMessage(res));
         return;
       }
-      const data = await res.json();
-      if (!data?.[0]) {
+      const { books }: { books: UpstreamBook[] } = await res.json();
+      const found = books[0];
+      if (!found) {
         setIsbnError("該当する書籍が見つかりませんでした。ISBNをご確認ください。");
         return;
       }
-      const summary = data[0].summary;
-      const book: BookResult = {
-        googleBooksId: "",
-        title: summary.title ?? "",
-        author: summary.author ?? "",
-        publisher: summary.publisher ?? "",
-        isbn: summary.isbn ?? isbn,
-        coverImageUrl: summary.cover ?? "",
-      };
+      const book: UpstreamBook = { ...found };
       // OpenBD は出版社未登録だと書影が空。メタデータは OpenBD（日本語が正確）を
       // 使いつつ、書影だけ Google Books（ISBN 一致）で補完する。
       if (!book.coverImageUrl) {
@@ -233,26 +188,9 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
           setOpen(false);
           return;
         }
-        const data = await res.json();
-        const items: GoogleBooksItem[] = data.items ?? [];
-        const books: BookResult[] = items
-          .map((item) => {
-            const info = item.volumeInfo;
-            const isbn =
-              info.industryIdentifiers?.find((i) => i.type === "ISBN_13")?.identifier ??
-              info.industryIdentifiers?.find((i) => i.type === "ISBN_10")?.identifier ??
-              "";
-            return {
-              googleBooksId: item.id,
-              title: info.title ?? "",
-              author: (info.authors ?? []).join(", "),
-              publisher: info.publisher ?? "",
-              isbn,
-              coverImageUrl: toHttpsUrl(info.imageLinks?.thumbnail),
-            };
-          })
-          // ISBN を本の同一性の基準にするため、ISBN の無い結果は選択させない
-          .filter((b) => b.isbn);
+        // ISBN の無い候補を落とすのも書影の https 化もルート側で済ませている
+        // （= features/book/upstream.ts）。ここは受け取って並べるだけ
+        const { books }: { books: UpstreamBook[] } = await res.json();
         // 書誌情報は OpenBD を正として補正（書影は Google を維持）
         const enriched = await enrichWithOpenBD(books, controller.signal);
         setResults(enriched);
@@ -271,7 +209,7 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
     }, 400);
   }
 
-  function handleSelect(book: BookResult) {
+  function handleSelect(book: UpstreamBook) {
     setSelected(book);
     setQuery(book.title);
     setOpen(false);

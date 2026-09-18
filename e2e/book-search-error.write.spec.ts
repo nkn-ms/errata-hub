@@ -66,7 +66,7 @@ test.describe("タイトル検索の失敗表示（書き込み・ログイン�
   });
 
   test("成功して0件のときは従来どおり「見つかりません」を出す", async ({ page }) => {
-    await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+    await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 
     await page.goto("/submit");
     await page.getByRole("button", { name: "タイトルで検索" }).click();
