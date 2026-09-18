@@ -37,7 +37,7 @@ const BookUpdateSchema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || sanitizeExternalUrl(v) !== null, {
-      message: "正誤表URLは http:// または https:// から始まる正しいURLを入力してください",
+      message: "正誤表のURLは http:// または https:// から始まる正しいURLを入力してください",
     }),
 });
 
