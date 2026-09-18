@@ -104,6 +104,12 @@ export type AdminReport = {
     erratumUrl: string | null;
   };
   images: { id: string; imageUrl: string }[];
+  addenda: {
+    id: string;
+    body: string;
+    createdAt: Date;
+    images: { id: string; imageUrl: string }[];
+  }[];
   publisherComments: { id: string; publisherName: string; body: string; byAdmin: boolean; createdAt: Date }[];
 };
 
@@ -113,6 +119,9 @@ export async function findReportForAdmin(id: string): Promise<AdminReport | null
     include: {
       book: { include: { publisher: { select: { name: true } } } },
       images: true,
+      // 追記も出す。管理画面に出ていないと、権利侵害の申し立てが追記の本文に来たときに
+      // 投稿ごと消すしかなくなる（無関係な投稿者の投稿まで巻き込む）
+      addenda: { orderBy: { createdAt: "asc" }, include: { images: true } },
       // 出版社からの回答（古い順）。ここではモデレーションの削除だけを行う
       publisherComments: {
         orderBy: { createdAt: "asc" },
@@ -152,6 +161,12 @@ export async function findReportForAdmin(id: string): Promise<AdminReport | null
       erratumUrl: report.book.erratumUrl,
     },
     images: report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
+    addenda: report.addenda.map((addendum) => ({
+      id: addendum.id,
+      body: addendum.body,
+      createdAt: addendum.createdAt,
+      images: addendum.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl })),
+    })),
     publisherComments: report.publisherComments.map((comment) => ({
       id: comment.id,
       publisherName: comment.publisher.name,
