@@ -281,19 +281,19 @@ src/features/
 
 src/features/report/
 ├── components/   画面の部品
-├── actions/      Server Action（フォームからの書き込み）
-├── queries.ts    読み取り（Data Access Layer）
+├── actions/      Server Action（ブラウザから直接呼ばれる口）
+├── db/           DB に触るもの（対象で名付ける）
 ├── constants/    ステータス・ラベル・文字数上限
 ├── types.ts
 └── utils/
 ```
 
-⭐ **`actions/` と `queries.ts` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
-await するなら `queries.ts`、クライアントが操作中に呼ぶなら Server Action になる（読み取りでも）。
+⭐ **`actions/` と `db/` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
+await するなら `db/`、ブラウザが操作中に呼ぶなら Server Action になる（読み取りでも）。
 
 ⭐ **DB に触るのは `features/<name>/` と `services/` の中だけ。`app/` は `prisma` を import しない**
 （`no-restricted-imports` で機械的に禁止。テストだけ除外＝`vi.mock` に名前が要るため）。
-共有されているかどうかは基準ではない（1画面しか使わない読みも `queries.ts` に置く）。
+共有されているかどうかは基準ではない（1画面しか使わない読みも `db/` に置く）。
 
 これは Next.js 自身のガイドに沿っている（`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）。
 公式は2つの方式を挙げたうえで **Data Access Layer を「新規プロジェクト向け」、`page.tsx` への直書きを
@@ -301,23 +301,49 @@ await するなら `queries.ts`、クライアントが操作中に呼ぶなら 
 avoiding mixing them."**（混在を避けよ）と書いている。混ぜると「この画面はどちらだったか」を
 毎回確かめることになり、監査する側も追えない。
 
-`queries.ts` が満たすこと（公式が挙げる DAL の3条件）:
+`db/` の中が満たすこと（公式が挙げる DAL の3条件）:
 
 1. **サーバーでしか動かない** … 先頭に `import "server-only"`。クライアントから import するとビルドが落ちる
 2. **認可を行う** … 公開情報には不要。閲覧者ごとに変わる判定は呼び出し側（`services/publisher-access.ts`）
 3. **安全で最小の DTO を返す** … 生の行を外に出さない。⭐ 投稿の `Report`（`types.ts`）がその形で、
-   退会判定に使う `email` は `queries.ts` の中で捨てられる＝**ページは email を持つ値に触れない**
+   退会判定に使う `email` は `db/` の中で捨てられる＝**ページは email を持つ値に触れない**
 
-⚠️ **`queries.ts` に `"use server"` を付けない。** 付けると Server Action 扱いになり、
+⚠️ **`db/` のファイルに `"use server"` を付けない。** 付けると Server Action 扱いになり、
 クライアントから呼べるエンドポイントとして公開されてしまう。
 
 ⚠️ **`services/`（横断層）だけは prisma を直接叩く。** 共有層はフィーチャーを import できないため
 （`import/no-restricted-paths`）。依存の向きを崩さないための例外で、監査ログの読み書き
 （`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
 
-⚠️ **Server Action ではない書き込みは `actions/` に置かない。** `actions/` は Server Actions の置き場所
-（`"use server"`）で、Route Handler から呼ぶ書き込みは**対象で名付けたファイル**に置く
-（`features/account/profile.ts` の `ensureProfile`／`features/report/report-images.ts`）。
+**prisma を触ってよいのは `db/` と `actions/` の中だけ**（`services/` と `lib/prisma.ts` を除く。
+`no-restricted-imports` で機械的に禁止）。`components/` `utils/` `constants/` `schema.ts` は DB を知らない。
+
+```
+features/report/
+├── db/            ← DB に触るのはここ（と actions/）
+│   ├── reports.ts         投稿（公開ページが読む）
+│   ├── reports-admin.ts   投稿（管理画面が読む）
+│   └── report-images.ts   添付画像
+├── actions/       `"use server"` ＝ ブラウザから直接呼ばれる口
+└── components/ constants/ utils/ schema.ts types.ts
+```
+
+⭐ **`db/` の中は「対象」で名付ける。** 1つの仕事が複数の対象にまたがるなら、その仕事の名前で
+（`account/db/withdrawal.ts` は Profile と auth の両方を触るので「退会」）。
+
+⭐ **この命名の基準は「定義を読まなくても通じるか」。** `db/` は定義が要らない（データベースに触る、以上）。
+`service` や `queries` のような名前は**使う前に定義を書く必要があり**、定義を読まない人に誤読される。
+⚠️ 読みか書きかは**ファイル名ではなく関数名**が示す（`find*` は読み。`db/` の28本中21本）。
+ファイル名に重ねると、書き込みが1本入った瞬間に嘘になるのはファイル名の方。
+
+⚠️ **公開と管理は別ファイルにする**（`reports.ts` と `reports-admin.ts`）。DTO を混ぜないための分割で、
+片方に足した欄がもう片方から漏れるのを防ぐ。それ以外は**大きくなるまで1ファイル**でよい。
+
+⚠️ **分ける軸は「誰が呼ぶか」であって読み／書きではない。** `actions/` にあるのは `"use server"` が
+要るもの＝**ブラウザが呼ぶもの**で、読み取りでもここに入る。
+
+⚠️ **`actions/` に置いた関数はすべて外から POST できる口になる**（`"use server"` はファイル単位）。
+だからフォーム以外から呼ぶもの（Route Handler 用）は `actions/` に置けず、`db/` に入る。
 
 ⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
 管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。
@@ -325,7 +351,7 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 ⚠️ **`service.ts` という名前は使わない。** `service` は流派ごとに指すものが違い（Spring なら業務ロジック、
 DDD ならドメインのふるまい）、**どの読みでも「読み取りの置き場」にはならない**。読み手に予想を作らせて
 外す名前は、名前が無いより高くつく。ファイル名は層ではなく**扱う対象**で付ける
-（`queries.ts` / `withdrawal.ts` / `audit.ts` / `publisher-access.ts`）。
+（`reports.ts` / `withdrawal.ts` / `audit.ts` / `publisher-access.ts`）。
 
 フィーチャー同士は直接つながない。**またがるものは app 層で組み立てる。**
 投稿フォームがその例で、`app/(site)/submit/submit-form.tsx` が

@@ -1,4 +1,4 @@
-import { findReportForAdmin, type AdminReport } from "@/features/report/queries";
+import { findReportForAdmin, type AdminReport } from "@/features/report/db/reports-admin";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "./report-editor";
 import { AdminPublisherCommentList } from "./publisher-comment-list";

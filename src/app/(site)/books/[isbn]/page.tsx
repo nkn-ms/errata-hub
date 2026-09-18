@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findBookByIsbn } from "@/features/book/queries";
-import { findReportsByIsbn } from "@/features/report/queries";
+import { findBookByIsbn } from "@/features/book/db/books";
+import { findReportsByIsbn } from "@/features/report/db/reports";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { routes } from "@/constants/routes";

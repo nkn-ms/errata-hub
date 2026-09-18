@@ -1,10 +1,10 @@
-import { findProfileForAdmin, type AdminProfileRow } from "@/features/account/queries";
-import { findPublisherOptions } from "@/features/publisher/queries";
+import { findProfileForAdmin, type AdminProfileRow } from "@/features/account/db/profiles";
+import { findPublisherOptions } from "@/features/publisher/db/publishers";
 import { notFound } from "next/navigation";
 import AdminUserEditor from "./user-editor";
 import { requireAdminPage } from "@/services/auth";
 import { isWithdrawnEmail } from "@/utils/withdrawal";
-import { authUserExists } from "@/features/account/withdrawal";
+import { authUserExists } from "@/features/account/db/withdrawal";
 
 /**
  * ロールを変更できない理由を返す（変更できるなら null）。

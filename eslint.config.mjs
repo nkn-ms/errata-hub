@@ -67,7 +67,32 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // DB に触るのは features/<name>/queries.ts（Data Access Layer）と services/ の中だけ。
+    // features の中で prisma を触ってよいのは db/ と actions/ の中だけ。
+    // components・utils・constants・schema は DB を知らない。
+    //
+    // ⭐ **「どこで DB を触るか」を目で追えるようにするための規則。** ディレクトリを見れば分かり、
+    //    フィーチャー直下にバラのファイルとして散らない（実際 report-images.ts / profile.ts /
+    //    withdrawal.ts が散っていて、開くまで DB を触ると分からなかった）。
+    files: ["src/features/**"],
+    ignores: ["src/features/*/db/**", "src/features/*/actions/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/prisma",
+              message:
+                "DB に触るのは features/<name>/db/ と features/<name>/actions/ の中だけ。db/ に目的で名前を付けたファイルを作ること。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    // DB に触るのは features/<name>/db/ の読み取りと services/ の中だけ。
     // ページは DTO を受け取って並べるだけにする。
     //
     // 出典: node_modules/next/dist/docs/01-app/02-guides/data-security.md
@@ -86,7 +111,7 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/prisma",
               message:
-                "ページから DB を直接叩かない。features/<name>/queries.ts に置いて、そこから DTO を受け取ること。",
+                "ページから DB を直接叩かない。features/<name>/db/ に置いて、そこから DTO を受け取ること。",
             },
           ],
         },

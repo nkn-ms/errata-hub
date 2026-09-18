@@ -1,4 +1,4 @@
-import { findReportsPageForAdmin } from "@/features/report/queries";
+import { findReportsPageForAdmin } from "@/features/report/db/reports-admin";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";

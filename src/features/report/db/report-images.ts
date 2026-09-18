@@ -1,9 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import {
-  ADDENDUM_IMAGE_MAX_COUNT,
-  REPORT_IMAGE_MAX_COUNT,
-} from "@/features/report/constants/report-images";
+import { ADDENDUM_IMAGE_MAX_COUNT, REPORT_IMAGE_MAX_COUNT } from "@/features/report/constants/report-images";
 
 /**
  * **添付画像の読み書き。Server Action ではない**ので `actions/` には置かない

@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { findReportById } from "@/features/report/queries";
+import { findReportById } from "@/features/report/db/reports";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import type { ReportType } from "@/features/report/types";

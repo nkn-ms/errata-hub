@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findPublicProfile } from "@/features/account/queries";
-import { findReportsByUser } from "@/features/report/queries";
+import { findPublicProfile } from "@/features/account/db/profiles";
+import { findReportsByUser } from "@/features/report/db/reports";
 import { TYPE_LABELS, TYPE_COLORS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";

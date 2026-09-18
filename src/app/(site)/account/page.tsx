@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { findAccountSettings } from "@/features/account/queries";
+import { findAccountSettings } from "@/features/account/db/profiles";
 import { routes } from "@/constants/routes";
 import { DisplayNameForm } from "@/features/account/components/display-name-form";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";

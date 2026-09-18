@@ -1,5 +1,5 @@
 import { SubmitForm } from "./submit-form";
-import { findBookByIsbn } from "@/features/book/queries";
+import { findBookByIsbn } from "@/features/book/db/books";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { FORM_COLUMN } from "@/constants/layout";
 

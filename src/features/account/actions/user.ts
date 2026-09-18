@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
-import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/withdrawal";
-import type { AdminProfileRow } from "@/features/account/queries";
+import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/db/withdrawal";
+import type { AdminProfileRow } from "@/features/account/db/profiles";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/utils/withdrawal";
 
 const RoleSchema = z.enum(["ADMIN", "USER"]);
@@ -70,7 +70,7 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
   }
 }
 
-// ⚠️ 付与した行をそのまま返さない。**クライアントへ渡る値なので queries.ts と同じ形にする**
+// ⚠️ 付与した行をそのまま返さない。**クライアントへ渡る値なので db/ が返す形に揃える**
 // （画面はアクセス権の一覧をこの型で持っていて、付与後にそこへ1件足す）。
 export type GrantPublisherAccessResult =
   | { access: AdminProfileRow["publisherAccess"][number]; error?: undefined }

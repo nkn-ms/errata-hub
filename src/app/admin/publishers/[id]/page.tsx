@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { findPublisherForAdmin } from "@/features/publisher/queries";
+import { findPublisherForAdmin } from "@/features/publisher/db/publishers";
 import { notFound } from "next/navigation";
 import PublisherForm from "../publisher-form";
 import { routes } from "@/constants/routes";

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import AdminUserEditor from "./user-editor";
-import type { AdminProfileRow } from "@/features/account/queries";
-import type { PublisherOption } from "@/features/publisher/queries";
+import type { AdminProfileRow } from "@/features/account/db/profiles";
+import type { PublisherOption } from "@/features/publisher/db/publishers";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
