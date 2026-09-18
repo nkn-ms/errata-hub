@@ -147,7 +147,7 @@ export default function TechPage() {
           機能ごとに縦に切っています（<code className="font-mono text-xs">features/</code>）。
           DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と{" "}
           <code className="font-mono text-xs">actions/</code> だけで、画面側のコードから DB の
-          クライアントを読み込もうとすると lint エラーになります。
+          クライアントを読み込もうとすると lint エラーで落ちます。
         </p>
         {/* ツリーは横に長いので、折り返さずに横スクロールさせる（折ると縦線が繋がらなくなる）。
             ページ自体が横に伸びないよう、スクロールはこの枠の中だけで起きる。 */}
