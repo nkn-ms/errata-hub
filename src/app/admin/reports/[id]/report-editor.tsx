@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import { deleteReport, deleteReportImage, updateReport } from "@/features/report/actions/report";
+import { deleteReport, deleteReportImage } from "@/features/report/actions/delete";
+import { updateReport } from "@/features/report/actions/update";
 import { NumberField } from "@/components/ui/number-field";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";

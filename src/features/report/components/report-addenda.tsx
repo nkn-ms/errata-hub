@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
-import { addReportAddendum, type Addendum } from "@/features/report/actions/report";
+import { addReportAddendum, type Addendum } from "@/features/report/actions/update";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import { routes } from "@/constants/routes";

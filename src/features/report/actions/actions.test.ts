@@ -1,3 +1,8 @@
+// この feature の Server Action 4本（create / update / delete / upvote）をまとめて検査する。
+//
+// ⚠️ **実装を4ファイルに割ってもテストは1本のままにしてある。** 先頭の vi.hoisted / vi.mock が
+//    60行あり、4つに複製すると「片方だけモックの形が古い」という食い違いが起きる。
+//    分けるなら、その足場を共有する形（fixtures ファイル）を先に作ること。
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // prisma 本体（pg アダプタ）と Supabase はテストでは実接続しないためモックする。
@@ -56,7 +61,10 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { addReportAddendum, createReport, deleteOwnReportImage, toggleUpvote, updateReport, withdrawOwnReport } from "./report";
+import { createReport } from "./create";
+import { addReportAddendum, updateReport } from "./update";
+import { deleteOwnReportImage, withdrawOwnReport } from "./delete";
+import { toggleUpvote } from "./upvote";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
