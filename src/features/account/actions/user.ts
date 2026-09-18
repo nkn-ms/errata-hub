@@ -7,8 +7,8 @@ import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/withdrawal";
+import type { AdminProfileRow } from "@/features/account/queries";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/utils/withdrawal";
-import type { Publisher, PublisherAccess } from "@/generated/prisma/client";
 
 const RoleSchema = z.enum(["ADMIN", "USER"]);
 
@@ -70,9 +70,10 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
   }
 }
 
-export type PublisherAccessWithPublisher = PublisherAccess & { publisher: Publisher };
+// ⚠️ 付与した行をそのまま返さない。**クライアントへ渡る値なので queries.ts と同じ形にする**
+// （画面はアクセス権の一覧をこの型で持っていて、付与後にそこへ1件足す）。
 export type GrantPublisherAccessResult =
-  | { access: PublisherAccessWithPublisher; error?: undefined }
+  | { access: AdminProfileRow["publisherAccess"][number]; error?: undefined }
   | { access?: undefined; error: string };
 
 export async function grantPublisherAccess(
@@ -125,7 +126,7 @@ export async function grantPublisherAccess(
       return created;
     });
 
-    return { access };
+    return { access: { publisherId: access.publisherId, publisherName: access.publisher.name } };
   } catch (error) {
     console.error(error);
     return { error: "追加に失敗しました" };

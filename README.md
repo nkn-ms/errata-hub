@@ -291,7 +291,8 @@ src/features/report/
 ⭐ **`actions/` と `queries.ts` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
 await するなら `queries.ts`、クライアントが操作中に呼ぶなら Server Action になる（読み取りでも）。
 
-⭐ **DB に触るのは `features/<name>/` と `services/` の中だけ。`app/` は `prisma` を import しない。**
+⭐ **DB に触るのは `features/<name>/` と `services/` の中だけ。`app/` は `prisma` を import しない**
+（`no-restricted-imports` で機械的に禁止。テストだけ除外＝`vi.mock` に名前が要るため）。
 共有されているかどうかは基準ではない（1画面しか使わない読みも `queries.ts` に置く）。
 
 これは Next.js 自身のガイドに沿っている（`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）。
@@ -311,7 +312,15 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 クライアントから呼べるエンドポイントとして公開されてしまう。
 
 ⚠️ **`services/`（横断層）だけは prisma を直接叩く。** 共有層はフィーチャーを import できないため
-（`import/no-restricted-paths`）。依存の向きを崩さないための例外。
+（`import/no-restricted-paths`）。依存の向きを崩さないための例外で、監査ログの読み書き
+（`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
+
+⚠️ **Server Action ではない書き込みは `actions/` に置かない。** `actions/` は Server Actions の置き場所
+（`"use server"`）で、Route Handler から呼ぶ書き込みは**対象で名付けたファイル**に置く
+（`features/account/profile.ts` の `ensureProfile`／`features/report/report-images.ts`）。
+
+⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
+管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。
 
 ⚠️ **`service.ts` という名前は使わない。** `service` は流派ごとに指すものが違い（Spring なら業務ロジック、
 DDD ならドメインのふるまい）、**どの読みでも「読み取りの置き場」にはならない**。読み手に予想を作らせて

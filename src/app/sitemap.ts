@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { findAllBookIsbns } from "@/features/book/queries";
+import { findAllReportIds } from "@/features/report/queries";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
 
@@ -37,8 +38,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
 
   const [books, reports] = await Promise.all([
-    prisma.book.findMany({ select: { isbn: true, updatedAt: true } }),
-    prisma.report.findMany({ select: { id: true, updatedAt: true } }),
+    findAllBookIsbns(),
+    findAllReportIds(),
   ]);
 
   // 静的ページは更新日を持たないので、ビルド（再検証）時刻を lastModified にする

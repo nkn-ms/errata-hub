@@ -52,3 +52,54 @@ export async function createAuditLog(
     },
   });
 }
+
+/**
+ * 監査ログの一覧（新しい順）と総件数。管理画面の「操作ログ」が読む。
+ *
+ * ⚠️ **読み取りが features/<name>/queries.ts ではなくここにあるのは、AuditLog が
+ *    どのフィーチャーのものでもないため**（投稿・書籍・出版社・アカウントのすべてを記録する）。
+ *    横断するものは services/ に置き、ここは prisma を直接叩いてよい層（= README の依存の向き）。
+ *
+ * ⚠️ **絞り込みは Prisma の where ではなく名前付きの引数で受ける。** where を受けると
+ *    呼び出し側（ページ）が Prisma の型を組み立てることになり、DB を隠した意味が無くなる。
+ */
+export type AuditLogRow = {
+  id: string;
+  userEmail: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  before: Prisma.JsonValue;
+  after: Prisma.JsonValue;
+  createdAt: Date;
+};
+
+export async function findAuditLogsPage(params: {
+  page: number;
+  pageSize: number;
+  /** 操作の種類で絞る（完全一致）。 */
+  action?: string;
+  /** 操作者のメールで絞る（部分一致・大文字小文字を無視）。 */
+  email?: string;
+}): Promise<{ logs: AuditLogRow[]; total: number }> {
+  const where = {
+    ...(params.action ? { action: params.action } : {}),
+    ...(params.email
+      ? { userEmail: { contains: params.email, mode: "insensitive" as const } }
+      : {}),
+  };
+
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）。
+      // 監査ログは1トランザクションで複数行が同時刻に入りうるので、ここは特に効く
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (params.page - 1) * params.pageSize,
+      take: params.pageSize,
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  return { logs, total };
+}

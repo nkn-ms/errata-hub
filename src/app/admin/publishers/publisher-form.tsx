@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Publisher } from "@/generated/prisma/client";
+import type { PublisherFormValue } from "@/features/publisher/queries";
 import {
   createPublisher,
   updatePublisher,
@@ -12,7 +12,7 @@ import {
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 
-export default function PublisherForm({ publisher }: { publisher?: Publisher }) {
+export default function PublisherForm({ publisher }: { publisher?: PublisherFormValue }) {
   const router = useRouter();
   const isEdit = !!publisher;
 

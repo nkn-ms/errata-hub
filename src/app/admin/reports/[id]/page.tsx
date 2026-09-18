@@ -1,16 +1,15 @@
-import { prisma } from "@/lib/prisma";
+import { findReportForAdmin, type AdminReport } from "@/features/report/queries";
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "./report-editor";
 import { AdminPublisherCommentList } from "./publisher-comment-list";
 import { ErratumUrlAdopter } from "./erratum-url-adopter";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { formatJstDate, formatJstDateTime } from "@/utils/format";
-import type { Report } from "@/generated/prisma/client";
 
 // 位置の1行表示。媒体ごとに入力される項目が違う（紙=ページ/行、電子=位置、その他=メモ）
 // ため、媒体で分岐して組み立てる。公開側の一覧（report-table の getLocationLabel）と
 // 同趣旨だが、こちらは「その他」で位置メモを出す管理画面向け。
-function formatLocation(report: Report): string {
+function formatLocation(report: Pick<AdminReport, "medium" | "page" | "line" | "hasMultiplePages" | "ebookLocation" | "locationNote">): string {
   if (report.medium === "PAPER") {
     let label = `p.${report.page}`;
     if (report.line) label += ` l.${report.line}`;
@@ -23,18 +22,7 @@ function formatLocation(report: Report): string {
 
 export default async function AdminReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const report = await prisma.report.findUnique({
-    where: { id },
-    include: {
-      book: { include: { publisher: true } },
-      images: true,
-      // 出版社からの回答（古い順）。ここではモデレーションの削除だけを行う
-      publisherComments: {
-        orderBy: { createdAt: "asc" },
-        include: { publisher: { select: { name: true } } },
-      },
-    },
-  });
+  const report = await findReportForAdmin(id);
 
   if (!report) notFound();
 
@@ -114,10 +102,10 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
               <dd>{report.book.author}</dd>
             </>
           )}
-          {report.book.publisher && (
+          {report.book.publisherName && (
             <>
               <dt className="text-gray-500">出版社</dt>
-              <dd>{report.book.publisher.name}</dd>
+              <dd>{report.book.publisherName}</dd>
             </>
           )}
           {report.book.isbn && (
@@ -142,10 +130,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
 
       <AdminPublisherCommentList
         comments={report.publisherComments.map((comment) => ({
-          id: comment.id,
-          publisherName: comment.publisher.name,
-          body: comment.body,
-          byAdmin: comment.byAdmin,
+          ...comment,
           createdAt: formatJstDateTime(comment.createdAt),
         }))}
       />

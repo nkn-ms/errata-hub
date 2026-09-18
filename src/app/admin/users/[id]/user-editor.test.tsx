@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import AdminUserEditor from "./user-editor";
-import type { Profile, Publisher, PublisherAccess } from "@/generated/prisma/client";
+import type { AdminProfileRow } from "@/features/account/queries";
+import type { PublisherOption } from "@/features/publisher/queries";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -21,40 +22,16 @@ vi.mock("@/features/account/actions/user", () => ({
 
 const now = new Date("2026-07-13T00:00:00Z");
 
-const publisherA: Publisher = {
-  id: "pub-a",
-  name: "技術評論社",
-  email: null,
-  emailDomain: null,
-  note: null,
-  createdAt: now,
-  updatedAt: now,
-};
-const publisherB: Publisher = { ...publisherA, id: "pub-b", name: "オライリー" };
+const publisherA: PublisherOption = { id: "pub-a", name: "技術評論社" };
+const publisherB: PublisherOption = { id: "pub-b", name: "オライリー" };
 
-const accessToA: PublisherAccess & { publisher: Publisher } = {
-  id: "acc-1",
-  profileId: "user-1",
-  publisherId: publisherA.id,
-  createdAt: now,
-  // 付与の出所。この画面は出所を表示しないので値は問わない（出版社の詳細ページが表示する）
-  grantedById: "admin-1",
-  grantedByEmail: "admin@example.com",
-  publisher: publisherA,
-};
-
-const profile: Profile & { publisherAccess: (PublisherAccess & { publisher: Publisher })[] } = {
+const profile: AdminProfileRow = {
   id: "user-1",
   email: "user@example.com",
   displayName: "テスト太郎",
-  githubUsername: null,
-  xUsername: null,
   role: "USER",
-  termsAgreedAt: now,
-  termsVersion: "2026-07-22",
   createdAt: now,
-  updatedAt: now,
-  publisherAccess: [accessToA],
+  publisherAccess: [{ publisherId: publisherA.id, publisherName: publisherA.name }],
 };
 
 function renderEditor(withdrawBlockedReason: string | null = null, roleBlockedReason: string | null = null) {

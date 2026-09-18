@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { findBookForAdmin } from "@/features/book/queries";
+import { findReportedErratumUrls } from "@/features/report/queries";
 import { notFound } from "next/navigation";
 import { AdminBookEditor } from "./book-editor";
 import { routes } from "@/constants/routes";
@@ -12,24 +13,14 @@ export default async function AdminBookDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const book = await prisma.book.findUnique({
-    where: { id },
-    include: {
-      publisher: { select: { name: true } },
-      _count: { select: { reports: true } },
-    },
-  });
+  const book = await findBookForAdmin(id);
 
   if (!book) notFound();
 
   // 正誤表URLの入口は2つある（ここ＝管理者が直接入れる／投稿詳細＝読者の申告を検証して採用する）。
   // 書き込み先は Book.erratumUrl の1つだが、この画面からは申告の存在が見えず「投稿したのに反映されない」
   // という誤解の元になっていたので、未採用の申告をここに出して投稿詳細へ辿れるようにする。
-  const reportsWithErratumUrl = await prisma.report.findMany({
-    where: { bookId: id, reportedErratumUrl: { not: null } },
-    select: { id: true, reportedErratumUrl: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const reportsWithErratumUrl = await findReportedErratumUrls(id);
   // 同じURLが複数の投稿から申告されることがあるので、URL 単位にまとめる（採用は1回で済むため）。
   // 既に公式リンクになっているURLは「未採用」ではないので除く。
   const unadoptedErratumUrls = new Map<string, string>(); // URL → 最新の申告元の投稿ID
@@ -84,10 +75,10 @@ export default async function AdminBookDetailPage({
           title: book.title,
           author: book.author,
           isbn: book.isbn,
-          publisherName: book.publisher?.name ?? null,
+          publisherName: book.publisherName,
           coverImageUrl: book.coverImageUrl,
           erratumUrl: book.erratumUrl,
-          reportCount: book._count.reports,
+          reportCount: book.reportCount,
         }}
       />
     </div>

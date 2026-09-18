@@ -74,9 +74,10 @@ const eslintConfig = defineConfig([
     //   「Data Access Layer は新規プロジェクト向け／page.tsx への直書きはプロトタイプ向け」
     //   「We recommend choosing one data fetching approach and avoiding mixing them.」
     //
-    // ⚠️ いまは公開側だけ。**管理画面の移行が済んだら files を "src/app/**" へ広げる**
-    //    （admin の10ページと sitemap・auth/callback・画像アップロードがまだ直叩き）。
-    files: ["src/app/(site)/**"],
+    // ⚠️ **テストは対象外**（Route Handler の unit は prisma をモジュールごとモックするため
+    //    `vi.mock("@/lib/prisma")` で名前を書く必要がある）。
+    files: ["src/app/**"],
+    ignores: ["src/app/**/*.test.ts", "src/app/**/*.test.tsx"],
     rules: {
       "no-restricted-imports": [
         "error",

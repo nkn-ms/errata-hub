@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { findReportsPageForAdmin } from "@/features/report/queries";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";
@@ -19,19 +19,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   const { page: pageParam } = await searchParams;
   const page = toPageNumber(pageParam);
 
-  const [reports, total] = await Promise.all([
-    prisma.report.findMany({
-      include: {
-        book: { include: { publisher: true } },
-        user: { select: { displayName: true } },
-      },
-      // id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      skip: (page - 1) * ADMIN_PAGE_SIZE,
-      take: ADMIN_PAGE_SIZE,
-    }),
-    prisma.report.count(),
-  ]);
+  const { reports, total } = await findReportsPageForAdmin(page, ADMIN_PAGE_SIZE);
 
   const { totalPages, isOutOfRange, from, to } = paginate(page, total, ADMIN_PAGE_SIZE);
   if (isOutOfRange) redirect(pageHref(totalPages));
@@ -67,9 +55,9 @@ export default async function AdminReportsPage({ searchParams }: Props) {
             {reports.map((f) => (
               <tr key={f.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900 line-clamp-1 max-w-[180px]">{f.book.title}</div>
-                  {f.book.publisher && (
-                    <div className="text-xs text-gray-400">{f.book.publisher.name}</div>
+                  <div className="font-medium text-gray-900 line-clamp-1 max-w-[180px]">{f.bookTitle}</div>
+                  {f.publisherName && (
+                    <div className="text-xs text-gray-400">{f.publisherName}</div>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -79,7 +67,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
                   {TYPE_LABELS[f.type]}
                 </td>
                 <td className="px-4 py-3 text-gray-600 text-xs">
-                  {f.book.publisher?.name ?? "-"}
+                  {f.publisherName ?? "-"}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[f.status]}`}>
