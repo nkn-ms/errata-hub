@@ -25,14 +25,31 @@ const STACK = [
   { area: "ホスティング", items: "Vercel" },
 ] as const;
 
+// ディレクトリ構成。**実際の src の形から起こした図**で、飾りで足したディレクトリは無い。
+// 注釈は1行に収める（折り返すとツリーの縦線と揃わなくなるため）。
+const TREE = `src/
+├── app/                  画面と HTTP の受け口（URL がそのままフォルダ）
+│   ├── (site)/             公開ページ
+│   ├── admin/              管理画面
+│   └── api/                Route Handler（外に口が要る4本だけ）
+├── features/             機能ごとのまとまり（下は「投稿」の例）
+│   └── report/
+│       ├── db/             DB を読み書きする。ここと actions 以外からは触れない
+│       ├── actions/        ブラウザから直接呼ばれる口（Server Action）
+│       ├── components/     この機能でしか使わない画面部品
+│       ├── constants/      ラベル・文字数上限
+│       ├── utils/          DB も画面も知らない関数
+│       └── schema.ts       入力の検査（Zod）
+├── components/           機能に属さない画面部品（ui = 部品 / layout = 枠）
+├── services/             機能をまたぐ処理（認可・操作ログ・レート制限）
+├── lib/                  外部との接続そのもの（Prisma・Supabase）
+├── utils/ constants/     純粋な関数・定数（外に触れない）
+└── proxy.ts              全リクエストの入口（CSP の nonce 発行・認証の確認）`;
+
 // 「このアプリでどう組んだか」を書く節。フレームワークを入れれば自動的にそうなること
 // （App Router なら画面の材料が1つのフォルダに集まる、Prisma なら型が生成される）は
 // 実装ではないので書かない。書くのは、こちらが決めた置き方・分け方だけ。
 const IMPLEMENTATION = [
-  {
-    name: "データアクセス（DB に触る場所を固定する）",
-    why: "画面を作るコード自体がサーバーで動くので、ページは DB を読む関数をそのまま呼ぶ。画面と DB の間に自前の HTTP 層は無く、HTTP の受け口（Route Handler）を置いたのは外に口が要る4本だけ（書籍検索が2本、画像アップロードと認証コールバックが1本ずつ）。ただし DB を読み書きしてよい場所は機能ごとの db フォルダに限っていて、画面側のコードから DB のクライアントを読み込もうとすると lint が落ちる。画面に渡すのも DB の行そのものではなく、その画面に必要な項目だけに削った値にしている。",
-  },
   {
     name: "OpenBD / Google Books API",
     why: "ISBN で本を引くときは OpenBD、タイトルで探すときと書影（サムネイル）が要るときは Google Books を使う。どちらもブラウザからは呼ばず、サーバー側の /api/books/openbd と /api/books/search を通す。Google Books の API キーをブラウザに置かないためと、閲覧者の IP を外部サービスへ渡さないため。",
@@ -120,6 +137,23 @@ export default function TechPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      {/* 技術スタック（何を使うか）→ 構成（どこに何があるか）→ 要点（どう組んだか）の順。
+          読み手が降りる深さを自分で選べるようにする。 */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">ディレクトリ構成</h2>
+        <p className="mb-3 text-sm text-gray-600">
+          機能ごとに縦に切っています（<code className="font-mono text-xs">features/</code>）。
+          DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と{" "}
+          <code className="font-mono text-xs">actions/</code> だけで、画面側のコードから DB の
+          クライアントを読み込もうとすると lint が落ちます。
+        </p>
+        {/* ツリーは横に長いので、折り返さずに横スクロールさせる（折ると縦線が繋がらなくなる）。
+            ページ自体が横に伸びないよう、スクロールはこの枠の中だけで起きる。 */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+          <pre className="p-4 text-xs leading-relaxed font-mono text-gray-700">{TREE}</pre>
+        </div>
       </section>
 
       {/* 一覧（何を使うか）→ 要点（どう組んだか）の順に置く。
