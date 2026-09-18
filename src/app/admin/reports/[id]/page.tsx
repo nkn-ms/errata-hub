@@ -151,7 +151,7 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
         currentStatusNote={report.statusNote ?? ""}
         currentFixedEdition={report.fixedEdition}
         currentFixedPrinting={report.fixedPrinting}
-        images={report.images.map((image) => ({ id: image.id, imageUrl: image.imageUrl }))}
+        images={report.images}
       />
     </div>
   );

@@ -22,7 +22,8 @@ type Props = {
   currentStatusNote: string;
   currentFixedEdition?: number | null;
   currentFixedPrinting?: number | null;
-  images: { id: string; imageUrl: string }[];
+  /** 追記に添えた画像も混ざる。`addendumId` が入っているものは追記のもの（印を出す） */
+  images: { id: string; imageUrl: string; addendumId: string | null }[];
 };
 
 export function AdminReportEditor({ id, currentStatus, currentStatusNote, currentFixedEdition, currentFixedPrinting, images }: Props) {
@@ -213,6 +214,11 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
                 >
                   {isRemoved(image.id) ? "↩" : "×"}
                 </button>
+                {/* 一覧には追記の画像も混ざる（同じ投稿に属するため）。どちらの画像を消すのかで
+                    判断が変わる＝連絡後に足された画像は、出版社が見た時点の証拠ではない */}
+                {image.addendumId !== null && (
+                  <p className="mt-1 text-xs text-gray-500">追記の画像</p>
+                )}
               </div>
             ))}
           </div>
