@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type ChangeEvent } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, type CompositionEvent } from "react";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
 import type { UpstreamBook } from "@/features/book/upstream";
@@ -161,12 +161,11 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    setQuery(value);
-    setSelected(null);
-    setSearchError("");
-
+  /**
+   * 打鍵から 400ms 止まったら検索する。⚠️ **入力欄の描画（setQuery）とは分けてある**＝
+   * 日本語入力の変換中は「文字は出すが検索はしない」を成り立たせるため（handleChange 参照）。
+   */
+  function scheduleSearch(value: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
     abortRef.current?.abort();
     if (!value.trim()) { setResults([]); setOpen(false); return; }
@@ -207,6 +206,32 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
         if (abortRef.current === controller) setLoading(false);
       }
     }, 400);
+  }
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setQuery(value);
+    setSelected(null);
+    setSearchError("");
+
+    // 日本語入力は確定前も入力欄の値が書き換わり、その中間状態ごとに onChange が呼ばれる。
+    // ⚠️ デバウンスでは防げない。人が 400ms 止まるのは変換候補を見ている瞬間なので、
+    //    すり抜けるのは「うぇb」のような未確定の文字列に偏る＝意味の無い語で上流を叩き、
+    //    「見つかりません」が変換中に点滅する。確定するまで検索は張らない。
+    if ((e.nativeEvent as InputEvent).isComposing) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      abortRef.current?.abort();
+      return;
+    }
+
+    scheduleSearch(value);
+  }
+
+  // 変換の確定。⚠️ ガードだけでは足りない＝compositionend と input の発火順はブラウザ・IME で
+  // 違い、確定後の input が来ない実装があるため、確定の側からも張り直す
+  // （両方来ても scheduleSearch が前のタイマーを消すので二重には走らない）。
+  function handleCompositionEnd(e: CompositionEvent<HTMLInputElement>) {
+    scheduleSearch(e.currentTarget.value);
   }
 
   function handleSelect(book: UpstreamBook) {
@@ -276,6 +301,7 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
               type="text"
               value={query}
               onChange={handleChange}
+              onCompositionEnd={handleCompositionEnd}
               onFocus={() => results.length > 0 && setOpen(true)}
               placeholder="書籍名・著者名で検索..."
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
