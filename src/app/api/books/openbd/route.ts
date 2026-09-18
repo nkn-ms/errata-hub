@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       console.error("OpenBD API error:", res.status);
       return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
-    // 上流の形が変わっていたら例外＝下の catch で 502。⚠️ 空配列に潰さない
+    // 上流の形が変わっていたら例外＝下の catch で 502。⚠️ 空配列に変換しない
     // （「その ISBN の本が無い」と区別が付かなくなる。上のコメント参照）
     const books = parseOpenBdBooks(await res.json());
     // ⚠️ キャッシュさせるのは上流から答えが返ったときだけ。502 や 401 に付けると

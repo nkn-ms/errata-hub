@@ -52,8 +52,8 @@ const OpenBdResponseSchema = z.array(OpenBdEntrySchema);
 
 /**
  * OpenBD の応答を `UpstreamBook[]` に均す。**形が違えば例外を投げる**（呼び出し側が 502 に倒す）。
- * ⚠️ 「見つからない」と「上流が壊れている」は別物なので、ここで空配列に潰さないこと
- *    — 潰すと画面が「ISBN をご確認ください」＝利用者の入力ミスとして表示してしまう。
+ * ⚠️ 「見つからない」と「上流が壊れている」は別物なので、ここで空配列に変換しないこと
+ *    — 変換すると画面が「ISBN をご確認ください」＝利用者の入力ミスとして表示してしまう。
  */
 export function parseOpenBdBooks(raw: unknown): UpstreamBook[] {
   return OpenBdResponseSchema.parse(raw).flatMap((entry) => {
