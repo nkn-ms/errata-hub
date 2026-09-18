@@ -68,7 +68,7 @@ const PUBLISHER_ANSWERS = [
   "運営者が出版社に代わって記載した場合は、「運営者が代理で記載」と回答に表示します。",
 ] as const;
 
-// ステータスは constants/report-status.ts の定義順で列挙する
+// ステータスは features/report/constants/report-status.ts の定義順で列挙する
 const STATUS_KEYS = Object.keys(STATUS_LABELS) as ReportStatus[];
 
 export default function HowToUsePage() {
