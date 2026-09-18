@@ -321,17 +321,26 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 ```
 features/report/
 ├── db/            ← DB に触るのはここ（と actions/）
-│   ├── queries.ts     ページが描画のために読む投稿
+│   ├── queries.ts     公開ページが読む投稿（**読み取り専用**）
+│   ├── admin.ts       管理画面が読む投稿
 │   └── images.ts      添付画像の読み書き（Route Handler から呼ぶ）
 ├── actions/       `"use server"` ＝ ブラウザから直接呼ばれる口
 └── components/ constants/ utils/ schema.ts types.ts
 ```
 
-⭐ **`db/` の中は目的でファイルを分ける**（`withdrawal.ts` `profile.ts` `images.ts`）。
-大きくなったら増やす。**読み／書きでは分けない** —— 分ける軸は「**誰が呼ぶか**」で、
-`actions/` にあるのは `"use server"` が要るもの＝**ブラウザが呼ぶもの**。読み取りでもここに入る
-（`book/actions/book.ts` の `findErratumUrlByIsbn` は読み取りだが、書籍を選んだ瞬間に
-ブラウザから呼ぶので Server Action）。
+⭐ **`queries.ts` は読み取り専用と決めている。** 書き込みが要るなら、目的で名付けた別ファイルへ出す
+（`images.ts` `withdrawal.ts`）。「queries なのに書き込みがある」を起こさないための規約で、
+**書き込みが入ったら名前を直すのではなく、ファイルを分ける合図**にする。
+
+⭐ **読みか書きかは関数名が示す。** `find*` は読み、`create` / `update` / `delete` / `scrub` などは書き
+（`db/` の28本中21本が `find*`）。だからファイル名に読み書きを重ねない。
+
+⚠️ **分ける軸は「誰が呼ぶか」であって読み／書きではない。** `actions/` にあるのは `"use server"` が
+要るもの＝**ブラウザが呼ぶもの**で、読み取りでもここに入る（`book/actions/book.ts` の
+`findErratumUrlByIsbn` は読み取りだが、書籍を選んだ瞬間にブラウザから呼ぶので Server Action）。
+
+⚠️ **公開と管理は別ファイルにする**（`queries.ts` と `admin.ts`）。DTO を混ぜないための分割で、
+片方に足した欄がもう片方から漏れるのを防ぐ。それ以外は**大きくなるまで1ファイル**でよい。
 
 ⚠️ **`actions/` に置いた関数はすべて外から POST できる口になる**（`"use server"` はファイル単位）。
 だからフォーム以外から呼ぶもの（Route Handler 用）は `actions/` に置けず、`db/` に入る。

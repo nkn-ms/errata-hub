@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { findBookForAdmin } from "@/features/book/db/queries";
-import { findReportedErratumUrls } from "@/features/report/db/queries";
+import { findReportedErratumUrls } from "@/features/report/db/admin";
 import { notFound } from "next/navigation";
 import { AdminBookEditor } from "./book-editor";
 import { routes } from "@/constants/routes";
