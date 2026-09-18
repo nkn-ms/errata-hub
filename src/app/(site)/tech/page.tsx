@@ -31,11 +31,11 @@ const TREE = `src/
 ├── app/                  画面と HTTP の受け口（URL がそのままフォルダ）
 │   ├── (site)/             公開ページ
 │   ├── admin/              管理画面
-│   └── api/                Route Handler（外に口が要る4本だけ）
+│   └── api/                Route Handler（HTTP で直接受ける必要がある4本だけ）
 ├── features/             機能ごとのまとまり（下は「投稿」の例）
 │   └── report/
-│       ├── db/             DB を読み書きする。ここと actions 以外からは触れない
-│       ├── actions/        ブラウザから直接呼ばれる口（Server Action）
+│       ├── db/             DB を読み書きする。ここと actions 以外からは DB を操作しない
+│       ├── actions/        Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
 │       ├── components/     この機能でしか使わない画面部品
 │       ├── constants/      ラベル・文字数上限
 │       ├── utils/          DB にも画面にも依存しない関数
@@ -199,7 +199,7 @@ export default function TechPage() {
           </div>
           <p className="mt-6 text-xs text-gray-500 leading-relaxed">
             {/* 改行は JSX が半角スペースに畳むので、全角の括弧や読点の直前では折らない */}
-            ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）が
+            ブラウザからのリクエストは Vercel 上の Next.js が受け、サーバーコンポーネントや Server Action が
             Supabase（認証・データ永続化・画像の保存）と書誌 API に問い合わせます。
             認証は PKCE の code フロー、外部 API キーはサーバー側に隠蔽しています。
             書誌 API へはブラウザから直接アクセスせず、サーバーが代理で取得します（閲覧者の IP を外部へ渡さないため）。
