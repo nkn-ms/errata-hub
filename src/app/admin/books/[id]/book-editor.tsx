@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteBook, updateBook } from "@/features/book/actions/book";
 import { routes } from "@/constants/routes";
+import type { UpstreamBook } from "@/features/book/upstream";
 import { Button } from "@/components/ui/button";
 
 type Book = {
@@ -18,14 +19,6 @@ type Book = {
 };
 
 // OpenBD レスポンス summary のうち利用する部分（book-search.tsx と同じ並び）
-type OpenBdSummary = {
-  isbn?: string;
-  title?: string;
-  author?: string;
-  publisher?: string;
-  cover?: string;
-};
-
 // 編集対象フィールドの内部キー → 表示ラベル
 const FIELD_LABELS = {
   title: "書籍名",
@@ -79,17 +72,17 @@ export function AdminBookEditor({ book }: { book: Book }) {
     try {
       const res = await fetch(`${routes.api.booksOpenbd}?isbn=${encodeURIComponent(book.isbn)}`);
       if (!res.ok) throw new Error();
-      const data: ({ summary?: OpenBdSummary } | null)[] = await res.json();
-      const s = data[0]?.summary;
-      if (!s) {
+      const { books }: { books: UpstreamBook[] } = await res.json();
+      const found = books[0];
+      if (!found) {
         setFetchError("OpenBD にこの ISBN の書誌が見つかりませんでした。");
         return;
       }
       setFetched({
-        title: s.title ?? "",
-        author: s.author ?? "",
-        publisherName: s.publisher ?? "",
-        coverImageUrl: s.cover ?? "",
+        title: found.title,
+        author: found.author,
+        publisherName: found.publisher,
+        coverImageUrl: found.coverImageUrl,
       });
     } catch {
       setFetchError("OpenBD の取得に失敗しました。時間をおいて再試行してください。");

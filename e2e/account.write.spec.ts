@@ -28,10 +28,10 @@ async function withdraw(page: Page) {
 async function mockBookApis(page: Page) {
   await page.route("**/api/books/openbd*", (route) =>
     route.fulfill({
-      json: [{ summary: { isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, cover: "" } }],
+      json: { books: [{ isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, coverImageUrl: "", googleBooksId: "" }] },
     })
   );
-  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 }
 
 // 使い捨てアカウントで1件投稿し、その投稿 id を返す

@@ -49,13 +49,39 @@ describe("GET /api/books/search の上流リトライ", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ error: { code: 503 } }, 503))
-      .mockResolvedValueOnce(jsonResponse({ items: [{ id: "ok" }] }, 200));
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            items: [
+              {
+                id: "ok",
+                volumeInfo: {
+                  title: "テスト書籍",
+                  industryIdentifiers: [{ type: "ISBN_13", identifier: "9784000000000" }],
+                },
+              },
+            ],
+          },
+          200
+        )
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const res = await GET(request());
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ items: [{ id: "ok" }] });
+    expect(await res.json()).toEqual({
+      books: [
+        {
+          isbn: "9784000000000",
+          title: "テスト書籍",
+          author: "",
+          publisher: "",
+          coverImageUrl: "",
+          googleBooksId: "ok",
+        },
+      ],
+    });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

@@ -28,20 +28,21 @@ export const THROWAWAY_CORRECT = "文字コード";
 export async function mockBookApis(page: Page) {
   await page.route("**/api/books/openbd*", (route) =>
     route.fulfill({
-      json: [
-        {
-          summary: {
+      json: {
+        books: [
+          {
             isbn: THROWAWAY_BOOK.isbn,
             title: THROWAWAY_BOOK.title,
             author: THROWAWAY_BOOK.author,
             publisher: THROWAWAY_BOOK.publisher,
-            cover: "",
+            coverImageUrl: "",
+            googleBooksId: "",
           },
-        },
-      ],
+        ],
+      },
     })
   );
-  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 }
 
 /**

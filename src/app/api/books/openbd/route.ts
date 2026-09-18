@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
+import { parseOpenBdBooks } from "@/features/book/upstream";
 
 // OpenBD 書誌照会をサーバー経由にする。
 // ブラウザから直接 api.openbd.jp を叩くとユーザーの IP アドレス等が OpenBD 側に渡るため、
 // サーバーが代理で取得して中継する（プライバシーポリシー第4条の「ISBN のみ送信」を実装上も担保）。
-// ISBN のカンマ区切りを受け取り、OpenBD のレスポンス（summary を含む配列）をそのまま返す。
+// ISBN のカンマ区切りを受け取り、**均した書誌の配列**を { books } で返す
+// （上流の形はここで止める = features/book/upstream.ts）。
 const MAX_ISBNS = 20;
 
 // 同じ ISBN を問い直したときに上流を叩き直さない（タイプアヘッドの消して打ち直し、戻る操作、
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   const raw = request.nextUrl.searchParams.get("isbn")?.trim();
   if (!raw) {
-    return NextResponse.json([]);
+    return NextResponse.json({ books: [] });
   }
 
   // ISBN-10（末尾チェックディジットは X 可）/ ISBN-13 の形式のみ許可。
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
     .filter((s) => /^(?:\d{9}[\dX]|\d{13})$/.test(s))
     .slice(0, MAX_ISBNS);
   if (isbns.length === 0) {
-    return NextResponse.json([]);
+    return NextResponse.json({ books: [] });
   }
 
   // ⚠️ 空配列は「その ISBN に該当が無い」の意味だけに使い、**上流の失敗には使わない**。
@@ -71,10 +73,12 @@ export async function GET(request: NextRequest) {
       console.error("OpenBD API error:", res.status);
       return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
     }
-    const data = await res.json();
+    // 上流の形が変わっていたら例外＝下の catch で 502。⚠️ 空配列に潰さない
+    // （「その ISBN の本が無い」と区別が付かなくなる。上のコメント参照）
+    const books = parseOpenBdBooks(await res.json());
     // ⚠️ キャッシュさせるのは上流から答えが返ったときだけ。502 や 401 に付けると
     //    「一時的な失敗」をブラウザが覚え込み、直っても再試行しなくなる。
-    return NextResponse.json(data, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });
+    return NextResponse.json({ books }, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });
   } catch (error) {
     console.error("OpenBD API error:", error);
     return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });

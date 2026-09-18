@@ -22,20 +22,19 @@ test.describe("タイトル検索の候補リスト（書き込み・ログイ�
     await page.route("**/api/books/search*", (route) =>
       route.fulfill({
         json: {
-          items: LONG_TITLED_BOOKS.map((b, i) => ({
-            id: `stub-${i}`,
-            volumeInfo: {
-              title: b.title,
-              authors: [b.author],
-              publisher: b.publisher,
-              industryIdentifiers: [{ type: "ISBN_13", identifier: b.isbn }],
-            },
+          books: LONG_TITLED_BOOKS.map((b, i) => ({
+            isbn: b.isbn,
+            title: b.title,
+            author: b.author,
+            publisher: b.publisher,
+            coverImageUrl: "",
+            googleBooksId: `stub-${i}`,
           })),
         },
       })
     );
     // 書誌の補正（enrichWithOpenBD）。ここでは Google の値をそのまま使わせる
-    await page.route("**/api/books/openbd*", (route) => route.fulfill({ json: [] }));
+    await page.route("**/api/books/openbd*", (route) => route.fulfill({ json: { books: [] } }));
 
     await login(page, READER);
   });
@@ -92,7 +91,7 @@ test.describe("タイトル検索の候補リスト（書き込み・ログイ�
   // 0件と「検索が失敗した」を混ぜないのは表示側で既に決めている（book-search.tsx のコメント）。
   // 読み上げ側でも同じ区別が要る＝「候補が無い」を「壊れている」と読ませない。
   test("候補が0件のときは0件だと読み上げる", async ({ page }) => {
-    await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+    await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 
     await page.goto("/submit");
     await page.getByRole("button", { name: "タイトルで検索" }).click();
@@ -106,15 +105,14 @@ test.describe("タイトル検索の候補リスト（書き込み・ログイ�
   // AbortController で前を打ち切っているかを、遅い応答をわざと作って確かめる。
   test("古い応答が後から届いても、候補リストは最新の入力のものになる", async ({ page }) => {
     const stub = (title: string) => ({
-      items: [
+      books: [
         {
-          id: `stub-${title}`,
-          volumeInfo: {
-            title,
-            authors: ["著者"],
-            publisher: "出版社",
-            industryIdentifiers: [{ type: "ISBN_13", identifier: "9784873116860" }],
-          },
+          isbn: "9784873116860",
+          title,
+          author: "著者",
+          publisher: "出版社",
+          coverImageUrl: "",
+          googleBooksId: `stub-${title}`,
         },
       ],
     });

@@ -23,10 +23,10 @@ const BOOK_B = {
 async function mockBookApis(page: Page) {
   await page.route("**/api/books/openbd*", (route) =>
     route.fulfill({
-      json: [{ summary: { isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, cover: "" } }],
+      json: { books: [{ isbn: BOOK_B.isbn, title: BOOK_B.title, author: BOOK_B.author, publisher: BOOK_B.publisher, coverImageUrl: "", googleBooksId: "" }] },
     })
   );
-  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/books/search*", (route) => route.fulfill({ json: { books: [] } }));
 }
 
 async function expectAllTextMeetsAA(page: Page, state: string) {
