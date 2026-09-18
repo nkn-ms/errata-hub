@@ -36,9 +36,9 @@ const eslintConfig = defineConfig([
             { target: "./src/services", from: "./src/features" },
             { target: "./src/utils", from: "./src/features" },
 
-            // 共有層の内側にも順序を入れる（2026-09-17）。棚は「何に依存してよいか」で定義する:
+            // 共有層の内側にも順序を入れる（2026-09-17）。各ディレクトリは「何に依存してよいか」で定義する:
             //   constants（値だけ）→ utils（純粋関数）→ lib（外部との口）→ services（DB・認証に触る横断処理）
-            // 下から上へは import できない。これで「新しい共有ファイルをどの棚に置くか」が
+            // 下から上へは import できない。これで「新しい共有ファイルをどのディレクトリに置くか」が
             // **「外部（DB・認証・fetch）に触るか」の質問1つ**で決まり、間違えるとここが落ちる。
             //
             // ⚠️ この順序は宣言ではなく**実測**（移行時点で違反ゼロ）。utils/ と constants/ は
