@@ -19,7 +19,7 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, PrismaC
   const models = {
     report: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
     reportImage: { findUnique: vi.fn(), delete: vi.fn() },
-    reportAddendum: { create: vi.fn() },
+    reportAddendum: { create: vi.fn(), findUnique: vi.fn(), delete: vi.fn() },
     upvote: { create: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
     book: { upsert: vi.fn() },
     publisher: { upsert: vi.fn() },
@@ -63,7 +63,7 @@ vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { createReport } from "./create";
 import { addReportAddendum, updateReport } from "./update";
-import { deleteOwnReportImage, withdrawOwnReport } from "./delete";
+import { deleteOwnReportImage, deleteReportAddendum, withdrawOwnReport } from "./delete";
 import { toggleUpvote } from "./upvote";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
@@ -567,5 +567,59 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
     expect(result.error).toBe("画像が見つかりません");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
     expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteReportAddendum（運営者による追記の削除）", () => {
+  // 実在しないバケットの URL にしておくと storagePathFromPublicUrl が null を返し、
+  // Storage への削除要求そのものが起きない（ここで見たいのは DB 側の判断なので都合がよい）
+  const addendum = {
+    id: "addendum-1",
+    reportId: "report-1",
+    body: "追記の本文",
+    images: [{ id: "image-1", imageUrl: "https://example.test/not-a-storage-url.png" }],
+  };
+
+  it("追記が無ければその旨を返す", async () => {
+    prismaMock.reportAddendum.findUnique.mockResolvedValue(null);
+
+    const result = await deleteReportAddendum("addendum-1");
+
+    expect(result).toEqual({ error: "追記が見つかりません" });
+    expect(prismaMock.reportAddendum.delete).not.toHaveBeenCalled();
+  });
+
+  it("削除と監査ログは1つの塊の中で書き、消した中身を before に残す", async () => {
+    // before に残すのは、添えていた画像の URL を後から辿れる唯一の手掛かりだから
+    // （Storage のファイルは Cascade では消えない = removeImageFiles のコメント）
+    prismaMock.reportAddendum.findUnique.mockResolvedValue(addendum);
+
+    const result = await deleteReportAddendum("addendum-1");
+
+    expect(result).toEqual({});
+    expect(prismaMock.$transaction).toHaveBeenCalledOnce();
+    expect(prismaMock.reportAddendum.delete).toHaveBeenCalledWith({ where: { id: "addendum-1" } });
+
+    const [params, tx] = createAuditLogMock.mock.calls[0];
+    expect(tx).toBeDefined();
+    expect(params).toMatchObject({
+      action: AUDIT_ACTION.DELETE_REPORT_ADDENDUM,
+      targetType: TARGET_TYPE.REPORT,
+      // 対象は投稿（追記は投稿の一部）なので追記 ID ではなく投稿 ID
+      targetId: "report-1",
+    });
+    expect(params.before).toMatchObject({ body: "追記の本文" });
+  });
+
+  it("添えた画像の URL を、行を消す前に読み出している", async () => {
+    // ⚠️ ReportImage は addendumId の Cascade で行だけ消えるので、
+    //    先に URL を集めておかないと Storage のファイルが孤児になる
+    prismaMock.reportAddendum.findUnique.mockResolvedValue(addendum);
+
+    await deleteReportAddendum("addendum-1");
+
+    expect(prismaMock.reportAddendum.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ include: { images: true } })
+    );
   });
 });

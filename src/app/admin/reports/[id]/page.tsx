@@ -2,6 +2,7 @@ import { findReportForAdmin, type AdminReport } from "@/features/report/db/repor
 import { notFound } from "next/navigation";
 import { AdminReportEditor } from "./report-editor";
 import { AdminPublisherCommentList } from "./publisher-comment-list";
+import { AdminAddendumList } from "./addendum-list";
 import { ErratumUrlAdopter } from "./erratum-url-adopter";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { formatJstDate, formatJstDateTime } from "@/utils/format";
@@ -127,6 +128,14 @@ export default async function AdminReportDetailPage({ params }: { params: Promis
           />
         </div>
       )}
+
+      {/* 追記 → 出版社の回答の順。投稿者が足したもの、出版社が書いたものの順に読める */}
+      <AdminAddendumList
+        addenda={report.addenda.map((addendum) => ({
+          ...addendum,
+          createdAt: formatJstDateTime(addendum.createdAt),
+        }))}
+      />
 
       <AdminPublisherCommentList
         comments={report.publisherComments.map((comment) => ({
