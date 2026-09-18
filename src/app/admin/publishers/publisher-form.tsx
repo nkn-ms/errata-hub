@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { PublisherFormValue } from "@/features/publisher/db/queries";
+import type { PublisherFormValue } from "@/features/publisher/db/publishers";
 import {
   createPublisher,
   updatePublisher,

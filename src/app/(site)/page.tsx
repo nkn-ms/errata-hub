@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { findReportsPage } from "@/features/report/db/queries";
+import { findReportsPage } from "@/features/report/db/reports";
 import { ReportCard } from "@/features/report/components/report-card";
 import { CompactReportTable } from "@/features/report/components/compact-report-table";
 import { routes } from "@/constants/routes";

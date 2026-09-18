@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 
 /**
- * **書籍の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/queries.ts の冒頭と同じ。
+ * **書籍の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **投稿は返さない。** 書籍と投稿は別のフィーチャーなので、両方を必要とする画面（書籍ページ）が
  *    app 層で2つを呼んで組み立てる = README「またがるものは app 層で組み立てる」。

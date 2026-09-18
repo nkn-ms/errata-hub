@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 
 /**
- * **出版社の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/queries.ts の冒頭と同じ。
+ * **出版社の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **出版社の情報は管理画面にしか出ない**（`Publisher.email` は連絡先で、公開ページには出さない
  * = schema.prisma）。認可は app/admin/layout.tsx の requireAdminPage() が担う。

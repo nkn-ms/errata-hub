@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { findAllReports } from "@/features/report/db/queries";
+import { findAllReports } from "@/features/report/db/reports";
 import { ReportTable } from "@/features/report/components/report-table";
 import { TYPE_LABELS } from "@/features/report/constants/report-labels";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";

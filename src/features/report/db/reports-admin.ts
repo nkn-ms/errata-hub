@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Report } from "@/features/report/types";
 
 /**
- * **管理画面が読む投稿。** 公開側（queries.ts）とファイルを分けてあるのは、
+ * **管理画面が読む投稿。** 公開側（reports.ts）とファイルを分けてあるのは、
  * ⭐ **DTO を混ぜないことがこのアプリの安全境界だから**。管理者に要るのは対応記録
  * （statusNote・申告された正誤表 URL）で、読者に出す整形済みの本文とは別物。
  * 片方に足した欄がもう片方から漏れるのを防ぐ（実際、管理画面が Prisma の行を丸ごと

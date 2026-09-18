@@ -6,7 +6,7 @@ import type { Report } from "@/features/report/types";
 // ⚠️ 空を "" にするのは、`String(null)` が "null" になるのと、value={undefined} が
 //    非制御の input になるため。数値欄が文字列なのは NumberField の都合（全角を一時保持する）。
 //
-// ⚠️ **DB の行ではなく DTO を受け取る。** queries.ts が生の行を外に出さなくなったので、
+// ⚠️ **DB の行ではなく DTO を受け取る。** db/ が生の行を外に出さないので、
 //    未入力は null ではなく undefined で来る（Report の省略可プロパティ）。
 type ReportFields = Pick<
   Report,

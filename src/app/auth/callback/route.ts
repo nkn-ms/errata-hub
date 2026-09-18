@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/constants/legal";
 import { toDisplayName } from "@/features/account/utils/display-name";
-import { ensureProfile } from "@/features/account/db/profile";
+import { ensureProfile } from "@/features/account/db/profiles";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);

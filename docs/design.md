@@ -80,7 +80,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ## 5. アーキテクチャ / 技術
 
-- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データはページが `features/<name>/db/queries.ts` を await する。HTTP 越し自前 API は挟まない（外部公開時のみ）。⚠️ **`app/` から prisma を直接叩かない**（公式の data-security ガイドが「混在を避けよ」としているため。lint で禁止）。 — ✅実装済・ISR は❌未導入（動的レンダリング）
+- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データはページが `features/<name>/db/` の関数を await する。HTTP 越し自前 API は挟まない（外部公開時のみ）。⚠️ **`app/` から prisma を直接叩かない**（公式の data-security ガイドが「混在を避けよ」としているため。lint で禁止）。 — ✅実装済・ISR は❌未導入（動的レンダリング）
 - 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。 — ✅実装済
 - **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。 — ✅実装済（全テーブル RLS 有効・ポリシー無し=全拒否ロック。認可はサーバー層で行う。→ `docs/learnings.md`）
   - ⚠️ **「全テーブル」は放っておくと崩れる。** RLS は Prisma の管理外＝手作業で、当てたのは公開前の一括作業なので、**それより後に足したテーブルは締まらない**。実際に `RateLimit`（一括適用より後のマイグレーションで追加）と `_prisma_migrations` が漏れていた（2026-08-06 の実測で発見・同日に本番へ適用して解消）。テーブルを足したときの手順は `docs/dev-environment.md` §9

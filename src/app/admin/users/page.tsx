@@ -1,4 +1,4 @@
-import { findProfilesPageForAdmin } from "@/features/account/db/queries";
+import { findProfilesPageForAdmin } from "@/features/account/db/profiles";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PAGE_SIZE, AdminPagination } from "../pagination";

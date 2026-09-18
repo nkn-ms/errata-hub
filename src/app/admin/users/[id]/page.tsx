@@ -1,5 +1,5 @@
-import { findProfileForAdmin, type AdminProfileRow } from "@/features/account/db/queries";
-import { findPublisherOptions } from "@/features/publisher/db/queries";
+import { findProfileForAdmin, type AdminProfileRow } from "@/features/account/db/profiles";
+import { findPublisherOptions } from "@/features/publisher/db/publishers";
 import { notFound } from "next/navigation";
 import AdminUserEditor from "./user-editor";
 import { requireAdminPage } from "@/services/auth";

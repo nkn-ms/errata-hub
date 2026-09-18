@@ -1,6 +1,6 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { findReportById, hasUpvoted } from "@/features/report/db/queries";
+import { findReportById, hasUpvoted } from "@/features/report/db/reports";
 import { TYPE_LABELS, TYPE_COLORS, UPVOTE_HINTS } from "@/features/report/constants/report-labels";
 import { notFound } from "next/navigation";
 import Link from "next/link";

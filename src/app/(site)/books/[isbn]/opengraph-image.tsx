@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { findBookByIsbn } from "@/features/book/db/queries";
+import { findBookByIsbn } from "@/features/book/db/books";
 import { OG_SIZE, OG_CONTENT_TYPE, loadJapaneseFont } from "@/lib/og";
 import { toCanonicalIsbn } from "@/utils/isbn";
 
