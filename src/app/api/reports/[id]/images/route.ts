@@ -18,6 +18,7 @@ import {
   IMAGE_POOL_CLOSED_MESSAGE,
   imagePool,
 } from "@/features/report/db/report-images";
+import { hasEmbeddedMetadata } from "@/features/report/utils/image-metadata";
 
 // 投稿への画像添付。multipart/form-data で1リクエスト1ファイル
 // （Vercel のボディ上限 4.5MB に収めるため、複数枚はクライアントが直列に送る）。
@@ -91,6 +92,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     if (file.size > REPORT_IMAGE_MAX_BYTES) {
       return NextResponse.json({ error: `画像は1枚${REPORT_IMAGE_MAX_MB}MB以下にしてください` }, { status: 400 });
+    }
+    // 撮影情報（撮影場所の緯度・経度を含みうる）が残った画像は受け付けない。保存先は公開バケットで、
+    // 置いた時点で誰でも読める。落とすのはブラウザの仕事（utils/image-compress.ts）で、ここに来るのは
+    // その処理が失敗したときかフォームを通さずに送られたとき。
+    // サーバーで描き直して落とさないのは、関数内の画像処理が Active CPU を直接食うため（utils/image-compress.ts の冒頭）
+    if (hasEmbeddedMetadata(new Uint8Array(await file.arrayBuffer()))) {
+      return NextResponse.json(
+        { error: "撮影場所などの情報（EXIF）を含む画像のため、アップロードできませんでした。スクリーンショットを撮り直すなど、別の画像でお試しください。" },
+        { status: 400 }
+      );
     }
 
     // Storage への書き込みは secret キー（サーバー専用）で行う。Storage 側のポリシーは
