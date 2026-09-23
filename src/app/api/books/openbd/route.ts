@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
-import { parseOpenBdBooks } from "@/features/book/upstream";
+import { fetchOpenBdBooks } from "@/lib/openbd";
 
 // OpenBD 書誌照会をサーバー経由にする。
 // ブラウザから直接 api.openbd.jp を叩くとユーザーの IP アドレス等が OpenBD 側に渡るため、
 // サーバーが代理で取得して中継する（プライバシーポリシー第4条の「ISBN のみ送信」を実装上も担保）。
 // ISBN のカンマ区切りを受け取り、**均した書誌の配列**を { books } で返す
-// （上流の形はここで止める = features/book/upstream.ts）。
+// （上流の形はここで止める = lib/book-upstream.ts）。
 const MAX_ISBNS = 20;
 
 // 同じ ISBN を問い直したときに上流を叩き直さない（タイプアヘッドの消して打ち直し、戻る操作、
@@ -65,17 +65,9 @@ export async function GET(request: NextRequest) {
   //    タイトル検索の書誌補正（book-search.tsx の enrichWithOpenBD）は !res.ok を
   //    「Google の値をそのまま使う」で扱うので、502 にしても壊れず degrade する。
   try {
-    // 応答が返らない相手を待ち続けない（理由は books/search/route.ts の UPSTREAM_TIMEOUT_MS）
-    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbns.join(",")}`, {
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!res.ok) {
-      console.error("OpenBD API error:", res.status);
-      return NextResponse.json({ error: "書籍情報の取得に失敗しました。しばらくしてからお試しください。" }, { status: 502 });
-    }
-    // 上流の形が変わっていたら例外＝下の catch で 502。⚠️ 空配列に変換しない
-    // （「その ISBN の本が無い」と区別が付かなくなる。上のコメント参照）
-    const books = parseOpenBdBooks(await res.json());
+    // 上流の失敗（HTTP エラー・通信エラー・形の変化）は例外＝下の catch で 502。
+    // ⚠️ 空配列に変換しない（「その ISBN の本が無い」と区別が付かなくなる。上のコメント参照）
+    const books = await fetchOpenBdBooks(isbns);
     // ⚠️ キャッシュさせるのは上流から答えが返ったときだけ。502 や 401 に付けると
     //    「一時的な失敗」をブラウザが覚え込み、直っても再試行しなくなる。
     return NextResponse.json({ books }, { headers: { "Cache-Control": SUCCESS_CACHE_CONTROL } });

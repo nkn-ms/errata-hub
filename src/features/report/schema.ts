@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
+import { BOOK_LIMITS, REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 
@@ -23,14 +23,19 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
 // ⚠️ **この2件だけ「必須です」のままにしてある。** 書籍は検索 UI から選ぶもので、
 // 利用者が手で入力する欄ではない＝この文言が画面に出るのはアクション直叩きのときだけ。
 // 手入力の欄は「〜を入力してください」に揃えている（下の reportBodyShape 以降）。
+//
+// 書誌（書名・著者・出版社）は、書籍を新しく作るときに OpenBD に無い項目だけ使われる
+// （= actions/create.ts の findOrCreateBook）。それでも上限は付ける: OpenBD に無い本では
+// この値がそのまま保存され、公開ページに出るため。上限は実在の書誌が収まる側に余裕を持たせている
 const BookSchema = z.object({
   googleBooksId: z.string().optional(),
-  title: z.string().min(1, "書籍名は必須です"),
-  author: z.string().optional(),
-  publisher: z.string().optional(),
+  title: z.string().trim().min(1, "書籍名は必須です").max(BOOK_LIMITS.title, `書籍名は${BOOK_LIMITS.title}文字以内にしてください`),
+  author: z.string().trim().max(BOOK_LIMITS.author, `著者は${BOOK_LIMITS.author}文字以内にしてください`).optional(),
+  publisher: z.string().trim().max(BOOK_LIMITS.publisher, `出版社は${BOOK_LIMITS.publisher}文字以内にしてください`).optional(),
   isbn: z.string().min(1, "ISBNは必須です"),
   coverImageUrl: z.string().optional(),
 });
+export type SubmittedBook = z.output<typeof BookSchema>;
 
 // 文字数上限は REPORT_LIMITS（フォームの maxLength と同じ値）で一元管理する。
 // フォームで打ち切られる想定だが、アクション直叩き・貼り付け経路もあるのでサーバーでも弾く。

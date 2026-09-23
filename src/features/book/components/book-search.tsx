@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import Image from "next/image";
 import { routes } from "@/constants/routes";
-import type { UpstreamBook } from "@/features/book/upstream";
+import type { UpstreamBook } from "@/lib/book-upstream";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -189,7 +189,7 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
           return;
         }
         // ISBN の無い候補を落とすのも書影の https 化もルート側で済ませている
-        // （= features/book/upstream.ts）。ここは受け取って並べるだけ
+        // （= lib/book-upstream.ts）。ここは受け取って並べるだけ
         const { books }: { books: UpstreamBook[] } = await res.json();
         // 書誌情報は OpenBD を正として補正（書影は Google を維持）
         const enriched = await enrichWithOpenBD(books, controller.signal);

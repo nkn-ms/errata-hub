@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseOpenBdBooks, parseGoogleBooks } from "./upstream";
+import { parseOpenBdBooks, parseGoogleBooks } from "./book-upstream";
 
 describe("parseOpenBdBooks", () => {
   it("summary が無い要素を落とす（**これが実際に TypeError になっていた経路**）", () => {
