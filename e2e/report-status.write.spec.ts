@@ -16,7 +16,7 @@ import {
 // docs/moderation-policy.md）が実装されていることを担保する:
 //   - OTHER（その他）は説明が無いと保存できない  = features/report/schema.ts の ReportUpdateSchema
 //   - LISTED（正誤表に掲載）は公開側の絞り込みでも引ける
-//   - DISMISSED（却下）でも投稿は消さない・隠さない
+//   - DISMISSED（却下）でも投稿は消さない・隠さない（検索エンジンにだけは載せない）
 //   - 修正版・刷は FIXED を離れるとサーバー側で消える = ReportUpdateSchema の transform
 //
 // ⭐ **いずれも使い捨ての投稿を自分で作って自分で消す**（シードの投稿は借りない）。
@@ -100,10 +100,17 @@ test.describe("ステータス運用（管理者）", () => {
     await deleteReportAsAdmin(page, reportId);
   });
 
-  test("「却下」しても投稿は公開のまま残る（削除も非公開もしない）", async ({ page }) => {
+  test("「却下」しても投稿は公開のまま残る（削除も非公開もしない）が、検索エンジンには載せない", async ({ page }) => {
     const title = `E2E却下テスト ${Date.now()}`;
     await login(page, ADMIN);
     const reportId = await createThrowawayReport(page, title);
+    const robotsMeta = page.locator('meta[name="robots"]');
+
+    // 却下する前は索引の対象（noindex が付かない・sitemap に載る）＝下の検査が常に通る形になっていないことの裏取り
+    await page.goto(`/reports/${reportId}`);
+    await expect(robotsMeta).toHaveCount(0);
+    expect(await (await page.request.get("/sitemap.xml")).text()).toContain(`/reports/${reportId}<`);
+
     await openInAdmin(page, reportId);
 
     await setStatus(page, "却下");
@@ -116,6 +123,10 @@ test.describe("ステータス運用（管理者）", () => {
     // ⚠️ 完全一致で指す（投稿の概要にも「却下」が入るので、部分一致だと3つに当たる）
     await expect(page.getByText("却下", { exact: true })).toBeVisible();
     await expect(page.getByText(THROWAWAY_WRONG)).toBeVisible(); // 本文も伏せない
+
+    // 検索結果にはステータスが出ず「誤/正」だけが並ぶので、検索エンジンには載せない
+    await expect(robotsMeta).toHaveAttribute("content", /noindex/);
+    expect(await (await page.request.get("/sitemap.xml")).text()).not.toContain(`/reports/${reportId}<`);
 
     // 一覧（検索）からも消えない
     await searchReports(page, title);

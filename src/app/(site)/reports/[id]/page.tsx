@@ -42,6 +42,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${report.title} | Errata Hub`,
     description: `${report.bookTitle} への${TYPE_LABELS[report.type]}の投稿。`,
+    // 却下した投稿は公開のまま残すが、検索エンジンには載せない。検索結果にはステータスが出ず、
+    // 管理者が無効と判断した「誤/正」だけが並ぶため（誤った正誤情報は、無いことより有害）。
+    // sitemap からも外している = app/sitemap.ts
+    ...(report.status === "DISMISSED" && { robots: { index: false } }),
   };
 }
 
