@@ -74,19 +74,19 @@ fixedEdition / fixedPrinting は FIXED に付随
 4. **通知**: 自分の報告に出版社回答が付いたらメール通知（Resend 等）。
 5. **法務・プライバシー**: 免責、退会（GDPR: **§7 の匿名化方針**＝auth.users 削除＋Profile の PII スクラブ・Report は保全）、削除依頼フロー、利用規約。
 
-実装状況: 1=❌未実装。2=🔶一部（賛同数✅・投稿者実績は `/users/[id]` の統計で一部✅・出版社 verified 回答バッジ❌・免責バナー✅維持中）。3=❌未実装（noindex ソフトローンチ中・sitemap 無し・動的レンダリング。public 化時に着手）。4=❌未実装。5=🔶一部（利用規約/プライバシー実ページ＋登録・ログイン画面の同意文言✅・退会=匿名化✅・免責✅。削除依頼フローとモデレーション方針の明文化は❌）。
+実装状況: 1=🔶一部（レート制限✅＝§7。通報（Flag）・管理キュー・trust level は❌）。2=🔶一部（賛同数✅・投稿者実績は `/users/[id]` の統計で一部✅・出版社 verified 回答バッジ❌・免責バナー✅維持中）。3=🔶一部（public 化済み。sitemap.xml・robots・ページごとの title/description・OG 画像✅。ISR は❌＝CSP の nonce が全ページの動的レンダリングを要求するため（§7「セキュリティヘッダ」）。構造化データ・出版社別一覧は❌）。4=❌未実装。5=🔶一部（利用規約/プライバシー実ページ＋登録・ログイン画面の同意文言✅・退会=匿名化✅・免責✅・モデレーション方針の明文化✅＝docs/moderation-policy.md。削除依頼は問い合わせ窓口で受ける運用で、専用のフローは❌）。
 
 ---
 
 ## 5. アーキテクチャ / 技術
 
-- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データはページが `features/<name>/db/` の関数を await する。HTTP 越し自前 API は挟まない（外部公開時のみ）。⚠️ **`app/` から prisma を直接叩かない**（公式の data-security ガイドが「混在を避けよ」としているため。lint で禁止）。 — ✅実装済・ISR は❌未導入（動的レンダリング）
+- **Next.js 16 App Router**: 公開ページはサーバーコンポーネント + ISR。データはページが `features/<name>/db/` の関数を await する。HTTP 越し自前 API は挟まない（外部公開時のみ）。⚠️ **`app/` から prisma を直接叩かない**（公式の data-security ガイドが「混在を避けよ」としているため。lint で禁止）。 — ✅実装済・ISR は❌未導入（CSP の nonce が全ページの動的レンダリングを要求するため＝§7「セキュリティヘッダ」）
 - 認可は `services/auth.ts` 集約、admin は layout ガード + proxy の多層防御。 — ✅実装済
 - **RLS を締める**: 全アクセスが Prisma（特権ロール）経由なので、全テーブル RLS 有効化 = PostgREST 経由は拒否し、公開 anon キーでの直叩き露出を塞ぐ。**公開前必須**。 — ✅実装済（全テーブル RLS 有効・ポリシー無し=全拒否ロック。認可はサーバー層で行う。→ `docs/learnings.md`）
   - ⚠️ **「全テーブル」は放っておくと崩れる。** RLS は Prisma の管理外＝手作業で、当てたのは公開前の一括作業なので、**それより後に足したテーブルは締まらない**。実際に `RateLimit`（一括適用より後のマイグレーションで追加）と `_prisma_migrations` が漏れていた（2026-08-06 の実測で発見・同日に本番へ適用して解消）。テーブルを足したときの手順は `docs/dev-environment.md` §9
   - ⭐ **実際に PostgREST を止めているのは RLS ではなく権限の側**。同じ実測で `anon` は public スキーマの USAGE を持たず（`has_schema_privilege = false`）、テーブルの SELECT も持たない（本番・ローカルとも）。RLS はその上に重ねる2枚目なので、上の漏れは**露出ではなく多層防御の欠け**だった
 - 検索: まず Postgres 全文検索（pg_trgm）。 — ❌未実装（現状は一覧のクライアント側フィルタのみ）
-- 画像: Supabase Storage、削除はカスケード + ファイル削除を退会・報告削除に統合。 — ❌未実装（`ReportImage` モデルのみ存在・画像投稿機能なし。書影は外部 URL 直リンク方針）
+- 画像: Supabase Storage、削除はカスケード + ファイル削除を退会・報告削除に統合。 — ✅実装済（投稿・編集・追記で添付＝`api/reports/[id]/images`。投稿・画像・追記の削除は DB の行を先に消し、コミット後に Storage のファイルを消す＝失敗したら孤児が残り AuditLog から辿る。退会では消さない＝投稿は保全する方針。書影は外部 URL 直リンク方針のまま）
 - テスト: `utils/isbn.ts` など純粋関数から Vitest 導入。 — ✅実装済（純粋関数＋コンポーネント/API ルートのユニットテストあり。e2e は Playwright）
 
 ---
@@ -99,7 +99,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 | 出版社回答 | 文字列カラム | `PublisherComment` 第一級 | ✅済（§7・編集履歴は持たない） |
 | status | 8値1軸 | moderation × resolution 2軸 | 🔶resolution 側は8値で確定（§7・正誤表掲載/その他を含む）/ moderation 列は通報実装時 |
 | 賛同/通報 | なし | `Confirmation` / `Flag` | 🔶賛同✅（`Upvote`）/ 通報❌ |
-| 公開性 | 動的レンダリング | ISR + SEO + sitemap | ❌未（public 化時に着手） |
+| 公開性 | 動的レンダリング | ISR + SEO + sitemap | 🔶 sitemap・robots・OG 画像✅（public 化済み）／ISR❌（CSP のため＝§7） |
 | RLS | 未設定（露出リスク） | 全有効化で締める | ✅済（全拒否ロック。⚠️ テーブル追加時は手当てが要る＝§5 参照） |
 | 命名 | Feedback | Report | ✅済 |
 
@@ -109,7 +109,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 1. 認可（identity/capability 分離）— 設計力の証明 — 🔶role 縮小✅・membership/verified❌
 2. ステータス 2 軸 + モデレーション — 実プロダクト感 — 🔶ステータスはドメインに合わせ8値で確定✅（§7）・moderation 列＋Flag は❌
-3. SEO / ISR — 公開で伸びる本体 — ❌未着手（public 化時）
+3. SEO / ISR — 公開で伸びる本体 — 🔶 SEO の基本（sitemap・robots・title/description・OG 画像）✅／ISR❌（CSP のため＝§7）
 4. RLS 締め — 公開前セキュリティ必須 — ✅完了（⚠️ テーブル追加時の手当てが要る・§5 参照）
 
 全部を一度にやる必要はない。段階移行する。
@@ -181,7 +181,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **紙の本の現実的なゴールは「正誤表に掲載」**。版を上げるには費用も時間もかかるため、実物の修正（FIXED）は来ないことも多い。最頻かつ**検証可能**（出版社の正誤表 URL がある）なこの状態を `LISTED` として持つ。
 - 紙の修正は**重版（刷）**で入るのが普通。`fixedPrinting` が実務の主役で、`fixedEdition`（版＝改訂）は稀。
 - **`LISTED` かつ `FIXED` なら `FIXED`**（FIXED は「出版社が誤りと認めた」を含意するため上位互換）。掲載の事実は `Book.erratumUrl` のリンクとして残るので、情報は失われない。
-- **`OTHER`（その他）は statusNote（運営者の補足）を必須にする**（actions/report.ts の superRefine）。「出版社が廃業」「電子版だけ修正され紙は未修正」など、既存のどれを選んでも嘘になる状況で、無理に近いラベルを付けてデータを嘘にしないための逃げ道。空の OTHER を作れなくすることで、迷ったときの掃きだめ化を防ぐ。
+- **`OTHER`（その他）は statusNote（運営者の補足）を必須にする**（features/report/schema.ts の ReportUpdateSchema）。「出版社が廃業」「電子版だけ修正され紙は未修正」など、既存のどれを選んでも嘘になる状況で、無理に近いラベルを付けてデータを嘘にしないための逃げ道。空の OTHER を作れなくすることで、迷ったときの掃きだめ化を防ぐ。
 
 **ラベルの原則**: どの時点で見ても嘘にならない文言を選ぶ。「確認中」「対応中」は出版社が無反応でも活動中に見えるため採らず、「連絡済み」（運営がやった事実のみ主張）とした。
 

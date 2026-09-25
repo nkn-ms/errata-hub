@@ -5,7 +5,7 @@ import { routes } from "@/constants/routes";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // 多層防御: proxy.ts のエッジ判定に加え、配下の全 admin ページをここで再ガードする。
+  // 多層防御: proxy.ts のログイン判定に加え、配下の全 admin ページをここで再ガードする。
   await requireAdminPage();
 
   return (

@@ -3,7 +3,7 @@ import type { PublisherCommentView } from "@/features/report/types";
 /**
  * 一覧（フィードのカード・/reports の表）に出す1件＝**最新の回答**。
  *
- * 末尾が最新なのは、引くときに古い順で並べているため（services/report.ts の reportInclude）。
+ * 末尾が最新なのは、引くときに古い順で並べているため（features/report/db/reports.ts の reportInclude）。
  * 一覧はやりとりの現在地だけを見せ、全件は投稿詳細で読む。
  */
 export function latestPublisherComment(

@@ -1,4 +1,4 @@
-// 投稿の入力欄の文字数上限。フォーム（maxLength）とサーバー（actions/report.ts の zod）で共用する。
+// 投稿の入力欄の文字数上限。フォーム（maxLength）とサーバー（features/report/schema.ts の zod）で共用する。
 //
 // なぜ要るか: Prisma の String は Postgres の text（無制限）なので、上限を書かなければ
 // 事実上の壁は Server Actions のボディ上限 1MB だけになる。表示名は 50 文字で守っているのに

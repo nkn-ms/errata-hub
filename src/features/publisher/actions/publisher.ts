@@ -59,7 +59,7 @@ export async function createPublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    // 作成と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 作成と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     await prisma.$transaction(async (tx) => {
       const publisher = await tx.publisher.create({
         data: {
@@ -104,7 +104,7 @@ export async function updatePublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    // 更新と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 更新と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     await prisma.$transaction(async (tx) => {
       const before = await tx.publisher.findUnique({ where: { id } });
       const publisher = await tx.publisher.update({
@@ -152,7 +152,7 @@ export async function deletePublisher(id: string): Promise<PublisherState> {
   }
 
   try {
-    // 削除と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 削除と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
     await prisma.$transaction(async (tx) => {
       // 対象が無ければ delete が P2025 を投げ、toMessage が「対象の出版社が見つかりません」に訳す

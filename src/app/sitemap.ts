@@ -25,8 +25,7 @@ import { routes } from "@/constants/routes";
 //   - /users/[id] … 投稿者のプロフィールを運営側から能動的に検索へ送らない。
 //     リンクを辿れば到達できるが、sitemap は「載せてください」という積極的な申告なので分けて考える
 //
-// ⚠️ public 化までは app/robots.ts が全体を disallow しているため、この sitemap は参照されない。
-// 公開時に robots を「Allow: / ＋ sitemap: <このURL>」へ差し替えること。
+// この URL は app/robots.ts が Sitemap: として宣言している。
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ⚠️ これが無いとビルド時に事前生成されようとして DB に繋ぎにいく。CI の DATABASE_URL は
@@ -42,7 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     findAllReportIds(),
   ]);
 
-  // 静的ページは更新日を持たないので、ビルド（再検証）時刻を lastModified にする
+  // ⚠️ 静的ページは更新日を持たないので lastModified に今の時刻を入れている。上の connection() で
+  //    毎回生成するので、ビルド時刻ではなく**リクエスト時刻**になる（＝クロールのたびに「更新された」と申告する）
   const builtAt = new Date();
   const staticPages = [
     routes.home,

@@ -59,7 +59,10 @@ export async function proxy(request: NextRequest) {
   // この呼び出しが「セッション維持」の本体になる（Server Component は cookie を書けない）。
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ミドルウェアはエッジで軽く動くべきなので DB を読まない（ロール判定はしない）。
+  // proxy は静的アセット以外の全リクエストで走る（下の matcher）ので DB を読まない（ロール判定はしない）。
+  // 読めば全ページの応答に DB の往復が1回ずつ乗る。Next.js 16 の proxy は Node.js ランタイムなので
+  // 読むこと自体はできる（エッジランタイムの制約ではない
+  // = node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md の Runtime 節）。
   // ここでは「ログインしているか」だけを見て未ログインを門前払いする粗いゲート。
   // ADMIN ロールの認可は admin/layout.tsx の requireAdminPage（Prisma）に一本化する。
   const protectedPaths = ["/submit", "/admin"];

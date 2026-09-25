@@ -148,7 +148,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      # webServer（playwright.config.ts）が npm run dev を起動し、上で $GITHUB_ENV に入れた
+      # webServer（playwright.config.ts）が CI では npm run build && npm start（本番ビルド）を起動し、上で $GITHUB_ENV に入れた
       # 接続情報を継承する。BASE_URL は既定の localhost なので write-local project も有効。
       - name: Run e2e
         run: npx playwright test

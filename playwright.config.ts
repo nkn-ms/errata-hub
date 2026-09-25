@@ -101,10 +101,12 @@ export default defineConfig({
   // 副次的に、HMR の再コンパイル中にクリックが効かないという dev 由来のフレーキーも消える。
   //
   // ⚠️ ビルドは e2e ジョブの中で行う必要がある（ci ジョブの .next を持ち込めない）。
-  //    NEXT_PUBLIC_SUPABASE_URL / …_PUBLISHABLE_KEY は build 時にクライアントバンドルへ焼かれるため
-  //    （src/lib/supabase/client.ts）、Supabase の無い ci ジョブがダミー値で作った成果物を使うと
-  //    ブラウザ側の認証が壊れる。webServer の command でビルドさせれば、ワークフローが
-  //    $GITHUB_ENV に入れた接続情報をそのまま継承できる。
+  //    NEXT_PUBLIC_SUPABASE_URL / …_PUBLISHABLE_KEY は next build の時点でコードに埋め込まれ、
+  //    クライアント向けだけでなくサーバー側のコードでも置き換わる
+  //    （node_modules/next/dist/docs/01-app/02-guides/environment-variables.md）。
+  //    Supabase の無い ci ジョブがダミー値で作った成果物を使うと、proxy.ts・lib/supabase/server.ts が
+  //    ダミーの URL に繋ぎにいき認証が壊れる。
+  //    webServer の command でビルドさせれば、ワークフローが $GITHUB_ENV に入れた接続情報をそのまま継承できる。
   webServer: isLocal
     ? {
         command: process.env.CI ? "npm run build && npm start" : "npm run dev",

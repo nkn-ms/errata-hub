@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // Route Handler 用（判定結果を Response で返す版）が要るときは checkAdmin から書き足す。
 //
 // ⚠️ **管理者以外の認可はここには置かない**（このファイルは ADMIN 判定のためのもの）。
-// 「その投稿の投稿者か」は actions/report.ts の updateOwnReport に、
+// 「その投稿の投稿者か」は features/report/actions/ の各アクション（updateOwnReport 等）と画像の Route Handler に、
 // 「その出版社として回答できるか」は services/publisher-access.ts にある。
 
 /**

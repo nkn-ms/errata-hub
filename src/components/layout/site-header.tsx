@@ -11,7 +11,7 @@ import { PAGE_CONTAINER } from "@/constants/layout";
 // **props を取らない**＝どのページでも中身が完全に同じ。これは意図した制約で、
 // ページから渡せる口があると「トップと /reports だけナビ、/how-to-use は投稿するだけ」のように
 // 画面ごとにばらけ、利用者はヘッダーに何があるか覚えられなくなる（実際そうなっていた）。
-// パンくずも本文側（components/breadcrumbs.tsx）に置いており、ここには持ち込まない。
+// パンくずも本文側（components/layout/breadcrumbs.tsx）に置いており、ここには持ち込まない。
 // この形なので app/(site)/layout.tsx が全ページ分のヘッダーを1回だけ描ける。
 //
 // ⚠️ ナビの表示にはログイン状態が要るので、このヘッダーを出す全ページで

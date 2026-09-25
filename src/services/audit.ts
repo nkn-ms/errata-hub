@@ -30,7 +30,7 @@ type AuditParams = {
  * ⚠️ **管理操作の書き込みは原則すべて塊に入れる**（`actions/` の book / publisher / report / user）。
  *    目的は「操作は成立したのに記録だけが無い」状態を作らないこと。
  *    ⇒ 呼び出し側で `prisma.$transaction` を張り、`tx` をこの関数に渡す。手本は
- *      actions/report.ts の deleteReport。
+ *      features/report/actions/delete.ts の deleteReport。
  *
  * ⚠️ 例外は**退会の2か所**（actions/auth.ts の withdraw / actions/user.ts の withdrawUserAsAdmin）。
  *    Supabase の admin API（外部）をまたぐのでトランザクションに入れられず、

@@ -60,7 +60,7 @@ export function getEditionLocationLabel(report: Report): string {
   return [getEditionLabel(report), getLocationLabel(report)].filter(Boolean).join(" ");
 }
 
-// 「第2版 第3刷」。紙は版が必須・刷は任意（actions/report.ts の superRefine）、
+// 「第2版 第3刷」。紙は版が必須・刷は任意（features/report/schema.ts の refineReportBody）、
 // 電子書籍は版も刷も持たない（どちらも null）ので空文字になる
 function getEditionLabel(report: Report): string {
   const parts = [

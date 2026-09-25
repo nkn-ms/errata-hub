@@ -38,7 +38,7 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
       return { error: "自分自身のロールは変更できません。他の管理者に依頼してください" };
     }
 
-    // ロール変更と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // ロール変更と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
     await prisma.$transaction(async (tx) => {
       const before = await tx.profile.findUnique({ where: { id: profileId } });
@@ -165,7 +165,7 @@ export async function withdrawUserAsAdmin(
     }
     // Profile がスクラブ済みでも、auth.users が残っていれば「途中で止まった退会」なので
     // ここから完了させられるようにする（= 取り残しを回収する管理者側の経路）。
-    // 完了しているものだけを弾く。判定の理由は services/withdrawal.ts の authUserExists。
+    // 完了しているものだけを弾く。判定の理由は features/account/db/withdrawal.ts の authUserExists。
     if (isWithdrawnEmail(target.email) && !(await authUserExists(profileId))) {
       return { error: "このユーザーは既に退会済みです" };
     }

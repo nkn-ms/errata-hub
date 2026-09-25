@@ -298,7 +298,7 @@ test.describe("追記（出版社へ連絡した後）", () => {
       await expect(page.getByRole("button", { name: "確認する" })).toBeVisible();
 
       // 編集画面を直接開いても詳細へ戻される（画面を出す時点での判定。
-      // 保存側でもトランザクションの中で改めて確かめている = actions/report.ts）
+      // 保存側でもトランザクションの中で改めて確かめている = features/report/actions/update.ts）
       await page.goto(`/reports/${reportId}/edit`);
       await page.waitForURL(`**/reports/${reportId}`);
 
