@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { Report } from "@/features/report/types";
+import { latestDate } from "@/utils/latest-date";
 
 /**
  * **管理画面が読む投稿。** 公開側（reports.ts）とファイルを分けてあるのは、
@@ -64,13 +65,48 @@ export function findReportedErratumUrls(
   });
 }
 
-/** サイトマップ用。公開している投稿ページの ID と更新時刻だけ。 */
-export function findIndexableReportIds(): Promise<{ id: string; updatedAt: Date }[]> {
-  return prisma.report.findMany({
-    // 却下した投稿は検索エンジンに載せない（理由は app/(site)/reports/[id]/page.tsx の generateMetadata）
-    where: { status: { not: "DISMISSED" } },
-    select: { id: true, updatedAt: true },
+/** サイトマップ用の投稿1件。 */
+export type SitemapReport = {
+  id: string;
+  isbn: string;
+  /** 投稿ページを検索エンジンに載せるか。却下した投稿は載せない（理由は app/(site)/reports/[id]/page.tsx の generateMetadata） */
+  indexable: boolean;
+  /** 投稿の行の更新時刻（本文の編集・ステータスの変更で動く）。書籍ページの一覧に出る範囲はこれで変わる */
+  updatedAt: Date;
+  /** 投稿ページの中身が最後に変わった時刻（行の更新・最新の追記・最新の出版社の回答の一番新しいもの） */
+  pageUpdatedAt: Date;
+};
+
+/**
+ * サイトマップ用。全投稿の ID・書籍の ISBN・更新時刻。
+ *
+ * ⚠️ **`Report.updatedAt` だけでは投稿ページの更新時刻にならない。** 追記と出版社の回答は別のテーブルに
+ *    入るので、付いても投稿の行は変わらない（＝いちばん大事な「回答が付いた」がサイトマップに出ない）。
+ * ⚠️ 却下した投稿も返す。投稿ページは載せないが、書籍ページは却下した投稿も並べるので、
+ *    書籍ページの更新時刻には効く（載せるかは indexable で呼び出し側が決める）。
+ */
+export async function findReportsForSitemap(): Promise<SitemapReport[]> {
+  const rows = await prisma.report.findMany({
+    select: {
+      id: true,
+      status: true,
+      updatedAt: true,
+      book: { select: { isbn: true } },
+      addenda: { select: { createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
+      publisherComments: { select: { createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
+  return rows.map((row) => ({
+    id: row.id,
+    isbn: row.book.isbn,
+    indexable: row.status !== "DISMISSED",
+    updatedAt: row.updatedAt,
+    pageUpdatedAt: latestDate(
+      row.updatedAt,
+      row.addenda[0]?.createdAt,
+      row.publisherComments[0]?.createdAt
+    ),
+  }));
 }
 
 /**

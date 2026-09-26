@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { findAllBookIsbns } from "@/features/book/db/books";
-import { findIndexableReportIds } from "@/features/report/db/reports-admin";
+import { findReportsForSitemap } from "@/features/report/db/reports-admin";
+import { latestDate } from "@/utils/latest-date";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
 
@@ -9,8 +10,10 @@ import { routes } from "@/constants/routes";
 //
 // トップ（app/(site)/page.tsx）は ?page=N のサーバーページネーション、/reports は全投稿の一覧なので、
 // 投稿・書籍の各ページはリンクを辿るだけでも到達できる。それでも sitemap を置くのは、
-// lastModified（更新日）を各 URL に付けて「新しさ」を直接伝えられ、新規・更新ページの
-// 発見が早くなるため（辿れることと、早く見つけてもらえることは別）。
+// lastModified（ページの中身が最後に変わった時刻）を投稿・書籍の URL に付けて「新しさ」を直接伝えられ、
+// 新規・更新ページの発見が早くなるため（辿れることと、早く見つけてもらえることは別）。
+// ⚠️ lastModified は**正確なときだけ付ける**。Google は lastmod が一貫して正確なときだけ使う（下の出典）ので、
+//    不正確な値が混ざるとサイトマップ全体の lastmod が信用されなくなる。
 //
 // 出力するのは url と lastModified だけ。Next.js の API は仕様どおり changefreq / priority も
 // 出せるが、書かない。仕様（sitemaps.org）自身が changefreq を「ヒントであり命令ではない」、
@@ -39,12 +42,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [books, reports] = await Promise.all([
     findAllBookIsbns(),
-    findIndexableReportIds(),
+    findReportsForSitemap(),
   ]);
 
-  // ⚠️ 静的ページは更新日を持たないので lastModified に今の時刻を入れている。上の connection() で
-  //    毎回生成するので、ビルド時刻ではなく**リクエスト時刻**になる（＝クロールのたびに「更新された」と申告する）
-  const builtAt = new Date();
+  // 静的ページには lastModified を付けない。更新日を持たないので、付けるなら今の時刻になり
+  // （上の connection() で毎回生成するため）、クロールのたびに「更新された」と申告してしまう
   const staticPages = [
     routes.home,
     routes.reports,
@@ -53,17 +55,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     routes.design,
     routes.terms,
     routes.privacy,
-  ].map((path) => ({ url: `${site.url}${path}`, lastModified: builtAt }));
+  ].map((path) => ({ url: `${site.url}${path}` }));
+
+  // 書籍ページはその本の投稿を（却下したものも含めて）並べる＝投稿の行が変われば書籍ページの中身も変わる。
+  // 追記と回答は書籍ページには出ないので、ここで見るのは行の更新時刻（updatedAt）だけ
+  const latestReportUpdateByIsbn = new Map<string, Date>();
+  for (const report of reports) {
+    latestReportUpdateByIsbn.set(
+      report.isbn,
+      latestDate(report.updatedAt, latestReportUpdateByIsbn.get(report.isbn))
+    );
+  }
 
   return [
     ...staticPages,
     ...books.map((book) => ({
       url: `${site.url}${routes.book(book.isbn)}`,
-      lastModified: book.updatedAt,
+      lastModified: latestDate(book.updatedAt, latestReportUpdateByIsbn.get(book.isbn)),
     })),
-    ...reports.map((report) => ({
-      url: `${site.url}${routes.report(report.id)}`,
-      lastModified: report.updatedAt,
-    })),
+    ...reports
+      .filter((report) => report.indexable)
+      .map((report) => ({
+        url: `${site.url}${routes.report(report.id)}`,
+        lastModified: report.pageUpdatedAt,
+      })),
   ];
 }

@@ -9,7 +9,7 @@ export default defineConfig({
     tsconfigPaths: true,
     alias: {
       // Data Access Layer は `import "server-only"` でクライアントからの import を禁じている
-      // （= features/<name>/queries.ts）。このパッケージは `react-server` の export 条件で
+      // （= features/<name>/db/*.ts）。このパッケージは `react-server` の export 条件で
       // 中身が切り替わり、条件が付かない実行環境では**読み込むだけで throw する**実装が選ばれる。
       // Next.js のビルドでは条件が付くので本番の防御は効いたままで、ここは Vitest だけの読み替え。
       // 出典: https://www.npmjs.com/package/server-only
