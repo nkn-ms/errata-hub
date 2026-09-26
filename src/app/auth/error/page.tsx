@@ -24,9 +24,11 @@ const REASONS: Record<string, AuthErrorReason | undefined> = {
   },
 } as const;
 
-// reason 無し（＝ code が無い・code の交換に失敗）と、知らない reason のときの既定。従来からの文言
+// reason 無し（＝ code が無い・code の交換に失敗）と、知らない reason のときの既定。
+// ここに来るのは OAuth の中断・失敗と、パスワード再発行のリンクの期限切れ（メールでの新規登録は閉じている）
 const DEFAULT_REASON: AuthErrorReason = {
-  message: "メール確認リンクが無効か期限切れです。再度登録をお試しください。",
+  message:
+    "ログインを完了できませんでした。リンクの有効期限が切れているか、途中で中断された可能性があります。もう一度お試しください。",
   showContact: false,
 } as const;
 

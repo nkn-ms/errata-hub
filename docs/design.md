@@ -157,6 +157,12 @@ fixedEdition / fixedPrinting は FIXED に付随
 - ログイン失敗は**汎用文言**「メールアドレスまたはパスワードが正しくありません」（アカウント列挙対策。実装済）。どちらが違うか・登録の有無は明かさない。
 - 親切さは「パスワードをお忘れですか？」リンク＋再発行フロー（`/auth/reset-password`・実装済）で担保。再発行完了画面も登録有無を明かさない文言にしている。
 
+### メールでの新規登録は閉じている（2026-09-26）
+- 新規登録は GitHub / Google のアカウントだけ。メールアドレス＋パスワードの登録画面・`register` アクション・確認メールの後の画面（`/auth/confirm`・`/auth/verified`）は削除した。
+- 理由: 本番の Supabase に独自 SMTP が無く、既定の送信は**組織のメンバーのアドレスにしか届かない**（それ以外は "Email address not authorized"）。一般の人には確認メールが届かず、登録画面が使えない入口になっていた。
+- 既にあるメール登録のアカウントは、パスワードでのログインをそのまま使える（再発行のメールは組織のメンバーのアドレスにだけ届く）。
+- 開け直すときに一緒に直すもの: ①独自 SMTP（送信元にするドメインが要る。方針は独自ドメイン＋Resend）②確認メールを token_hash ＋ `verifyOtp` の方式にする（今の PKCE の code 交換は、登録したのと別のブラウザで開くと失敗する）③パスワードでのログインでも Profile を作る（今作るのは `/auth/callback` だけ）④ローカルでも確認メールを有効にし、この経路を e2e に入れる。
+
 ### ローカル開発環境
 - **Supabase CLI ローカル（`supabase start`・Docker）= Auth(GoTrue)+DB+Storage+Studio+Inbucket の完全ミラー**を使う。素の Postgres コンテナ不可（このアプリは Supabase Auth で login/register/PKCE するため）。`.env.local` で切替。リリース前に構築し本番との齟齬を確認（Prisma Migrate 移行・書き込み系 e2e もここで安全に）。
 

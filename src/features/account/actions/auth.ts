@@ -17,18 +17,10 @@ const LoginSchema = z.object({
   password: z.string().min(1, "パスワードを入力してください"),
 });
 
-const RegisterSchema = z.object({
-  email: z.string().email("有効なメールアドレスを入力してください"),
-  password: z.string().min(8, "パスワードは8文字以上で入力してください"),
-  displayName: z
-    .string()
-    .min(1, "表示名を入力してください")
-    .max(PROFILE_LIMITS.displayName, `表示名は${PROFILE_LIMITS.displayName}文字以内で入力してください`),
-});
 
 export type AuthState = { error?: string } | undefined;
 
-// 確認メール / OAuth / パスワード再発行の戻り先を、環境を跨がずリクエスト元に合わせるための origin。
+// OAuth / パスワード再発行の戻り先を、環境を跨がずリクエスト元に合わせるための origin。
 // これを明示しないと Supabase の Site URL にフォールバックし、環境跨ぎの誤リダイレクト
 // （本番なのに localhost へ等）や callback を経由せず未ログインになる不具合が起きる。
 // origin ヘッダが無い場合は x-forwarded-proto/host（無ければ host）から組み立てる。
@@ -60,38 +52,9 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
   redirect(routes.home);
 }
 
-export async function register(_prevState: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = RegisterSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-    displayName: formData.get("displayName"),
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
-  // 確認メールのリンクから戻る先をリクエスト元に合わせて明示する（理由は getRequestOrigin 参照）。
-  const origin = await getRequestOrigin();
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      // display_name はメール確認後の callback で Profile.displayName（表示の正）を
-      // 作るための運搬用。以後 user_metadata は参照しない（updateDisplayName の方針コメント参照）。
-      data: { display_name: parsed.data.displayName },
-      emailRedirectTo: `${origin}${routes.auth.callback}`,
-    },
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  redirect(routes.auth.confirm);
-}
+// ⚠️ メールアドレスでの新規登録（signUp）はここに置いていない＝閉じている。
+//    本番に独自 SMTP が無く、確認メールが一般の人に届かないため。理由と、開け直すときに
+//    一緒に直すものは docs/design.md §7「メールでの新規登録は閉じている」。
 
 /**
  * ソーシャルログイン（OAuth 開始）。

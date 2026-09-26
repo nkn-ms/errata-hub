@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 
-// ⚠️ このファイルは LegalConsentNote 経由でクライアント側（/login・/register は "use client"）からも
+// ⚠️ このファイルは LegalConsentNote 経由でクライアント側（/login は "use client"）からも
 //    読み込まれる。サーバー専用のもの（SiteHeader → prisma / supabase server）をここに置くと
 //    クライアントバンドルに引きずり込まれて build だけが落ちるので、ページ体裁の LegalShell は
 //    legal-shell.tsx に分けている。

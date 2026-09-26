@@ -12,7 +12,7 @@ import { test, expect } from "@playwright/test";
 //
 // 読み取り専用（未ログイン・DB を書かない）。
 
-const DEFAULT_MESSAGE = "メール確認リンクが無効か期限切れです";
+const DEFAULT_MESSAGE = "ログインを完了できませんでした";
 const CONFLICT_MESSAGE = "以前作成されたアカウントが使用中のため";
 
 test.describe("認証エラー画面", () => {
