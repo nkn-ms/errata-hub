@@ -600,6 +600,7 @@ Supabase Auth のユーザー本体（`auth.users`）には認証に必要な情
 ### 本プロジェクトでの方針（2026-07-09 確定）
 
 **表示名の正は `Profile.displayName` のみ。`user_metadata.display_name` は「会員登録フォーム → メール確認後の callback で Profile を作る」までの一度きりの運搬役で、以後は参照も同期もしない。**
+（⚠️ メールでの新規登録は 2026-09-26 に閉じたので、この値が入っているのは閉じる前に登録したアカウントだけ = design.md §7）
 
 かつては「Profile が正・user_metadata も整合のため合わせて更新する」という二重管理だったが、ログイン経路（メール登録・GitHub・Google）が増えるたびに同期漏れが起きる構造で、実際に GitHub ログインでヘッダーがメール表示になるバグが出た（GitHub 由来の metadata には `display_name` というキーが無いため）。読む場所を Profile に一本化して同期コード自体を廃止した（コミット b1492de）。
 
