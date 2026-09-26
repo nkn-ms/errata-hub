@@ -35,9 +35,7 @@ export const routes = {
 
   auth: {
     callback: "/auth/callback",
-    confirm: "/auth/confirm",
     error: "/auth/error",
-    verified: "/auth/verified",
     resetPassword: "/auth/reset-password",
     resetPasswordSent: "/auth/reset-password/sent",
     updatePassword: "/auth/update-password",

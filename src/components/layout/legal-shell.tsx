@@ -3,7 +3,7 @@
 // 枠（背景・共通ヘッダー・本文の幅）は app/(site)/layout.tsx が持つので、ここは中身だけを整える。
 //
 // 中身の部品（Article・OrderedList・LegalConsentNote）は legal.tsx 側にある。あちらは
-// クライアントコンポーネント（/login・/register）からも読まれるので、
+// クライアントコンポーネント（/login）からも読まれるので、
 // サーバー専用のものを混ぜないよう分けている。
 export function LegalShell({
   title,

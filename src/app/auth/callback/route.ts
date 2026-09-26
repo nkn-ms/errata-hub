@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
   }
 
   const email = data.user.email ?? "";
-  // メール登録は display_name（register で設定）。OAuth（GitHub 等）には display_name が
-  // 無いので、プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
+  // display_name はメールでの登録（今は閉じている）が入れていた値。OAuth（GitHub 等）には無いので、
+  // プロバイダ由来の氏名（full_name）→アカウント名（user_name）の順で補う。
   const meta = data.user.user_metadata ?? {};
   const displayName =
     toDisplayName(meta.display_name) ??

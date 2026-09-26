@@ -99,13 +99,12 @@ test.describe("ログインページ", () => {
 });
 
 test.describe("会員登録ページ", () => {
-  test("フォームの要素が揃っている", async ({ page }) => {
+  // メールアドレスでの登録は閉じている（docs/design.md §7）＝入力欄が戻っていないことも見る
+  test("GitHub / Google での登録だけを出す", async ({ page }) => {
     await page.goto("/register");
     await expect(page.getByRole("heading", { name: "会員登録" })).toBeVisible();
-    await expect(page.locator("#displayName")).toBeVisible();
-    await expect(page.locator("#email")).toBeVisible();
-    await expect(page.locator("#password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "会員登録" })).toBeVisible();
+    await expect(page.locator("#email")).toHaveCount(0);
+    await expect(page.locator("#password")).toHaveCount(0);
     // ソーシャルログインは Server Action を呼ぶ <form> なので、押せる状態にあることだけ見る
     // （実際の認可 URL への遷移は外部サービス頼みなので e2e では追わない）
     await expect(page.getByRole("button", { name: "Googleで続ける" })).toBeVisible();

@@ -22,9 +22,8 @@ describe("routes", () => {
   });
 
   it("auth 配下のパスが期待どおり", () => {
-    expect(routes.auth.confirm).toBe("/auth/confirm");
+    expect(routes.auth.callback).toBe("/auth/callback");
     expect(routes.auth.error).toBe("/auth/error");
-    expect(routes.auth.verified).toBe("/auth/verified");
   });
 
   it("admin 配下の静的パスが期待どおり", () => {
