@@ -193,7 +193,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 **経緯**: 旧8値（FORWARDED / IN_REVIEW / REPLIED）は読者から区別がつかず情報を運ばなかったため FORWARDED に統合し、NO_ACTION は「未対応」と紛らわしいので WONT_FIX（修正なし）に改名して一度6値にした。その後、上記のドメイン理解から LISTED と OTHER を足して8値。**数を減らすことが目的ではなく、一つひとつが意味を持つことが目的**。
 
-却下（DISMISSED）は公開の審判であり非公開化ではない（削除もしない = docs/moderation-policy.md）。公開可否は将来の通報（Flag）実装時に別カラムとして追加する（§3）。
+却下（DISMISSED）は公開の審判であり非公開化ではない（削除もしない = docs/moderation-policy.md）。ただし検索エンジンには載せない（`noindex`＋sitemap から除外）。検索結果にはステータスが出ず、無効と判断した「誤/正」だけが並ぶため。公開可否は将来の通報（Flag）実装時に別カラムとして追加する（§3）。
 
 ### 出版社の正誤表 URL（Book.erratumUrl）
 

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { findAllBookIsbns } from "@/features/book/db/books";
-import { findAllReportIds } from "@/features/report/db/reports-admin";
+import { findIndexableReportIds } from "@/features/report/db/reports-admin";
 import { site } from "@/constants/site";
 import { routes } from "@/constants/routes";
 
@@ -24,6 +24,7 @@ import { routes } from "@/constants/routes";
 //     … そもそも検索から来ても使えない
 //   - /users/[id] … 投稿者のプロフィールを運営側から能動的に検索へ送らない。
 //     リンクを辿れば到達できるが、sitemap は「載せてください」という積極的な申告なので分けて考える
+//   - 却下（DISMISSED）した投稿 … ページ側でも noindex にしている（理由は reports/[id]/page.tsx）
 //
 // この URL は app/robots.ts が Sitemap: として宣言している。
 
@@ -38,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [books, reports] = await Promise.all([
     findAllBookIsbns(),
-    findAllReportIds(),
+    findIndexableReportIds(),
   ]);
 
   // ⚠️ 静的ページは更新日を持たないので lastModified に今の時刻を入れている。上の connection() で

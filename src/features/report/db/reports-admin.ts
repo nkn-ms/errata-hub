@@ -65,8 +65,12 @@ export function findReportedErratumUrls(
 }
 
 /** サイトマップ用。公開している投稿ページの ID と更新時刻だけ。 */
-export function findAllReportIds(): Promise<{ id: string; updatedAt: Date }[]> {
-  return prisma.report.findMany({ select: { id: true, updatedAt: true } });
+export function findIndexableReportIds(): Promise<{ id: string; updatedAt: Date }[]> {
+  return prisma.report.findMany({
+    // 却下した投稿は検索エンジンに載せない（理由は app/(site)/reports/[id]/page.tsx の generateMetadata）
+    where: { status: { not: "DISMISSED" } },
+    select: { id: true, updatedAt: true },
+  });
 }
 
 /**
