@@ -235,6 +235,15 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
     });
   });
 
+  // 付けると、自分の回答が「運営者が代理で記載」の表示なしで出版社本人の発言として公開される
+  it("自分自身には付けられない（ロールの自己変更と同じく、判断する本人には向けられない）", async () => {
+    const result = await grantPublisherAccess("admin-1", PUBLISHER_ID);
+
+    expect(result.error).toContain("自分自身には");
+    expect(prismaMock.publisherAccess.create).not.toHaveBeenCalled();
+    expect(createAuditLogMock).not.toHaveBeenCalled();
+  });
+
   it("出版社の指定が UUID でなければ弾く", async () => {
     const result = await grantPublisherAccess(TARGET_ID, "not-a-uuid");
 

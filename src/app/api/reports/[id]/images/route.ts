@@ -14,7 +14,8 @@ import {
   addendumBelongsToReport,
   countImagesInPool,
   createReportImageWithinLimit,
-  findReportOwnerId,
+  findReportForImageUpload,
+  IMAGE_POOL_CLOSED_MESSAGE,
   imagePool,
 } from "@/features/report/db/report-images";
 
@@ -47,11 +48,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const ownerId = await findReportOwnerId(id);
-    if (ownerId === null) {
+    const report = await findReportForImageUpload(id);
+    if (report === null) {
       return NextResponse.json({ error: "投稿が見つかりません" }, { status: 404 });
     }
-    if (ownerId !== user.id) {
+    if (report.userId !== user.id) {
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
@@ -64,6 +65,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     // 枠は本体と追記で別（理由は constants/report-images.ts）。どちらで数えるかは addendumId で決まる
     const pool = imagePool(addendumId);
+
+    // 本体の枠は連絡前だけ開いている（理由は imagePool）。本文を読む前・Storage に上げる前に弾く
+    if (!pool.isOpen(report.status)) {
+      return NextResponse.json({ error: IMAGE_POOL_CLOSED_MESSAGE }, { status: 409 });
+    }
 
     // 早期チェック（速い失敗用）。厳密な上限判定は作成直前のトランザクションで行う
     // （TOCTOU 対策の理由は features/report/db/report-images.ts）。
@@ -122,9 +128,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       throw e; // 想定外は下の catch で 500
     }
     if (!created.ok) {
-      // 競合に負けて上限に達していた
+      // 競合に負けた（上限に達していた／アップロードの間に連絡済みになり本体の枠が閉じた）
       await cleanUpUploadedFile();
-      return NextResponse.json({ error: pool.message }, { status: 400 });
+      return created.reason === "closed"
+        ? NextResponse.json({ error: IMAGE_POOL_CLOSED_MESSAGE }, { status: 409 })
+        : NextResponse.json({ error: pool.message }, { status: 400 });
     }
 
     return NextResponse.json(created.image, { status: 201 });
