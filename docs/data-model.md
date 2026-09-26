@@ -27,5 +27,5 @@
 
 ## 参照整合の方針
 
-- 削除の連鎖は DB の外部キー制約（onDelete）で担保: Report 削除→ReportImage/Upvote は Cascade、Book.publisherId は Restrict（本が残る限り出版社は消せない）
+- 削除の連鎖は DB の外部キー制約（onDelete）で担保: Report 削除→ReportImage／Upvote／ReportAddendum／PublisherComment は Cascade（出版社の回答と追記も一緒に消える）、Book.publisherId は Restrict（本が残る限り出版社は消せない）
 - 記事ゼロの Book/Publisher（孤児行）は放置で許容（再投稿時に再利用される）

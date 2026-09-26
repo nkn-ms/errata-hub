@@ -56,7 +56,7 @@ export const routes = {
     logs: "/admin/logs",
   },
 
-  // 内部 UI からの更新は Server Actions（src/app/actions/）へ移行済み。
+  // 内部 UI からの更新は Server Actions（src/features/*/actions/）が担う。
   // ここに残る API Route は「HTTP 境界が本当に必要なもの」だけ:
   //   - 画像アップロード（Server Actions のボディ上限 1MB を超えるバイナリの受口）
   //   - 外部書誌 API（OpenBD / Google Books）のプロキシ（読み取り）

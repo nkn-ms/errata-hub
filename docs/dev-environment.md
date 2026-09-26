@@ -102,7 +102,8 @@ npm run dev                    # http://localhost:3000
 
 ### ⚠️ ローカルでは「画面からの会員登録」だけでは Profile 行ができない
 
-`Profile` 行を作るのは **`/auth/callback`**（メール確認 or OAuth の戻り）だけ。ローカルは `supabase/config.toml` が `enable_confirmations = false` なので**確認メールが飛ばず callback を通らない** ＝ 画面から登録したユーザーは `auth.users` にはいるが `Profile` が無い状態になる（`Report.userId` は Profile への FK なので、そのままでは投稿できない）。本番は確認メールが有効なので起きない、**ローカル限定の挙動**。
+`Profile` 行を作るのは **`/auth/callback`**（メール確認 or OAuth の戻り）だけ。ローカルは `supabase/config.toml` が `enable_confirmations = false` なので**確認メールが飛ばず callback を通らない** ＝ 画面から登録したユーザーは `auth.users` にはいるが `Profile` が無い状態になる（`Report.userId` は Profile への FK なので、そのままでは投稿できない）。本番は確認メールが有効なので**この経路では**起きない。
+⚠️ ただし本番でも、**確認メールのリンクを登録したのと別のブラウザで開く**と（PC で登録してスマホで開く・メールアプリ内のブラウザで開く等）、callback の code 交換が失敗する。PKCE の code verifier（登録したブラウザが Cookie に持つ照合用の値）がそのブラウザに無いため（`@supabase/auth-js` の `AuthPKCECodeVerifierMissingError` の文言どおり）。Supabase 側でメール確認だけが済んでいれば、パスワードでログインできるのに Profile が無い＝この節と同じ状態になる。
 
 - 手元で試すときは**シードアカウント**（`admin@local.test` / `reader@local.test`）を使う
 - テストで別のユーザーが要るときは `e2e/throwaway-user.ts` のように **管理API でユーザー作成 ＋ `Profile` 行を直接 INSERT** する（`prisma/seed.ts` と同じ方式）

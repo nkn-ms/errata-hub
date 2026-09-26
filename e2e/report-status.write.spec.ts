@@ -14,7 +14,7 @@ import {
 // admin.write.spec.ts が「更新が公開ページに載る」ことを FIXED で1本通しているのに対し、
 // ここは **ステータスごとの運用ルール**（schema.prisma の ReportStatus コメントと
 // docs/moderation-policy.md）が実装されていることを担保する:
-//   - OTHER（その他）は説明が無いと保存できない  = actions/report.ts の superRefine
+//   - OTHER（その他）は説明が無いと保存できない  = features/report/schema.ts の ReportUpdateSchema
 //   - LISTED（正誤表に掲載）は公開側の絞り込みでも引ける
 //   - DISMISSED（却下）でも投稿は消さない・隠さない
 //   - 修正版・刷は FIXED を離れるとサーバー側で消える = ReportUpdateSchema の transform

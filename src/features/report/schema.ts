@@ -6,16 +6,20 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
 /**
  * **投稿の入力を検査するスキーマ。** `actions/` から出してあるのは2つの理由から:
  *
- * 1. `actions/*.ts` は先頭が `"use server"` で、そこに置いた値は Server Action として扱われる。
- *    **スキーマはクライアントからも使いたい**（同じ条件を画面でも強制したい）ので、外に出す必要がある
+ * 1. `actions/*.ts` は先頭が `"use server"` で、**async 関数しか export できない**
+ *    （スキーマを export すると next build だけが落ちる。tsc と eslint は通る）。
+ *    複数のアクションとテスト（validation-parity.test.ts）から読むので、外に出す必要がある
  * 2. 新規投稿・編集・追記・管理者の更新が**同じ上限と同じ条件**を共有することを1箇所で保証する
+ *
+ * ⚠️ **クライアントからは型だけを import する**（`import type`）。値を import すると zod が
+ *    クライアントバンドルに載る（gzip +104KB の実測 = validation-parity.test.ts の冒頭）。
  *
  * ⚠️ **ここに DB も認可も持ち込まない。** 検査するのは受け取った値の形だけで、
  *    「その投稿の投稿者か」「連絡済みか」はアクション側がトランザクションの中で確かめる。
  *
  * ⚠️ 画面側の同じ役目は `components/report-fields.tsx` の `reportFieldsErrors`。
- *    **いまは条件が二重に書かれている**（揃えないと「画面では通るのにサーバーで弾かれる」）。
- *    ここへ寄せる作業は backlog の「入力側の型とバリデーションを zod で1本にする」。
+ *    **条件は意図的に2箇所に書いてある**（1本にまとめる案は上の +104KB を理由に見送った）。
+ *    ズレたら validation-parity.test.ts が落ちる（揃えないと「画面では通るのにサーバーで弾かれる」）。
  */
 
 // ISBN を本の同一性の基準にする方針のため isbn は必須。

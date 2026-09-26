@@ -1,6 +1,6 @@
 import type { ReportType, Medium } from "@/generated/prisma/client";
 
-// 種別・媒体の表示は必ずここを通す。モデル層（types/report.ts）は enum 値のまま持ち、
+// 種別・媒体の表示は必ずここを通す。モデル層（features/report/types.ts）は enum 値のまま持ち、
 // 日本語ラベルはこのマップで表示直前に引く（ラベル変更がロジックを壊さないようにする縫い目）。
 export const TYPE_LABELS: Record<ReportType, string> = {
   ERRATA: "正誤情報",

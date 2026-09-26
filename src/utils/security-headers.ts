@@ -119,7 +119,9 @@ export function buildContentSecurityPolicy({
     // next/font/google はビルド時に自前ホストへ取り込まれるので外部フォントは不要
     ["font-src 'self'", ...toolbar(VERCEL_TOOLBAR.font)].join(" "),
 
-    // ブラウザから直接叩く外部は Supabase（認証トークンの検証・更新）だけ。
+    // Supabase のオリジンを許しているが、ブラウザ用の Supabase クライアントは置いていない
+    // （認証トークンの検証・更新は proxy.ts がサーバー側で行う = lib/supabase/cookie-options.ts）ので、
+    // ブラウザからこの許可を使う通信は無い（画像の表示は img-src 側）。
     // Google Books / OpenBD はサーバー側の Route Handler 経由なのでここには要らない。
     // Vercel Analytics / Speed Insights の計測ビーコンは本番では同一オリジン（/_vercel/…）。
     // dev の ws: は Next.js の HMR（'self' が ws を含むかはブラウザ差があるため明示）。

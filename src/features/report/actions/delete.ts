@@ -218,7 +218,7 @@ type OwnImageDeletion =
  * 添付画像を1枚だけ削除する（投稿者本人・出版社へ連絡する前だけ）。
  *
  * 削除を PENDING に限るのは、本文を凍結しても画像を消せるなら**出版社が見た内容は結局変わる**ため。
- * 追加の方は追記と同じ「足すだけ」の操作なので、連絡後も開いている（api/reports/[id]/images）。
+ * 連絡後に足す画像は追記に添える（本体の枠には入れない = schema.prisma の ReportImage.addendumId）。
  *
  * ⚠️ 管理者用の deleteReportImage とは別に置く。あちらは権利者からの削除要請に応える措置で、
  *    ステータスに関わらず消せる必要があり、条件を共有すると両方の意図が濁る。
@@ -273,7 +273,7 @@ export async function deleteOwnReportImage(imageId: string): Promise<ReportActio
 
   await removeImageFiles([result.imageUrl]);
 
-  // ⚠️ refresh() しない。呼び出し側（report-images.tsx）は追加も削除も自分の state で持っており、
+  // ⚠️ refresh() しない。呼び出し側（components/report-edit-form.tsx）は追加も削除も自分の state で持っており、
   //    サーバーを描き直しても初期値としては読まれない＝往復が増えるだけになる。
   return {};
 }

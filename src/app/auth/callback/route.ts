@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     toDisplayName(meta.full_name) ??
     toDisplayName(meta.user_name);
 
-  // Profile が無ければ作る（理由と失敗時の扱いは features/account/db/profile.ts）。
+  // Profile が無ければ作る（理由と失敗時の扱いは features/account/db/profiles.ts の ensureProfile）。
   const result = await ensureProfile({
     id: data.user.id,
     email,

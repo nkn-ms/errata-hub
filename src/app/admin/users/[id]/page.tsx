@@ -25,7 +25,7 @@ function getRoleBlockedReason(profile: AdminProfileRow, adminId: string): string
  *
  * ⚠️ 「退会済み」は Profile のスクラブだけでは決まらない。auth.users が残っていれば
  * それは途中で止まった退会で、**ここから完了させられる必要がある**（理由は
- * services/withdrawal.ts の authUserExists）。そのため auth 側の確認を重ねる。
+ * features/account/db/withdrawal.ts の authUserExists）。そのため auth 側の確認を重ねる。
  */
 async function getWithdrawBlockedReason(profile: AdminProfileRow, adminId: string): Promise<string | null> {
   if (profile.id === adminId) return "自分自身を退会させることはできません。";

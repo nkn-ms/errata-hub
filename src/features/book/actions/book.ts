@@ -55,13 +55,13 @@ export async function updateBook(id: string, input: BookUpdateInput): Promise<Bo
 
   let updated: boolean;
   try {
-    // 書誌の更新と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 書誌の更新と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     // 出版社の upsert も同じ塊に入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
     updated = await prisma.$transaction(async (tx) => {
       const book = await tx.book.findUnique({ where: { id }, include: { publisher: true } });
       if (!book) return false;
 
-      // 出版社は名前で upsert（actions/report.ts と同型）。findFirst→create の2段だと
+      // 出版社は名前で upsert（features/report/actions/create.ts と同型）。findFirst→create の2段だと
       // 同時実行の隙間で name @unique に衝突（P2002→失敗）し得るため、1命令で競合安全にする。
       // 空なら紐付け無し（null）。
       let publisherId: string | null = null;
@@ -128,7 +128,7 @@ export async function deleteBook(id: string): Promise<BookActionState> {
 
   let deleted: boolean;
   try {
-    // 削除と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 削除と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
     deleted = await prisma.$transaction(async (tx) => {
       const book = await tx.book.findUnique({ where: { id } });
@@ -178,7 +178,7 @@ export async function adoptReportedErratumUrl(reportId: string): Promise<BookAct
 
   let outcome: AdoptOutcome;
   try {
-    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は actions/report.ts の deleteReport）。
+    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は features/report/actions/delete.ts の deleteReport）。
     // 申告値の読み出しも塊の中で行う: 監査ログの before に使う値なので、
     // 読んでから書くまでの間に他の変更が入り込まないようにする。
     outcome = await prisma.$transaction<AdoptOutcome>(async (tx) => {

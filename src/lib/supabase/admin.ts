@@ -7,7 +7,7 @@ import { createClient } from "@supabase/supabase-js";
  * 絶対にクライアント（ブラウザ）へ渡してはいけない（NEXT_PUBLIC_ を付けない）。
  * 用途は2系統（2026-08-01 時点の実測）:
  *   - Storage の操作 … 投稿画像のアップロードと削除（バケットは非公開の書き込み権限）。呼び出しの大半はこちら
- *   - auth の操作   … 退会時に auth.users を物理削除する（services/withdrawal.ts）
+ *   - auth の操作   … 退会時に auth.users を物理削除する（features/account/db/withdrawal.ts）
  * 新 API キー（sb_secret_…）は旧 service_role JWT と違い個別にローテーション・失効でき、
  * 漏洩時に該当キーだけを無効化できる（出典: Supabase – Migrating to new API keys）。
  *

@@ -36,7 +36,7 @@ enum ReportStatus {
   FIXED       // 実物が修正済み（重版=刷 / 改訂版 / 電子版の更新。fixedEdition / fixedPrinting が付随）
   WONT_FIX    // 修正なし（出版社が修正しないと判断）
   DISMISSED   // 却下（管理者が無効な投稿と判断。削除も非公開もせず公開のまま残す = docs/moderation-policy.md）
-  OTHER       // その他（上記で表せない事情。statusNote での説明を必須にしている = actions/report.ts）
+  OTHER       // その他（上記で表せない事情。statusNote での説明を必須にしている = features/report/schema.ts の ReportUpdateSchema）
 }
 
 enum Role {
@@ -92,7 +92,8 @@ model Publisher {
 // メールドメインの一致による自動付与も過去にあったが、人の判断を経ずに権限が付く形だったため廃止した
 // （docs/design.md §7・auth/callback/route.ts にも「ここでは一切付けない」と明記してある）。
 // ⚠️ **この行は公開ページへの書き込み権限そのもの**（規約 第8条1項の「運営者が認めた出版社等」）。
-// 対象書籍の出版社の行を持つ人だけが PublisherComment を作れる = app/actions/publisher-comment.ts。
+// 対象書籍の出版社の行を持つ人だけが PublisherComment を作れる = services/publisher-access.ts
+// （呼ぶのは features/report/actions/publisher-comment.ts）。
 // 付与前に本人が本当にその出版社の関係者かを確かめること（担保は管理者の確認だけで、
 // 技術的な検証は無い = docs/design.md §2）。誤って付けても実害が無かった頃の運用のままにしない
 model PublisherAccess {
@@ -125,7 +126,7 @@ model Book {
   id            String     @id @default(uuid())
   publisherId   String?
   // 意図的に Restrict（optionalの既定 SetNull から変更）: 書籍が紐づく出版社は削除不可（出版社削除ガード）。
-  // UX側の件数チェックは app/actions/publisher.ts、最終保証はこの制約が担う
+  // UX側の件数チェックは features/publisher/actions/publisher.ts、最終保証はこの制約が担う
   publisher     Publisher? @relation(fields: [publisherId], references: [id], onDelete: Restrict)
   title         String
   author        String?
@@ -153,7 +154,7 @@ model Report {
   // onDelete未指定 = Restrict（意図的）。投稿が紐づく本は削除不可（管理画面の件数チェックとDBで二重ガード）
   book             Book           @relation(fields: [bookId], references: [id])
   title            String
-  // 位置情報は媒体依存。「必須」はすべてアプリ層の検証（actions/report.ts の superRefine。UI と同条件を
+  // 位置情報は媒体依存。「必須」はすべてアプリ層の検証（features/report/schema.ts の refineReportBody。UI と同条件を
   // サーバーでも強制）で、媒体に無関係な列を null に強制はしていない（UI が入力欄を出さないだけ）
   edition          Int?           // PAPER=必須（EBOOKは版・刷の概念を持たないため入力させない）
   printing         Int?           // PAPER=任意
@@ -171,7 +172,7 @@ model Report {
   content          String?
   note             String?
   // ステータスに添える運営者の説明。「その他」は説明が無いと読者に何も伝わらないため必須にしている
-  // （検査は actions/report.ts の ReportUpdateSchema）。
+  // （検査は features/report/schema.ts の ReportUpdateSchema）。
   // ⚠️ **出版社の発言ではない**ので PublisherComment とは別に持つ。公開ページでも別の場所に出す。
   // 一緒くたにすると「出版社が廃業しており連絡が取れません」という運営者の説明が、
   // その出版社の発言として掲示されることになる
@@ -294,11 +295,11 @@ model AuditLog {
   @@index([createdAt])
 }
 
-// 投稿に添付する画像（枚数・サイズ・MIME の制約は src/constants/report-images.ts に集約。
+// 投稿に添付する画像（枚数・サイズ・MIME の制約は src/features/report/constants/report-images.ts に集約。
 // 上限チェックはフォームと API の両方で行う）。投稿の作成後にクライアントが別途アップロードする
 // （Server Actions のボディ上限 1MB を超えるため、ここだけ Route Handler = api/reports/[id]/images）。
 // 投稿削除時は DB の行を先に消し、Storage のファイル削除が失敗しても投稿削除は成立させる
-// （残った孤児ファイルは AuditLog の before に残る imageUrl から辿る = actions/report.ts）
+// （残った孤児ファイルは AuditLog の before に残る imageUrl から辿る = features/report/actions/delete.ts の removeImageFiles）
 model ReportImage {
   id         String   @id @default(uuid())
   reportId String
