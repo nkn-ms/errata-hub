@@ -62,6 +62,10 @@ describe("buildContentSecurityPolicy", () => {
     }
   });
 
+  it("connect-src に Supabase を入れない（ブラウザから直接繋ぐ通信が無いため）", () => {
+    expect(directive(buildContentSecurityPolicy(PROD), "connect-src")).toBe("'self'");
+  });
+
   it("Vercel Toolbar は Preview だけ通す（本番の frame-src は none のまま）", () => {
     const prod = buildContentSecurityPolicy(PROD);
     expect(directive(prod, "frame-src")).toBe("'none'");
