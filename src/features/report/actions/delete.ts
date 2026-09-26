@@ -44,7 +44,7 @@ export async function withdrawOwnReport(id: string): Promise<ReportActionState> 
     // 認可もステータスの確認も塊の中で行う（updateOwnReport と同じ理由。画面を開いている間に
     // 管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
     result = await prisma.$transaction(async (tx): Promise<OwnReportWithdrawal> => {
-      const found = await findReportWithImages(tx, id);
+      const found = await findReportForDeletion(tx, id);
       if (!found) return { error: "投稿が見つかりません" };
       if (found.userId !== user.id) {
         return { error: "この投稿を取り下げる権限がありません" };
@@ -83,8 +83,22 @@ export async function withdrawOwnReport(id: string): Promise<ReportActionState> 
 
 // 削除対象の読み出し。監査ログの before に使う値なので、削除と同じ塊の中で読む
 // （読んでから消すまでの間に他の変更が入り込まないようにする）。
-function findReportWithImages(client: Prisma.TransactionClient, id: string) {
-  return client.report.findUnique({ where: { id }, include: { images: true } });
+// ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
+//    （1件ずつ消すときの deleteReportAddendum / deletePublisherComment と揃える）。
+//    画像は投稿本体の分も追記の分も images に入っている（どちらの行も reportId を持つ）。
+function findReportForDeletion(client: Prisma.TransactionClient, id: string) {
+  return client.report.findUnique({
+    where: { id },
+    include: {
+      images: true,
+      addenda: { orderBy: { createdAt: "asc" } },
+      publisherComments: {
+        orderBy: { createdAt: "asc" },
+        // 出版社は名前も残す（90日で消える AuditLog から後で引き直せないため = deletePublisherComment）
+        include: { publisher: { select: { name: true } } },
+      },
+    },
+  });
 }
 
 /**
@@ -116,7 +130,7 @@ async function removeImageFiles(imageUrls: string[]) {
 export async function deleteReport(id: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
-  let report: Awaited<ReturnType<typeof findReportWithImages>>;
+  let report: Awaited<ReturnType<typeof findReportForDeletion>>;
   try {
     // 塊にする理由は「操作は成立したのに記録だけが無い」状態を作らないため。
     // 分けると「投稿は消えたが記録が無い」半端な状態が残り、しかも監査ログの失敗で
@@ -127,7 +141,7 @@ export async function deleteReport(id: string): Promise<ReportActionState> {
     //
     // ⚠️ 塊の中では tx を使うこと。グローバルの prisma を使うと別接続になり塊の外に出る。
     report = await prisma.$transaction(async (tx) => {
-      const found = await findReportWithImages(tx, id);
+      const found = await findReportForDeletion(tx, id);
       if (!found) return null;
 
       await tx.report.delete({ where: { id } });

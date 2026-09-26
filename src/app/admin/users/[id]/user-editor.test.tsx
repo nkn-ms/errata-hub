@@ -34,12 +34,17 @@ const profile: AdminProfileRow = {
   publisherAccess: [{ publisherId: publisherA.id, publisherName: publisherA.name }],
 };
 
-function renderEditor(withdrawBlockedReason: string | null = null, roleBlockedReason: string | null = null) {
+function renderEditor(
+  withdrawBlockedReason: string | null = null,
+  roleBlockedReason: string | null = null,
+  grantBlockedReason: string | null = null
+) {
   return render(
     <AdminUserEditor
       profile={profile}
       publishers={[publisherA, publisherB]}
       roleBlockedReason={roleBlockedReason}
+      grantBlockedReason={grantBlockedReason}
       withdrawBlockedReason={withdrawBlockedReason}
     />
   );
@@ -112,6 +117,15 @@ describe("AdminUserEditor", () => {
     // 見出しを持たない絞り込み・選択の部品は、先頭の option（「出版社を選択...」）が
     // 見た目のラベルを兼ねてしまう。option は値であって名前ではないので、
     // これが無いと支援技術には「コンボボックス」としか読まれない。
+    it("付けられないユーザー（自分自身）には追加の欄を出さず理由を出す。外すことはできる", () => {
+      renderEditor(null, null, "自分自身には付けられません。");
+
+      expect(screen.queryByRole("combobox", { name: "追加する出版社" })).toBeNull();
+      expect(screen.getByText("自分自身には付けられません。")).toBeTruthy();
+      // 既に持っている権限は片付けられるように残す
+      expect(screen.getByRole("button", { name: "権限を外す" })).toBeTruthy();
+    });
+
     it("出版社の選択欄に名前が付いている", () => {
       renderEditor();
       expect(screen.getByRole("combobox", { name: "追加する出版社" })).toBeTruthy();

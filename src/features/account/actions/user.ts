@@ -83,6 +83,14 @@ export async function grantPublisherAccess(
   const admin = await requireAdminServerAction();
 
   try {
+    // 自分自身には付けられない。付けると、その出版社の本への自分の回答が「運営者が代理で記載」
+    // ではなく出版社本人の発言として公開される（services/publisher-access.ts は権限を持つ人を
+    // ADMIN でも本人扱いにする）。「この人はその出版社の関係者だ」という判断を、判断する本人に
+    // 向けて下せないようにする＝ロールの自己変更を塞いでいる updateUserRole と同じ考え方
+    if (profileId === admin.id) {
+      return { error: "自分自身には出版社のアクセス権を付けられません" };
+    }
+
     const parsed = z.string().uuid().safeParse(publisherId);
     if (!parsed.success) {
       return { error: "出版社の指定が不正です" };

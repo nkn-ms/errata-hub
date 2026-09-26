@@ -63,7 +63,7 @@ vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 import { createReport } from "./create";
 import { addReportAddendum, updateReport } from "./update";
-import { deleteOwnReportImage, deleteReportAddendum, withdrawOwnReport } from "./delete";
+import { deleteOwnReportImage, deleteReport, deleteReportAddendum, withdrawOwnReport } from "./delete";
 import { toggleUpvote } from "./upvote";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
@@ -476,6 +476,44 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
       }),
       expect.anything()
     );
+  });
+});
+
+describe("deleteReport（運営者による投稿の削除）", () => {
+  // 連絡後の投稿には追記と出版社の回答が付きうる。どちらも Cascade で投稿と一緒に消える
+  const report = {
+    id: "report-1",
+    userId: "user-1",
+    status: "FORWARDED",
+    title: "誤植の報告",
+    images: [],
+    addenda: [{ id: "addendum-1", body: "追記の本文" }],
+    publisherComments: [{ id: "comment-1", body: "回答の本文", publisher: { name: "オーム社" } }],
+  };
+
+  it("追記と出版社の回答も、本文ごと操作ログの before に残す", async () => {
+    // 1件ずつ消すとき（deleteReportAddendum / deletePublisherComment）は本文を残すのに、
+    // 投稿ごと消すときだけ何が消えたかを辿れない、という形にしない
+    prismaMock.report.findUnique.mockResolvedValue(report);
+
+    // 成功時は redirect が制御フロー例外を投げるので、ここまで来れば削除とログは通っている
+    await expect(deleteReport("report-1")).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(prismaMock.report.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          addenda: expect.anything(),
+          publisherComments: expect.anything(),
+        }),
+      })
+    );
+    const [params, tx] = createAuditLogMock.mock.calls[0];
+    expect(tx).toBeDefined();
+    expect(params).toMatchObject({ action: AUDIT_ACTION.DELETE_REPORT, targetId: "report-1" });
+    expect(params.before).toMatchObject({
+      addenda: [{ body: "追記の本文" }],
+      publisherComments: [{ body: "回答の本文", publisher: { name: "オーム社" } }],
+    });
   });
 });
 

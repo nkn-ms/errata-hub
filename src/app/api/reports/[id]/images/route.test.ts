@@ -60,10 +60,11 @@ import { POST } from "./route";
 const REPORT_ID = "report-1";
 const USER_ID = "user-1";
 
-function uploadRequest() {
+function uploadRequest(addendumId?: string) {
   const body = new FormData();
   body.set("file", new File(["dummy"], "shot.png", { type: "image/png" }));
-  return new Request(`https://example.test/api/reports/${REPORT_ID}/images`, {
+  const query = addendumId === undefined ? "" : `?addendumId=${addendumId}`;
+  return new Request(`https://example.test/api/reports/${REPORT_ID}/images${query}`, {
     method: "POST",
     body,
   });
@@ -79,7 +80,9 @@ describe("POST /api/reports/[id]/images", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     checkRateLimitMock.mockResolvedValue({ allowed: true });
     getUserMock.mockResolvedValue({ data: { user: { id: USER_ID } } });
-    prismaMock.report.findUnique.mockResolvedValue({ id: REPORT_ID, userId: USER_ID });
+    prismaMock.report.findUnique.mockResolvedValue({ userId: USER_ID, status: "PENDING" });
+    // 枚数の最終判定の前に取るロック（SELECT status … FOR UPDATE）の結果
+    prismaMock.$queryRaw.mockResolvedValue([{ status: "PENDING" }]);
     prismaMock.reportImage.count.mockResolvedValue(0);
     uploadMock.mockResolvedValue({ error: null });
     removeMock.mockResolvedValue({ error: null });
@@ -104,6 +107,39 @@ describe("POST /api/reports/[id]/images", () => {
     const response = await callPost(uploadRequest());
 
     expect(response.status).toBe(400);
+    expect(prismaMock.reportImage.create).not.toHaveBeenCalled();
+    expect(removeMock).toHaveBeenCalledTimes(1);
+  });
+
+  // 連絡後に足す画像は追記に添える＝出版社が見た時点の証拠（本体）に後から混ぜない
+  it("連絡済みの投稿の本体には足せない（Storage に上げる前に 409）", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ userId: USER_ID, status: "FORWARDED" });
+
+    const response = await callPost(uploadRequest());
+
+    expect(response.status).toBe(409);
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(prismaMock.reportImage.create).not.toHaveBeenCalled();
+  });
+
+  it("連絡済みでも追記の枠には足せる", async () => {
+    prismaMock.report.findUnique.mockResolvedValue({ userId: USER_ID, status: "FORWARDED" });
+    prismaMock.$queryRaw.mockResolvedValue([{ status: "FORWARDED" }]);
+    prismaMock.reportAddendum.findUnique.mockResolvedValue({ id: "addendum-1", reportId: REPORT_ID });
+    prismaMock.reportImage.create.mockResolvedValue({ id: "image-1", imageUrl: "url" });
+
+    const response = await callPost(uploadRequest("addendum-1"));
+
+    expect(response.status).toBe(201);
+  });
+
+  it("上げている間に連絡済みになったら、上げたファイルを消して 409", async () => {
+    // 早期チェックは PENDING で通り、ロックを取った時点では FORWARDED になっていた
+    prismaMock.$queryRaw.mockResolvedValue([{ status: "FORWARDED" }]);
+
+    const response = await callPost(uploadRequest());
+
+    expect(response.status).toBe(409);
     expect(prismaMock.reportImage.create).not.toHaveBeenCalled();
     expect(removeMock).toHaveBeenCalledTimes(1);
   });

@@ -24,12 +24,15 @@ export default function AdminUserEditor({
   profile,
   publishers,
   roleBlockedReason,
+  grantBlockedReason,
   withdrawBlockedReason,
 }: {
   profile: AdminProfileRow;
   publishers: PublisherOption[];
   /** ロールを変更できない理由（自分自身）。null なら実行できる */
   roleBlockedReason: string | null;
+  /** 出版社のアクセス権を付けられない理由（自分自身）。null なら付けられる。外すのはいつでもできる */
+  grantBlockedReason: string | null;
   /** 代行退会させられない理由（自分自身・管理者・退会済み）。null なら実行できる */
   withdrawBlockedReason: string | null;
 }) {
@@ -228,7 +231,9 @@ export default function AdminUserEditor({
           </ul>
         )}
 
-        {ungrantedPublishers.length > 0 && (
+        {grantBlockedReason !== null ? (
+          <p className="text-sm text-gray-500">{grantBlockedReason}</p>
+        ) : ungrantedPublishers.length > 0 && (
           <div className="flex gap-2 pt-2">
             <SelectField
               aria-label="追加する出版社"

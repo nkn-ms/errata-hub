@@ -18,6 +18,17 @@ function getRoleBlockedReason(profile: AdminProfileRow, adminId: string): string
 }
 
 /**
+ * 出版社のアクセス権を付けられない理由を返す（付けられるなら null）。外すのはいつでもできる。
+ * 正の砦はサーバーアクション（grantPublisherAccess）側。
+ */
+function getGrantBlockedReason(profile: AdminProfileRow, adminId: string): string | null {
+  if (profile.id === adminId) {
+    return "自分自身には付けられません。付けると、あなたの回答が「運営者が代理で記載」ではなく出版社本人の発言として公開されるためです。";
+  }
+  return null;
+}
+
+/**
  * 代行退会させられない理由を返す（実行できるなら null）。
  * 同じ判定はサーバーアクション（withdrawUserAsAdmin）側にもあり、そちらが正の砦。
  * ここは「押せないボタンを出さない・理由を先に見せる」ための画面側の判定。
@@ -64,6 +75,7 @@ export default async function AdminUserDetailPage({
         profile={profile}
         publishers={publishers}
         roleBlockedReason={getRoleBlockedReason(profile, admin.id)}
+        grantBlockedReason={getGrantBlockedReason(profile, admin.id)}
         withdrawBlockedReason={await getWithdrawBlockedReason(profile, admin.id)}
       />
     </div>
