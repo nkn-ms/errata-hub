@@ -60,9 +60,12 @@ import { POST } from "./route";
 const REPORT_ID = "report-1";
 const USER_ID = "user-1";
 
-function uploadRequest(addendumId?: string) {
+function uploadRequest({
+  file = new File(["dummy"], "shot.png", { type: "image/png" }),
+  addendumId,
+}: { file?: File; addendumId?: string } = {}) {
   const body = new FormData();
-  body.set("file", new File(["dummy"], "shot.png", { type: "image/png" }));
+  body.set("file", file);
   const query = addendumId === undefined ? "" : `?addendumId=${addendumId}`;
   return new Request(`https://example.test/api/reports/${REPORT_ID}/images${query}`, {
     method: "POST",
@@ -128,7 +131,7 @@ describe("POST /api/reports/[id]/images", () => {
     prismaMock.reportAddendum.findUnique.mockResolvedValue({ id: "addendum-1", reportId: REPORT_ID });
     prismaMock.reportImage.create.mockResolvedValue({ id: "image-1", imageUrl: "url" });
 
-    const response = await callPost(uploadRequest("addendum-1"));
+    const response = await callPost(uploadRequest({ addendumId: "addendum-1" }));
 
     expect(response.status).toBe(201);
   });
@@ -151,5 +154,21 @@ describe("POST /api/reports/[id]/images", () => {
 
     expect(response.status).toBe(201);
     expect(removeMock).not.toHaveBeenCalled();
+  });
+
+  it("撮影情報（EXIF）が残った画像は Storage に置かずに弾く（公開バケットなので置いた時点で読める）", async () => {
+    // SOI → APP1(Exif) → SOS。ブラウザの描き直しが失敗したか、フォームを通さずに送られた形
+    const jpegWithExif = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
+      0xff, 0xda, 0x00, 0x02, 0xff, 0xd9,
+    ]);
+
+    const response = await callPost(
+      uploadRequest({ file: new File([jpegWithExif], "photo.jpg", { type: "image/jpeg" }) })
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("撮影場所");
+    expect(uploadMock).not.toHaveBeenCalled();
   });
 });
