@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimits, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
-import { parseGoogleBooks } from "@/features/book/upstream";
+import { parseGoogleBooks } from "@/lib/book-upstream";
 
 const MAX_QUERY_LENGTH = 100;
 

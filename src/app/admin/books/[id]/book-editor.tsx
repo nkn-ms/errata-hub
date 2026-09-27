@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteBook, updateBook } from "@/features/book/actions/book";
 import { routes } from "@/constants/routes";
-import type { UpstreamBook } from "@/features/book/upstream";
+import type { UpstreamBook } from "@/lib/book-upstream";
 import { Button } from "@/components/ui/button";
 
 type Book = {

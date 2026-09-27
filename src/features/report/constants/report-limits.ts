@@ -33,3 +33,11 @@ export const REPORT_LIMITS = {
   // 出版社の回答ほど長くはならない（事情を1〜2文で書く欄）
   statusNote: 500,
 } as const;
+
+// 投稿時に送られてくる書誌の上限（サーバーだけ。画面に入力欄は無く、検索結果から選ぶ）。
+// 実在の書誌で弾かないよう大きめに取っている。目的は「無制限の文字列を公開ページに出さない」こと
+export const BOOK_LIMITS = {
+  title: 500,
+  author: 500,
+  publisher: 200,
+} as const;
