@@ -10,7 +10,7 @@ const UpdatePasswordSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
 
-export async function updatePassword(
+export async function updatePasswordUsecase(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {

@@ -34,7 +34,7 @@ type AddResult =
  * ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
  *    理由は features/report/components/report-addenda.tsx のコメント（再描画が入力欄ごと差し替えて書きかけを失う）。
  */
-export async function addPublisherComment(
+export async function addPublisherCommentUsecase(
   reportId: string,
   input: PublisherCommentInput
 ): Promise<AddResult> {
@@ -60,7 +60,7 @@ export async function addPublisherComment(
       return { error: rateLimitMessage(limit.retryAfterSec) };
     }
 
-    // 追記（addReportAddendum）と同じ形。⚠️ 書き込みは1本なので原子性のためではない。
+    // 追記（addReportAddendumUsecase）と同じ形。⚠️ 書き込みは1本なので原子性のためではない。
     // 判定を送信のたびにやり直すのが目的で、**競合は閉じていない**（READ COMMITTED なので、
     // 判定と INSERT の間に権限を剥奪されても気づかない）＝理由は checkPublisherCommentPermission
     return await prisma.$transaction(async (tx): Promise<AddResult> => {

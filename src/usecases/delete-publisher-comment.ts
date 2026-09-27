@@ -13,7 +13,7 @@ import { requireAdminServerAction } from "@/services/auth";
  *    不適切な回答1件のために投稿ごと消さずに済む手段が要る、というのがこの関数の存在理由
  *    （添付画像を1枚だけ消せるようにしたのと同じ考え方 = docs/moderation-policy.md）。
  */
-export async function deletePublisherComment(commentId: string): Promise<{ error?: string }> {
+export async function deletePublisherCommentUsecase(commentId: string): Promise<{ error?: string }> {
   const admin = await requireAdminServerAction();
 
   try {

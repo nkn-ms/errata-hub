@@ -1,14 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestPasswordReset } from "@/usecases/request-password-reset";
+import { requestPasswordResetUsecase } from "@/usecases/request-password-reset";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 
 export default function ResetPasswordPage() {
-  const [state, action, pending] = useActionState(requestPasswordReset, undefined);
+  const [state, action, pending] = useActionState(requestPasswordResetUsecase, undefined);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

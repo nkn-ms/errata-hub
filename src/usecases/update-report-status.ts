@@ -8,7 +8,7 @@ import { requireAdminServerAction } from "@/services/auth";
 import type { ReportActionState } from "@/features/report/types";
 import { ReportUpdateSchema, type ReportUpdateInput } from "@/features/report/schema";
 
-export async function updateReportStatus(id: string, input: ReportUpdateInput): Promise<ReportActionState> {
+export async function updateReportStatusUsecase(id: string, input: ReportUpdateInput): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
   try {

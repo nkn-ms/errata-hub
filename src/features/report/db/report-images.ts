@@ -29,7 +29,7 @@ export function imagePool(addendumId: string | null) {
         limit: ADDENDUM_IMAGE_MAX_COUNT,
         where: (reportId: string) => ({ reportId, addendumId: { not: null } }),
         message: `追記に添付できる画像は1件の投稿につき${ADDENDUM_IMAGE_MAX_COUNT}枚までです`,
-        // 追記は連絡後にしか作れない（addReportAddendum）ので、ここでステータスを絞る必要が無い
+        // 追記は連絡後にしか作れない（addReportAddendumUsecase）ので、ここでステータスを絞る必要が無い
         isOpen: () => true,
       };
 }

@@ -1,5 +1,5 @@
-import { signInWithGitHub } from "@/usecases/sign-in-with-github";
-import { signInWithGoogle } from "@/usecases/sign-in-with-google";
+import { signInWithGitHubUsecase } from "@/usecases/sign-in-with-github";
+import { signInWithGoogleUsecase } from "@/usecases/sign-in-with-google";
 import { GitHubIcon, GoogleIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
@@ -32,7 +32,7 @@ function OAuthButton({
 export function GoogleSignInButton() {
   return (
     <OAuthButton
-      action={signInWithGoogle}
+      action={signInWithGoogleUsecase}
       icon={<GoogleIcon className="w-4 h-4" />}
       label="Googleで続ける"
     />
@@ -42,7 +42,7 @@ export function GoogleSignInButton() {
 export function GitHubSignInButton() {
   return (
     <OAuthButton
-      action={signInWithGitHub}
+      action={signInWithGitHubUsecase}
       icon={<GitHubIcon className="w-4 h-4" />}
       label="GitHubで続ける"
     />

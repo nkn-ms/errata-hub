@@ -5,10 +5,10 @@ import { SelectField } from "@/components/ui/select-field";
 import { useRouter } from "next/navigation";
 import type { AdminProfileRow } from "@/features/account/db/profiles";
 import type { PublisherOption } from "@/features/publisher/db/publishers";
-import { grantPublisherAccess } from "@/usecases/grant-publisher-access";
-import { revokePublisherAccess } from "@/usecases/revoke-publisher-access";
-import { updateUserRole } from "@/usecases/update-user-role";
-import { withdrawUserAsAdmin } from "@/usecases/withdraw-user-as-admin";
+import { grantPublisherAccessUsecase } from "@/usecases/grant-publisher-access";
+import { revokePublisherAccessUsecase } from "@/usecases/revoke-publisher-access";
+import { updateUserRoleUsecase } from "@/usecases/update-user-role";
+import { withdrawUserAsAdminUsecase } from "@/usecases/withdraw-user-as-admin";
 import { withdrawalConfirmationLabel } from "@/utils/withdrawal";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export default function AdminUserEditor({
     setRoleSaved(false);
     setRoleError("");
     // 成功時はアクション側の refresh() で画面が最新化される
-    const result = await updateUserRole(profile.id, role);
+    const result = await updateUserRoleUsecase(profile.id, role);
     if (result.error) {
       setRoleError(result.error);
     } else {
@@ -98,7 +98,7 @@ export default function AdminUserEditor({
     // ＝もう一度押せば続きからやり直せる（成功した分を二重に処理しない）= report-edit-form.tsx
     const pendingRemovals = [...removedIds];
     for (const publisherId of removedIds) {
-      const result = await revokePublisherAccess(profile.id, publisherId);
+      const result = await revokePublisherAccessUsecase(profile.id, publisherId);
       if (result.error) {
         setRemovedIds(pendingRemovals);
         setAccessError(result.error);
@@ -112,7 +112,7 @@ export default function AdminUserEditor({
 
     const pendingAdds = [...added];
     for (const publisher of added) {
-      const result = await grantPublisherAccess(profile.id, publisher.id);
+      const result = await grantPublisherAccessUsecase(profile.id, publisher.id);
       if (result.error !== undefined) {
         setAdded(pendingAdds);
         setAccessError(result.error);
@@ -132,7 +132,7 @@ export default function AdminUserEditor({
   async function handleWithdraw() {
     setWithdrawing(true);
     setWithdrawError("");
-    const result = await withdrawUserAsAdmin(profile.id, withdrawConfirmation);
+    const result = await withdrawUserAsAdminUsecase(profile.id, withdrawConfirmation);
     if (result.error) {
       setWithdrawError(result.error);
       setWithdrawing(false);

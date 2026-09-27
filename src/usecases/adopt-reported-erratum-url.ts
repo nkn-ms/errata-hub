@@ -18,12 +18,12 @@ import type { BookActionState } from "@/features/book/types";
 // どれに当たったかだけを返す（例外で流すと「失敗」と「採用できない」の区別が付かなくなる）。
 type AdoptOutcome = "adopted" | "report-not-found" | "no-url";
 
-export async function adoptReportedErratumUrl(reportId: string): Promise<BookActionState> {
+export async function adoptReportedErratumUrlUsecase(reportId: string): Promise<BookActionState> {
   const admin = await requireAdminServerAction();
 
   let outcome: AdoptOutcome;
   try {
-    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 申告値の読み出しも塊の中で行う: 監査ログの before に使う値なので、
     // 読んでから書くまでの間に他の変更が入り込まないようにする。
     outcome = await prisma.$transaction<AdoptOutcome>(async (tx) => {

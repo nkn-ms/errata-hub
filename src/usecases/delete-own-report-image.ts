@@ -17,10 +17,10 @@ type OwnImageDeletion =
  * 削除を PENDING に限るのは、本文を凍結しても画像を消せるなら**出版社が見た内容は結局変わる**ため。
  * 連絡後に足す画像は追記に添える（本体の枠には入れない = schema.prisma の ReportImage.addendumId）。
  *
- * ⚠️ 管理者用の deleteReportImage とは別に置く。あちらは権利者からの削除要請に応える措置で、
+ * ⚠️ 管理者用の deleteReportImageUsecase とは別に置く。あちらは権利者からの削除要請に応える措置で、
  *    ステータスに関わらず消せる必要があり、条件を共有すると両方の意図が濁る。
  */
-export async function deleteOwnReportImage(imageId: string): Promise<ReportActionState> {
+export async function deleteOwnReportImageUsecase(imageId: string): Promise<ReportActionState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -30,7 +30,7 @@ export async function deleteOwnReportImage(imageId: string): Promise<ReportActio
   let result: OwnImageDeletion;
   try {
     result = await prisma.$transaction(async (tx): Promise<OwnImageDeletion> => {
-      // 認可もステータスの確認も塊の中で行う（updateOwnReport と同じ理由。詳細ページを開いて
+      // 認可もステータスの確認も塊の中で行う（updateOwnReportUsecase と同じ理由。詳細ページを開いて
       // いる間に管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
       const found = await tx.reportImage.findUnique({
         where: { id: imageId },

@@ -20,7 +20,7 @@ type AddendumResult = { addendum: Addendum; error?: undefined } | { addendum?: u
 
 // ⚠️ **refresh() しない。作った行を返し、呼び出し側が自分の一覧に足す。**
 //    理由は features/report/components/report-addenda.tsx のコメント。
-export async function addReportAddendum(id: string, input: AddendumInput): Promise<AddendumResult> {
+export async function addReportAddendumUsecase(id: string, input: AddendumInput): Promise<AddendumResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

@@ -12,7 +12,7 @@ import type { UserActionState } from "@/features/account/types";
 /**
  * 管理者による代行退会（スパム・規約違反・テスト垢の始末）。
  *
- * 「削除」ではなく本人の退会（usecases/withdraw-account.ts の withdrawAccount）と同じ処理を管理者が代行する。
+ * 「削除」ではなく本人の退会（usecases/withdraw-account.ts の withdrawAccountUsecase）と同じ処理を管理者が代行する。
  * Profile 行そのものは消さない: Report.userId が Restrict で消せない上に、
  * ログイン不可・PII 消去という目的はスクラブだけで達成できるため
  * （残るのは表示名 null・メールがダミーの抜け殻＝ [孤児行は許容] の判断と同じ）。
@@ -24,7 +24,7 @@ import type { UserActionState } from "@/features/account/types";
  *   3) ADMIN ロールは直接できない（先に「一般」へ落とす2手順を踏ませる）
  *   4) 監査ログに「どの管理者が誰を」を残す
  */
-export async function withdrawUserAsAdmin(
+export async function withdrawUserAsAdminUsecase(
   profileId: string,
   confirmation: string
 ): Promise<UserActionState> {
@@ -77,7 +77,7 @@ export async function withdrawUserAsAdmin(
     // ここに残すと auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
     // 無期限で PII を保持することになってしまうため（本人退会と同じ扱い）。
     //
-    // ⚠️ 本人退会（usecases/withdraw-account.ts の withdrawAccount）と同じ理由で**塊にできない**（上の
+    // ⚠️ 本人退会（usecases/withdraw-account.ts の withdrawAccountUsecase）と同じ理由で**塊にできない**（上の
     //    scrubProfileForWithdrawal が Supabase の admin API を叩く）。倒す方向も揃える:
     //    退会は既に成立して取り消せないので、記録の失敗で「失敗しました」とは返さない。
     try {

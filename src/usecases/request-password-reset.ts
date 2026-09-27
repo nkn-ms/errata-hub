@@ -16,7 +16,7 @@ const ResetRequestSchema = z.object({
  * フロー全体（resetPasswordForEmail → メール → /auth/callback → パスワード更新）は公式の形。
  * 参考: https://supabase.com/docs/guides/auth/passwords
  */
-export async function requestPasswordReset(
+export async function requestPasswordResetUsecase(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {

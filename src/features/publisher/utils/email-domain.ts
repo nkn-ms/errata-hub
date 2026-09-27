@@ -2,7 +2,7 @@
 //
 // この値は「その出版社の担当者が使っている企業ドメイン」を管理者が控えておくための**メモ**。
 // ⚠️ **権限は付かない**。出版社アクセスは管理画面のユーザー編集からの個別付与だけで与える
-//    （= usecases/grant-publisher-access.ts の grantPublisherAccess）。
+//    （= usecases/grant-publisher-access.ts の grantPublisherAccessUsecase）。
 //    以前はログイン時にこの値とメールのドメイン部を突き合わせて PublisherAccess を自動付与していたが、
 //    「人の判断を経ずに、そのドメインの登録者全員へ常時付与される」形だったため廃止した
 //    （退職者・大企業の無関係な人・後からそのドメインのアドレスを取得した人にも付いてしまう）。

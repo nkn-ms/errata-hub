@@ -155,7 +155,7 @@ export const ReportUpdateSchema = z.object({
 }).transform((data) => {
   // 修正版・刷は「修正済み(FIXED)」でのみ意味を持つ欄。FIXED 以外へ変更するときは、
   // クライアントが何を送ってきても null に倒す。UI 側の入力欄制御だけに頼らず、ここで
-  // 不変条件を保証する（アクション直叩きでも不整合な状態を保存させない ＝ createReport が
+  // 不変条件を保証する（アクション直叩きでも不整合な状態を保存させない ＝ createReportUsecase が
   // 「UI と同じ条件をサーバーでも強制する」のと同じ考え方）。
   // status を含まない部分更新では現在の status が不明なので、fixed* には触れない。
   if (data.status !== undefined && data.status !== "FIXED") {

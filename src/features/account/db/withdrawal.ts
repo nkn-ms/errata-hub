@@ -65,8 +65,8 @@ export async function authUserExists(profileId: string): Promise<boolean> {
 }
 
 /**
- * 退会処理の実体。本人による退会（usecases/withdraw-account.ts の withdrawAccount）と
- * 管理者による代行（usecases/withdraw-user-as-admin.ts の withdrawUserAsAdmin）で共有する。
+ * 退会処理の実体。本人による退会（usecases/withdraw-account.ts の withdrawAccountUsecase）と
+ * 管理者による代行（usecases/withdraw-user-as-admin.ts の withdrawUserAsAdminUsecase）で共有する。
  *
  * 投稿（Report）はコミュニティ資産として残し、投稿者の個人情報だけを消す。
  * Report.userId は Restrict なので Profile 行は物理削除できない → 残して PII をスクラブする。

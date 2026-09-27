@@ -2,6 +2,6 @@
 
 import { startOAuth } from "@/services/auth";
 
-export async function signInWithGoogle() {
+export async function signInWithGoogleUsecase() {
   await startOAuth("google");
 }

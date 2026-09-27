@@ -9,7 +9,7 @@ import { routes } from "@/constants/routes";
 import type { PublisherState } from "@/features/publisher/types";
 import { toMessage } from "@/features/publisher/db/publishers";
 
-export async function deletePublisher(id: string): Promise<PublisherState> {
+export async function deletePublisherUsecase(id: string): Promise<PublisherState> {
   const admin = await requireAdminServerAction();
 
   // 書籍が紐づく出版社は削除させない（UX側のガード）。
@@ -23,7 +23,7 @@ export async function deletePublisher(id: string): Promise<PublisherState> {
   }
 
   try {
-    // 削除と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 削除と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
     await prisma.$transaction(async (tx) => {
       // 対象が無ければ delete が P2025 を投げ、toMessage が「対象の出版社が見つかりません」に訳す

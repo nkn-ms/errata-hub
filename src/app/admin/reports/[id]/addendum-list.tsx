@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { deleteReportAddendum } from "@/usecases/delete-report-addendum";
+import { deleteReportAddendumUsecase } from "@/usecases/delete-report-addendum";
 import { Button } from "@/components/ui/button";
 import { RecordId } from "./record-id";
 
@@ -36,7 +36,7 @@ export function AdminAddendumList({ addenda }: { addenda: AdminAddendum[] }) {
     setDeleting(true);
     setError("");
     // 成功時はアクション側の refresh() でこのページが描き直される（一覧はここで持たない）
-    const result = await deleteReportAddendum(target.id);
+    const result = await deleteReportAddendumUsecase(target.id);
     if (result.error !== undefined) {
       setError(result.error);
     }

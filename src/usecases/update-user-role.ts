@@ -10,7 +10,7 @@ import type { UserActionState } from "@/features/account/types";
 
 const RoleSchema = z.enum(["ADMIN", "USER"]);
 
-export async function updateUserRole(profileId: string, role: string): Promise<UserActionState> {
+export async function updateUserRoleUsecase(profileId: string, role: string): Promise<UserActionState> {
   const admin = await requireAdminServerAction();
 
   try {
@@ -25,16 +25,16 @@ export async function updateUserRole(profileId: string, role: string): Promise<U
     // 0人になるとアプリからは誰も戻せず、DB を直接触るしかなくなる＝取り返しがつかない。
     //
     // 昇格方向も一緒に塞ぐのは、規則を単純に保つため（自分を ADMIN にする意味は無い）。
-    // 代行退会の「自分自身は対象にできない」と同じ考え方 = withdrawUserAsAdmin。
+    // 代行退会の「自分自身は対象にできない」と同じ考え方 = withdrawUserAsAdminUsecase。
     //
     // ⚠️ 代償として、**管理者が1人の間はその人が退会できない**（本人退会にも管理者ガードが
     //    あるため）。2026-08-04 に運営者が承知のうえで受け入れた仕様で、不具合ではない
-    //    ＝ usecases/withdraw-account.ts の withdrawAccount に詳細。
+    //    ＝ usecases/withdraw-account.ts の withdrawAccountUsecase に詳細。
     if (profileId === admin.id) {
       return { error: "自分自身のロールは変更できません。他の管理者に依頼してください" };
     }
 
-    // ロール変更と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // ロール変更と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
     await prisma.$transaction(async (tx) => {
       const before = await tx.profile.findUnique({ where: { id: profileId } });

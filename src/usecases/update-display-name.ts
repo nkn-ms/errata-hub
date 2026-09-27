@@ -25,7 +25,7 @@ const DisplayNameSchema = z.object({
  * （二重管理にすると OAuth ログイン等の経路ごとに同期漏れが起きるため）。
  * プライバシーポリシー第7条3項（表示名は本サービス上で変更可能）と対応。
  */
-export async function updateDisplayName(
+export async function updateDisplayNameUsecase(
   _prevState: ProfileState,
   formData: FormData,
 ): Promise<ProfileState> {

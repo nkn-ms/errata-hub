@@ -10,7 +10,7 @@ import type { PublisherState } from "@/features/publisher/types";
 import { parsePublisherForm } from "@/features/publisher/schema";
 import { toMessage } from "@/features/publisher/db/publishers";
 
-export async function updatePublisher(
+export async function updatePublisherUsecase(
   id: string,
   _prev: PublisherState,
   formData: FormData
@@ -24,7 +24,7 @@ export async function updatePublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    // 更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     await prisma.$transaction(async (tx) => {
       const before = await tx.publisher.findUnique({ where: { id } });
       const publisher = await tx.publisher.update({

@@ -55,7 +55,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/generated/prisma/client", () => ({
   Prisma: { PrismaClientKnownRequestError },
 }));
-// updateReportStatus（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
+// updateReportStatusUsecase（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
 vi.mock("@/services/auth", () => ({
   requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
@@ -64,14 +64,14 @@ vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("@/lib/openbd", () => ({ fetchOpenBdBooks: fetchOpenBdBooksMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport } from "./create-report";
-import { addReportAddendum } from "./add-report-addendum";
-import { updateReportStatus } from "./update-report-status";
-import { deleteOwnReportImage } from "./delete-own-report-image";
-import { deleteReport } from "./delete-report";
-import { deleteReportAddendum } from "./delete-report-addendum";
-import { withdrawOwnReport } from "./withdraw-own-report";
-import { toggleUpvote } from "./toggle-upvote";
+import { createReportUsecase } from "./create-report";
+import { addReportAddendumUsecase } from "./add-report-addendum";
+import { updateReportStatusUsecase } from "./update-report-status";
+import { deleteOwnReportImageUsecase } from "./delete-own-report-image";
+import { deleteReportUsecase } from "./delete-report";
+import { deleteReportAddendumUsecase } from "./delete-report-addendum";
+import { withdrawOwnReportUsecase } from "./withdraw-own-report";
+import { toggleUpvoteUsecase } from "./toggle-upvote";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
 import { BOOK_LIMITS, REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -85,24 +85,24 @@ beforeEach(() => {
   fetchOpenBdBooksMock.mockResolvedValue([]);
 });
 
-describe("toggleUpvote（賛同を付ける）", () => {
+describe("toggleUpvoteUsecase（賛同を付ける）", () => {
   it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ error: "認証が必要です" });
   });
 
   it("投稿が存在しなければエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.report.findUnique.mockResolvedValue(null);
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ error: "投稿が見つかりません" });
   });
 
   it("自分の投稿にはエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ error: "自分の投稿には賛同できません" });
     expect(prismaMock.upvote.create).not.toHaveBeenCalled();
   });
@@ -111,7 +111,7 @@ describe("toggleUpvote（賛同を付ける）", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockResolvedValue({});
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ upvoted: true, count: 1 });
     expect(prismaMock.upvote.create).toHaveBeenCalledWith({
       data: { reportId: "report-1", profileId: "user-2" },
@@ -122,7 +122,7 @@ describe("toggleUpvote（賛同を付ける）", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockRejectedValue(new PrismaClientKnownRequestError("P2002"));
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ upvoted: true, count: 1 });
   });
 
@@ -131,16 +131,16 @@ describe("toggleUpvote（賛同を付ける）", () => {
     prismaMock.report.findUnique.mockResolvedValue({ userId: "user-1" });
     prismaMock.upvote.create.mockRejectedValue(new PrismaClientKnownRequestError("P2003"));
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
     expect(result).toEqual({ error: "賛同に失敗しました" });
     consoleSpy.mockRestore();
   });
 });
 
-describe("toggleUpvote（賛同を取り消す）", () => {
+describe("toggleUpvoteUsecase（賛同を取り消す）", () => {
   it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const result = await toggleUpvote("report-1", false);
+    const result = await toggleUpvoteUsecase("report-1", false);
     expect(result).toEqual({ error: "認証が必要です" });
   });
 
@@ -148,7 +148,7 @@ describe("toggleUpvote（賛同を取り消す）", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2" } } });
     prismaMock.upvote.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.upvote.count.mockResolvedValue(0);
-    const result = await toggleUpvote("report-1", false);
+    const result = await toggleUpvoteUsecase("report-1", false);
     expect(result).toEqual({ upvoted: false, count: 0 });
     expect(prismaMock.upvote.deleteMany).toHaveBeenCalledWith({
       where: { reportId: "report-1", profileId: "user-2" },
@@ -156,9 +156,9 @@ describe("toggleUpvote（賛同を取り消す）", () => {
   });
 });
 
-describe("updateReportStatus（ステータス更新のバリデーション）", () => {
+describe("updateReportStatusUsecase（ステータス更新のバリデーション）", () => {
   it("「その他」は運営者の補足が無いと保存できない（空の OTHER を作らせない）", async () => {
-    const result = await updateReportStatus("r1", { status: "OTHER", statusNote: "" });
+    const result = await updateReportStatusUsecase("r1", { status: "OTHER", statusNote: "" });
 
     expect(result.error).toBe("「その他」を選んだときは、運営者の補足欄に事情を記載してください");
     expect(prismaMock.report.update).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe("updateReportStatus（ステータス更新のバリデーション）"
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "OTHER" });
 
-    const result = await updateReportStatus("r1", {
+    const result = await updateReportStatusUsecase("r1", {
       status: "OTHER",
       statusNote: "出版社が廃業しており連絡が取れません",
     });
@@ -181,7 +181,7 @@ describe("updateReportStatus（ステータス更新のバリデーション）"
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "LISTED" });
 
-    const result = await updateReportStatus("r1", { status: "LISTED", statusNote: "" });
+    const result = await updateReportStatusUsecase("r1", { status: "LISTED", statusNote: "" });
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.report.update).toHaveBeenCalled();
@@ -195,7 +195,7 @@ describe("updateReportStatus（ステータス更新のバリデーション）"
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "FIXED" });
 
-    await updateReportStatus("r1", { status: "FIXED" });
+    await updateReportStatusUsecase("r1", { status: "FIXED" });
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [, tx] = createAuditLogMock.mock.calls[0];
@@ -220,7 +220,7 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
     prismaMock.report.create.mockResolvedValue({ id: "report-1" });
 
-    const result = await createReport({
+    const result = await createReportUsecase({
       ...validInput,
       content: "あ".repeat(REPORT_LIMITS.content),
     });
@@ -231,7 +231,7 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
   it("上限を1文字超えた本文は保存させない", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
 
-    const result = await createReport({
+    const result = await createReportUsecase({
       ...validInput,
       content: "あ".repeat(REPORT_LIMITS.content + 1),
     });
@@ -241,7 +241,7 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
   });
 
   it("運営者の補足にも上限がある", async () => {
-    const result = await updateReportStatus("r1", {
+    const result = await updateReportStatusUsecase("r1", {
       status: "LISTED",
       statusNote: "あ".repeat(REPORT_LIMITS.statusNote + 1),
     });
@@ -267,7 +267,7 @@ describe("レート制限", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 3600 });
 
-    const result = await createReport(validInput);
+    const result = await createReportUsecase(validInput);
 
     expect(result.error).toContain("操作が多すぎます");
     // 書籍・出版社の upsert すら起こさない（弾くなら書き込みの手前で弾く）
@@ -282,7 +282,7 @@ describe("レート制限", () => {
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
     prismaMock.report.create.mockResolvedValue({ id: "report-1" });
 
-    await createReport(validInput);
+    await createReportUsecase(validInput);
 
     expect(checkRateLimitMock).toHaveBeenCalledWith(
       "createReport:user-1",
@@ -293,7 +293,7 @@ describe("レート制限", () => {
   it("未認証はレート制限を消費しない（認証で先に弾く）", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
 
-    await createReport(validInput);
+    await createReportUsecase(validInput);
 
     expect(checkRateLimitMock).not.toHaveBeenCalled();
   });
@@ -302,7 +302,7 @@ describe("レート制限", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 30 });
 
-    const result = await toggleUpvote("report-1", true);
+    const result = await toggleUpvoteUsecase("report-1", true);
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.upvote.create).not.toHaveBeenCalled();
@@ -312,7 +312,7 @@ describe("レート制限", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 30 });
 
-    const result = await toggleUpvote("report-1", false);
+    const result = await toggleUpvoteUsecase("report-1", false);
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.upvote.deleteMany).not.toHaveBeenCalled();
@@ -324,7 +324,7 @@ describe("レート制限", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 3600 });
 
-    const result = await addReportAddendum("report-1", { body: "追記します" });
+    const result = await addReportAddendumUsecase("report-1", { body: "追記します" });
 
     expect(result.error).toContain("操作が多すぎます");
     expect(prismaMock.reportAddendum.create).not.toHaveBeenCalled();
@@ -343,7 +343,7 @@ describe("レート制限", () => {
       createdAt: new Date("2026-08-10T00:00:00.000Z"),
     });
 
-    await addReportAddendum("report-1", { body: "追記します" });
+    await addReportAddendumUsecase("report-1", { body: "追記します" });
 
     expect(checkRateLimitMock).toHaveBeenCalledWith(
       "addReportAddendum:user-1",
@@ -353,7 +353,7 @@ describe("レート制限", () => {
   });
 });
 
-describe("createReport（誤と正が同じ投稿を弾く）", () => {
+describe("createReportUsecase（誤と正が同じ投稿を弾く）", () => {
   // 他の必須項目は全部満たした状態にして、誤/正 の一致だけを見る
   const baseInput = {
     book: { title: "テスト駆動開発", isbn: "9784873115948" },
@@ -369,7 +369,7 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
   });
 
   it("誤と正が完全に同じならエラーにする", async () => {
-    const result = await createReport({ ...baseInput, wrong: "冪等", correct: "冪等" });
+    const result = await createReportUsecase({ ...baseInput, wrong: "冪等", correct: "冪等" });
     expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
     // 弾くべき投稿で DB を触っていないこと（バリデーションは書き込みより手前）
     expect(prismaMock.report.create).not.toHaveBeenCalled();
@@ -378,7 +378,7 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
   // 前後の空白は①画面に現れず②指摘の対象にもなり得ない（紙面の「前後の空白」は観測できない）ので
   // 保存前にトリムする。結果、空白しか違わないものは「同じ」と見なして弾く
   it("前後の空白しか違わないものは同じと見なして弾く", async () => {
-    const result = await createReport({ ...baseInput, wrong: " 冪等 ", correct: "冪等" });
+    const result = await createReportUsecase({ ...baseInput, wrong: " 冪等 ", correct: "冪等" });
     expect(result.error).toBe(IDENTICAL_WRONG_CORRECT_MESSAGE);
     expect(prismaMock.report.create).not.toHaveBeenCalled();
   });
@@ -388,7 +388,7 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
     prismaMock.report.create.mockResolvedValue({ id: "report-1" });
 
-    await createReport({ ...baseInput, wrong: "  冪等  ", correct: "べき等" });
+    await createReportUsecase({ ...baseInput, wrong: "  冪等  ", correct: "べき等" });
     expect(prismaMock.report.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ wrong: "冪等", correct: "べき等" }) })
     );
@@ -402,13 +402,13 @@ describe("createReport（誤と正が同じ投稿を弾く）", () => {
     prismaMock.book.upsert.mockResolvedValue({ id: "book-1" });
     prismaMock.report.create.mockResolvedValue({ id: "report-2" });
 
-    const result = await createReport({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
+    const result = await createReportUsecase({ ...baseInput, wrong: "ＡＰＩ", correct: "API" });
     expect(result.error).toBeUndefined();
     expect(result.id).toBe("report-2");
   });
 });
 
-describe("withdrawOwnReport（投稿者による取り下げ）", () => {
+describe("withdrawOwnReportUsecase（投稿者による取り下げ）", () => {
   const report = {
     id: "report-1",
     userId: "user-1",
@@ -426,7 +426,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
 
-    const result = await withdrawOwnReport("report-1");
+    const result = await withdrawOwnReportUsecase("report-1");
 
     expect(result).toEqual({ error: "認証が必要です" });
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
@@ -435,7 +435,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   it("他人の投稿は取り下げられない", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-2", email: "other@local.test" } } });
 
-    const result = await withdrawOwnReport("report-1");
+    const result = await withdrawOwnReportUsecase("report-1");
 
     expect(result.error).toContain("権限がありません");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
@@ -444,7 +444,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   it("連絡済みの投稿は取り下げられない", async () => {
     prismaMock.report.findUnique.mockResolvedValue({ ...report, status: "FORWARDED" });
 
-    const result = await withdrawOwnReport("report-1");
+    const result = await withdrawOwnReportUsecase("report-1");
 
     expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
@@ -453,7 +453,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   it("却下された投稿も取り下げられない（PENDING だけ）", async () => {
     prismaMock.report.findUnique.mockResolvedValue({ ...report, status: "DISMISSED" });
 
-    const result = await withdrawOwnReport("report-1");
+    const result = await withdrawOwnReportUsecase("report-1");
 
     expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
@@ -462,7 +462,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   it("投稿が見つからないときは削除もログもしない", async () => {
     prismaMock.report.findUnique.mockResolvedValue(null);
 
-    const result = await withdrawOwnReport("report-1");
+    const result = await withdrawOwnReportUsecase("report-1");
 
     expect(result.error).toBe("投稿が見つかりません");
     expect(prismaMock.report.delete).not.toHaveBeenCalled();
@@ -471,7 +471,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
 
   it("未対応の間は取り下げでき、投稿の中身ごと操作ログに残る", async () => {
     // 成功時は redirect が制御フロー例外を投げるので、ここまで来れば削除とログは通っている
-    await expect(withdrawOwnReport("report-1")).rejects.toThrow("NEXT_REDIRECT");
+    await expect(withdrawOwnReportUsecase("report-1")).rejects.toThrow("NEXT_REDIRECT");
 
     expect(prismaMock.report.delete).toHaveBeenCalledWith({ where: { id: "report-1" } });
     // 投稿は物理削除されるので、何が消えたかを辿れるのはこの記録だけ
@@ -488,7 +488,7 @@ describe("withdrawOwnReport（投稿者による取り下げ）", () => {
   });
 });
 
-describe("deleteReport（運営者による投稿の削除）", () => {
+describe("deleteReportUsecase（運営者による投稿の削除）", () => {
   // 連絡後の投稿には追記と出版社の回答が付きうる。どちらも Cascade で投稿と一緒に消える
   const report = {
     id: "report-1",
@@ -501,12 +501,12 @@ describe("deleteReport（運営者による投稿の削除）", () => {
   };
 
   it("追記と出版社の回答も、本文ごと操作ログの before に残す", async () => {
-    // 1件ずつ消すとき（deleteReportAddendum / deletePublisherComment）は本文を残すのに、
+    // 1件ずつ消すとき（deleteReportAddendumUsecase / deletePublisherCommentUsecase）は本文を残すのに、
     // 投稿ごと消すときだけ何が消えたかを辿れない、という形にしない
     prismaMock.report.findUnique.mockResolvedValue(report);
 
     // 成功時は redirect が制御フロー例外を投げるので、ここまで来れば削除とログは通っている
-    await expect(deleteReport("report-1")).rejects.toThrow("NEXT_REDIRECT");
+    await expect(deleteReportUsecase("report-1")).rejects.toThrow("NEXT_REDIRECT");
 
     expect(prismaMock.report.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -526,7 +526,7 @@ describe("deleteReport（運営者による投稿の削除）", () => {
   });
 });
 
-describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
+describe("deleteOwnReportImageUsecase（投稿者による画像の削除）", () => {
   // 実在しないバケットの URL にしておくと storagePathFromPublicUrl が null を返し、
   // Storage への削除要求そのものが起きない（ここで見たいのは DB 側の判断なので都合がよい）
   const image = {
@@ -544,7 +544,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
   it("未認証はエラー", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
 
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toBe("認証が必要です");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
@@ -556,7 +556,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
       report: { userId: "user-2", status: "PENDING" },
     });
 
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toContain("権限がありません");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
@@ -570,7 +570,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
       report: { userId: "user-1", status: "FORWARDED" },
     });
 
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
@@ -582,14 +582,14 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
       report: { userId: "user-1", status: "DISMISSED" },
     });
 
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toContain("連絡済みの投稿");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
   });
 
   it("未対応の間は自分の画像を削除でき、操作ログに残る", async () => {
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.reportImage.delete).toHaveBeenCalledWith({ where: { id: "image-1" } });
@@ -609,7 +609,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
   it("画像が見つからないときは削除もログもしない", async () => {
     prismaMock.reportImage.findUnique.mockResolvedValue(null);
 
-    const result = await deleteOwnReportImage("image-1");
+    const result = await deleteOwnReportImageUsecase("image-1");
 
     expect(result.error).toBe("画像が見つかりません");
     expect(prismaMock.reportImage.delete).not.toHaveBeenCalled();
@@ -617,7 +617,7 @@ describe("deleteOwnReportImage（投稿者による画像の削除）", () => {
   });
 });
 
-describe("deleteReportAddendum（運営者による追記の削除）", () => {
+describe("deleteReportAddendumUsecase（運営者による追記の削除）", () => {
   // 実在しないバケットの URL にしておくと storagePathFromPublicUrl が null を返し、
   // Storage への削除要求そのものが起きない（ここで見たいのは DB 側の判断なので都合がよい）
   const addendum = {
@@ -630,7 +630,7 @@ describe("deleteReportAddendum（運営者による追記の削除）", () => {
   it("追記が無ければその旨を返す", async () => {
     prismaMock.reportAddendum.findUnique.mockResolvedValue(null);
 
-    const result = await deleteReportAddendum("addendum-1");
+    const result = await deleteReportAddendumUsecase("addendum-1");
 
     expect(result).toEqual({ error: "追記が見つかりません" });
     expect(prismaMock.reportAddendum.delete).not.toHaveBeenCalled();
@@ -641,7 +641,7 @@ describe("deleteReportAddendum（運営者による追記の削除）", () => {
     // （Storage のファイルは Cascade では消えない = removeImageFiles のコメント）
     prismaMock.reportAddendum.findUnique.mockResolvedValue(addendum);
 
-    const result = await deleteReportAddendum("addendum-1");
+    const result = await deleteReportAddendumUsecase("addendum-1");
 
     expect(result).toEqual({});
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -663,7 +663,7 @@ describe("deleteReportAddendum（運営者による追記の削除）", () => {
     //    先に URL を集めておかないと Storage のファイルが孤児になる
     prismaMock.reportAddendum.findUnique.mockResolvedValue(addendum);
 
-    await deleteReportAddendum("addendum-1");
+    await deleteReportAddendumUsecase("addendum-1");
 
     expect(prismaMock.reportAddendum.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ include: { images: true } })
@@ -671,7 +671,7 @@ describe("deleteReportAddendum（運営者による追記の削除）", () => {
   });
 });
 
-describe("createReport（書誌はブラウザの値を信じず OpenBD を正とする）", () => {
+describe("createReportUsecase（書誌はブラウザの値を信じず OpenBD を正とする）", () => {
   const input = {
     book: { title: "送られてきた書名", author: "送られてきた著者", publisher: "架空出版", isbn: "9784873115948" },
     title: "p.42 の誤植",
@@ -701,7 +701,7 @@ describe("createReport（書誌はブラウザの値を信じず OpenBD を正�
   it("新しい書籍は OpenBD の書誌で作る（出版社も OpenBD の名前で紐づける）", async () => {
     fetchOpenBdBooksMock.mockResolvedValue([openBdBook]);
 
-    const result = await createReport(input);
+    const result = await createReportUsecase(input);
 
     expect(result).toEqual({ id: "report-1" });
     expect(fetchOpenBdBooksMock).toHaveBeenCalledWith(["9784873115948"]);
@@ -718,7 +718,7 @@ describe("createReport（書誌はブラウザの値を信じず OpenBD を正�
   it("OpenBD に無い項目だけ送られてきた値で埋める", async () => {
     fetchOpenBdBooksMock.mockResolvedValue([{ ...openBdBook, author: "", publisher: "" }]);
 
-    await createReport(input);
+    await createReportUsecase(input);
 
     expect(prismaMock.publisher.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { name: "架空出版" } })
@@ -733,7 +733,7 @@ describe("createReport（書誌はブラウザの値を信じず OpenBD を正�
     fetchOpenBdBooksMock.mockRejectedValue(new Error("OpenBD API error: 503"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await createReport(input);
+    const result = await createReportUsecase(input);
 
     expect(result).toEqual({ id: "report-1" });
     expect(prismaMock.book.upsert.mock.calls[0][0].create).toMatchObject({ title: "送られてきた書名" });
@@ -742,7 +742,7 @@ describe("createReport（書誌はブラウザの値を信じず OpenBD を正�
   it("既にある書籍には触らない（OpenBD も引かず、出版社も作らない）", async () => {
     prismaMock.book.findUnique.mockResolvedValue({ id: "book-existing" });
 
-    await createReport(input);
+    await createReportUsecase(input);
 
     expect(fetchOpenBdBooksMock).not.toHaveBeenCalled();
     expect(prismaMock.publisher.upsert).not.toHaveBeenCalled();
@@ -751,7 +751,7 @@ describe("createReport（書誌はブラウザの値を信じず OpenBD を正�
   });
 
   it("書誌にも上限がある（OpenBD に無い本では送られてきた値がそのまま公開ページに出るため）", async () => {
-    const result = await createReport({
+    const result = await createReportUsecase({
       ...input,
       book: { ...input.book, title: "あ".repeat(BOOK_LIMITS.title + 1) },
     });

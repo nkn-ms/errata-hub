@@ -13,7 +13,7 @@ import { removeImageFiles } from "@/features/report/db/report-deletion";
  *
  * 動機は権利侵害の申し立てへの対応。追記の本文に侵害物が書かれたとき、これが無いと
  * **投稿ごと消すしかない**（無関係な投稿者の指摘まで巻き添えになる）。
- * 画像1枚だけを消す deleteReportImage と同じ系統の措置。
+ * 画像1枚だけを消す deleteReportImageUsecase と同じ系統の措置。
  *
  * ⚠️ **投稿者は消せない。** 追記は「連絡後は本文を直さず足す」ための仕組みで、
  *    消せると出版社が見た内容を後から変えられる（= decision-report-edit-window）。
@@ -21,7 +21,7 @@ import { removeImageFiles } from "@/features/report/db/report-deletion";
  * ⚠️ **添えた画像の実体は Cascade では消えない。** ReportImage は addendumId の Cascade で
  *    行だけ消えるので、Storage のファイルが残る。先に URL を集めてからコミット後に消す。
  */
-export async function deleteReportAddendum(addendumId: string): Promise<ReportActionState> {
+export async function deleteReportAddendumUsecase(addendumId: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
   let deleted: { reportId: string; imageUrls: string[] } | null = null;

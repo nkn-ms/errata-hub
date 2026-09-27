@@ -8,7 +8,7 @@ import { routes } from "@/constants/routes";
 // Route Handler 用（判定結果を Response で返す版）が要るときは checkAdmin から書き足す。
 //
 // ⚠️ **管理者以外の認可はここには置かない**（このファイルの認可は ADMIN 判定だけ）。
-// 「その投稿の投稿者か」は usecases/ の各操作（updateOwnReport 等）と画像の Route Handler に、
+// 「その投稿の投稿者か」は usecases/ の各操作（updateOwnReportUsecase 等）と画像の Route Handler に、
 // 「その出版社として回答できるか」は services/publisher-access.ts にある。
 //
 // 末尾の getRequestOrigin・startOAuth は認可ではなく認証（ログイン）の側。複数の操作が使うので、

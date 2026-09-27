@@ -9,7 +9,7 @@ import { storagePathFromPublicUrl } from "@/features/report/utils/report-images"
 // 削除対象の読み出し。監査ログの before に使う値なので、削除と同じ塊の中で読む
 // （読んでから消すまでの間に他の変更が入り込まないようにする）。
 // ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
-//    （1件ずつ消すときの deleteReportAddendum / deletePublisherComment と揃える）。
+//    （1件ずつ消すときの deleteReportAddendumUsecase / deletePublisherCommentUsecase と揃える）。
 //    画像は投稿本体の分も追記の分も images に入っている（どちらの行も reportId を持つ）。
 export function findReportForDeletion(client: Prisma.TransactionClient, id: string) {
   return client.report.findUnique({
@@ -19,7 +19,7 @@ export function findReportForDeletion(client: Prisma.TransactionClient, id: stri
       addenda: { orderBy: { createdAt: "asc" } },
       publisherComments: {
         orderBy: { createdAt: "asc" },
-        // 出版社は名前も残す（90日で消える AuditLog から後で引き直せないため = deletePublisherComment）
+        // 出版社は名前も残す（90日で消える AuditLog から後で引き直せないため = deletePublisherCommentUsecase）
         include: { publisher: { select: { name: true } } },
       },
     },

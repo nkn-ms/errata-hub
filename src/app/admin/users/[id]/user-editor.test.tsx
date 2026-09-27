@@ -14,16 +14,16 @@ const grantPublisherAccessMock = vi.fn();
 const revokePublisherAccessMock = vi.fn();
 const withdrawUserAsAdminMock = vi.fn();
 vi.mock("@/usecases/update-user-role", () => ({
-  updateUserRole: (...args: unknown[]) => updateUserRoleMock(...args),
+  updateUserRoleUsecase: (...args: unknown[]) => updateUserRoleMock(...args),
 }));
 vi.mock("@/usecases/grant-publisher-access", () => ({
-  grantPublisherAccess: (...args: unknown[]) => grantPublisherAccessMock(...args),
+  grantPublisherAccessUsecase: (...args: unknown[]) => grantPublisherAccessMock(...args),
 }));
 vi.mock("@/usecases/revoke-publisher-access", () => ({
-  revokePublisherAccess: (...args: unknown[]) => revokePublisherAccessMock(...args),
+  revokePublisherAccessUsecase: (...args: unknown[]) => revokePublisherAccessMock(...args),
 }));
 vi.mock("@/usecases/withdraw-user-as-admin", () => ({
-  withdrawUserAsAdmin: (...args: unknown[]) => withdrawUserAsAdminMock(...args),
+  withdrawUserAsAdminUsecase: (...args: unknown[]) => withdrawUserAsAdminMock(...args),
 }));
 
 const now = new Date("2026-07-13T00:00:00Z");

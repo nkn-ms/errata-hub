@@ -38,7 +38,7 @@ const ProfileLinksSchema = z.object({
  *
  * ログイン手段とは独立した自己申告のプロフィール項目。本人が入力した場合のみ公開される。
  */
-export async function updateProfileLinks(
+export async function updateProfileLinksUsecase(
   _prevState: ProfileState,
   formData: FormData,
 ): Promise<ProfileState> {

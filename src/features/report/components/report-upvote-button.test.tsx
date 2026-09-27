@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
 // Server Action はネットワーク越しの呼び出しになるため、テストではモジュールごとモックする
 const toggleUpvoteMock = vi.fn();
 vi.mock("@/usecases/toggle-upvote", () => ({
-  toggleUpvote: (...args: unknown[]) => toggleUpvoteMock(...args),
+  toggleUpvoteUsecase: (...args: unknown[]) => toggleUpvoteMock(...args),
 }));
 
 beforeEach(() => {

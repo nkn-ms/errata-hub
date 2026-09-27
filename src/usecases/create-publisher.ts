@@ -10,7 +10,7 @@ import type { PublisherState } from "@/features/publisher/types";
 import { parsePublisherForm } from "@/features/publisher/schema";
 import { toMessage } from "@/features/publisher/db/publishers";
 
-export async function createPublisher(
+export async function createPublisherUsecase(
   _prev: PublisherState,
   formData: FormData
 ): Promise<PublisherState> {
@@ -23,7 +23,7 @@ export async function createPublisher(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    // 作成と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 作成と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     await prisma.$transaction(async (tx) => {
       const publisher = await tx.publisher.create({
         data: {

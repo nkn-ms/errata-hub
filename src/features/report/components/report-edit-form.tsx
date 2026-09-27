@@ -4,8 +4,8 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteOwnReportImage } from "@/usecases/delete-own-report-image";
-import { updateOwnReport } from "@/usecases/update-own-report";
+import { deleteOwnReportImageUsecase } from "@/usecases/delete-own-report-image";
+import { updateOwnReportUsecase } from "@/usecases/update-own-report";
 import { routes } from "@/constants/routes";
 import {
   ErrorPanel,
@@ -138,7 +138,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
     setSubmitting(true);
     setErrors([]);
     try {
-      const result = await updateOwnReport(reportId, toReportBody(fields));
+      const result = await updateOwnReportUsecase(reportId, toReportBody(fields));
       if (result.error !== undefined) {
         setErrors([{ message: result.error }]);
         return;
@@ -150,7 +150,7 @@ export function ReportEditForm({ reportId, book, initialFields, initialImages }:
       // ＝もう一度「更新する」を押せば続きからやり直せる（成功した分を二重に処理しない）。
       const pendingRemovals = [...removedIds];
       for (const id of removedIds) {
-        const deleted = await deleteOwnReportImage(id);
+        const deleted = await deleteOwnReportImageUsecase(id);
         if (deleted.error !== undefined) {
           setRemovedIds(pendingRemovals);
           setErrors([{ message: deleted.error }]);

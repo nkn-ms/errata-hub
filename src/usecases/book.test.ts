@@ -30,9 +30,9 @@ vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
-import { updateBook } from "./update-book";
-import { deleteBook } from "./delete-book";
-import { adoptReportedErratumUrl } from "./adopt-reported-erratum-url";
+import { updateBookUsecase } from "./update-book";
+import { deleteBookUsecase } from "./delete-book";
+import { adoptReportedErratumUrlUsecase } from "./adopt-reported-erratum-url";
 
 const BOOK_ID = "book-1";
 const existingBook = {
@@ -55,9 +55,9 @@ beforeEach(() => {
   prismaMock.report.count.mockResolvedValue(0);
 });
 
-describe("updateBook（書誌の手修正）", () => {
+describe("updateBookUsecase（書誌の手修正）", () => {
   it("書籍名が空なら弾く", async () => {
-    const result = await updateBook(BOOK_ID, { title: "  " });
+    const result = await updateBookUsecase(BOOK_ID, { title: "  " });
 
     expect(result.error).toBe("書籍名は必須です");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe("updateBook（書誌の手修正）", () => {
   // 書影は許可ホスト（OpenBD / Google Books）のみ。投稿アクションは黙って null に落とすが、
   // 管理画面は手入力ミスに気づけるよう明示的にエラーで弾く
   it("書影URLが許可ホスト外なら弾く", async () => {
-    const result = await updateBook(BOOK_ID, {
+    const result = await updateBookUsecase(BOOK_ID, {
       ...validInput,
       coverImageUrl: "https://example.com/cover.jpg",
     });
@@ -76,7 +76,7 @@ describe("updateBook（書誌の手修正）", () => {
   });
 
   it("書影URLが許可ホストなら通る", async () => {
-    const result = await updateBook(BOOK_ID, {
+    const result = await updateBookUsecase(BOOK_ID, {
       ...validInput,
       coverImageUrl: "https://cover.openbd.jp/9784274217883.jpg",
     });
@@ -86,7 +86,7 @@ describe("updateBook（書誌の手修正）", () => {
   });
 
   it("正誤表URLが http/https でなければ弾く", async () => {
-    const result = await updateBook(BOOK_ID, {
+    const result = await updateBookUsecase(BOOK_ID, {
       ...validInput,
       erratumUrl: "javascript:alert(1)",
     });
@@ -98,14 +98,14 @@ describe("updateBook（書誌の手修正）", () => {
   it("書籍が見つからなければその旨を返す", async () => {
     prismaMock.book.findUnique.mockResolvedValue(null);
 
-    const result = await updateBook(BOOK_ID, validInput);
+    const result = await updateBookUsecase(BOOK_ID, validInput);
 
     expect(result.error).toBe("書籍が見つかりません");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
   });
 
   it("出版社名が空なら upsert せず紐付けを外す", async () => {
-    await updateBook(BOOK_ID, { ...validInput, publisherName: "" });
+    await updateBookUsecase(BOOK_ID, { ...validInput, publisherName: "" });
 
     expect(prismaMock.publisher.upsert).not.toHaveBeenCalled();
     expect(prismaMock.book.update).toHaveBeenCalledWith(
@@ -116,7 +116,7 @@ describe("updateBook（書誌の手修正）", () => {
   it("出版社名があれば名前で upsert して紐付ける（同時実行でも重複を作らない形）", async () => {
     prismaMock.publisher.upsert.mockResolvedValue({ id: "pub-1", name: "オーム社" });
 
-    await updateBook(BOOK_ID, { ...validInput, publisherName: "オーム社" });
+    await updateBookUsecase(BOOK_ID, { ...validInput, publisherName: "オーム社" });
 
     expect(prismaMock.publisher.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { name: "オーム社" } })
@@ -128,7 +128,7 @@ describe("updateBook（書誌の手修正）", () => {
 
   // 「操作は成立したのに記録だけが無い」状態を作らないための構造を固定する（PR#168）
   it("更新と監査ログは1つの塊の中で書く", async () => {
-    await updateBook(BOOK_ID, validInput);
+    await updateBookUsecase(BOOK_ID, validInput);
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [, tx] = createAuditLogMock.mock.calls[0];
@@ -136,11 +136,11 @@ describe("updateBook（書誌の手修正）", () => {
   });
 });
 
-describe("deleteBook（書籍の削除）", () => {
+describe("deleteBookUsecase（書籍の削除）", () => {
   it("投稿が紐づく本は削除せず、件数を文言に出す", async () => {
     prismaMock.report.count.mockResolvedValue(3);
 
-    const result = await deleteBook(BOOK_ID);
+    const result = await deleteBookUsecase(BOOK_ID);
 
     expect(result?.error).toContain("3件の投稿");
     expect(prismaMock.book.delete).not.toHaveBeenCalled();
@@ -149,21 +149,21 @@ describe("deleteBook（書籍の削除）", () => {
   it("書籍が見つからなければ削除しない", async () => {
     prismaMock.book.findUnique.mockResolvedValue(null);
 
-    const result = await deleteBook(BOOK_ID);
+    const result = await deleteBookUsecase(BOOK_ID);
 
     expect(result?.error).toBe("書籍が見つかりません");
     expect(prismaMock.book.delete).not.toHaveBeenCalled();
   });
 
   it("削除できたら一覧へ戻す", async () => {
-    await deleteBook(BOOK_ID);
+    await deleteBookUsecase(BOOK_ID);
 
     expect(prismaMock.book.delete).toHaveBeenCalledWith({ where: { id: BOOK_ID } });
     expect(redirectMock).toHaveBeenCalled();
   });
 
   it("削除と監査ログは1つの塊の中で書く", async () => {
-    await deleteBook(BOOK_ID);
+    await deleteBookUsecase(BOOK_ID);
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [, tx] = createAuditLogMock.mock.calls[0];
@@ -171,13 +171,13 @@ describe("deleteBook（書籍の削除）", () => {
   });
 });
 
-describe("adoptReportedErratumUrl（申告された正誤表URLの採用）", () => {
+describe("adoptReportedErratumUrlUsecase（申告された正誤表URLの採用）", () => {
   const REPORT_ID = "report-1";
 
   it("投稿が見つからなければその旨を返す", async () => {
     prismaMock.report.findUnique.mockResolvedValue(null);
 
-    const result = await adoptReportedErratumUrl(REPORT_ID);
+    const result = await adoptReportedErratumUrlUsecase(REPORT_ID);
 
     expect(result.error).toBe("投稿が見つかりません");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
@@ -191,7 +191,7 @@ describe("adoptReportedErratumUrl（申告された正誤表URLの採用）", ()
       book: existingBook,
     });
 
-    const result = await adoptReportedErratumUrl(REPORT_ID);
+    const result = await adoptReportedErratumUrlUsecase(REPORT_ID);
 
     expect(result.error).toBe("採用できる正誤表URLがありません");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe("adoptReportedErratumUrl（申告された正誤表URLの採用）", ()
       book: existingBook,
     });
 
-    const result = await adoptReportedErratumUrl(REPORT_ID);
+    const result = await adoptReportedErratumUrlUsecase(REPORT_ID);
 
     expect(result.error).toBe("採用できる正誤表URLがありません");
     expect(prismaMock.book.update).not.toHaveBeenCalled();
@@ -222,7 +222,7 @@ describe("adoptReportedErratumUrl（申告された正誤表URLの採用）", ()
     });
     prismaMock.book.update.mockResolvedValue({ ...existingBook, erratumUrl: url });
 
-    const result = await adoptReportedErratumUrl(REPORT_ID);
+    const result = await adoptReportedErratumUrlUsecase(REPORT_ID);
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.book.update).toHaveBeenCalledWith({

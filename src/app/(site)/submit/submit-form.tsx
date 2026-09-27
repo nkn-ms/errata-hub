@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BookSearch } from "@/features/book/components/book-search";
-import { findErratumUrlByIsbn } from "@/usecases/find-erratum-url-by-isbn";
+import { findErratumUrlByIsbnUsecase } from "@/usecases/find-erratum-url-by-isbn";
 import { BOOK_LABEL_ID, ReportForm } from "@/features/report/components/report-form";
 
 // 投稿フォームは「投稿」と「書籍」の2つのフィーチャーにまたがる。
@@ -47,7 +47,7 @@ export function SubmitForm({ initialBook, initialErratumUrl }: Props) {
               setBook(selected);
               setKnownErratumUrl(null);
               if (selected.isbn) {
-                const { erratumUrl } = await findErratumUrlByIsbn(selected.isbn);
+                const { erratumUrl } = await findErratumUrlByIsbnUsecase(selected.isbn);
                 setKnownErratumUrl(erratumUrl);
               }
             }}

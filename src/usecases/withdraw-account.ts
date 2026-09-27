@@ -16,7 +16,7 @@ import type { AuthState } from "@/features/account/types";
  * Report.userId は Restrict なので Profile 行は物理削除できない → 残して PII をスクラブする。
  * 詳細方針: docs/design.md §7 / 決定メモ（退会＝匿名化）。
  */
-export async function withdrawAccount(_prevState: AuthState): Promise<AuthState> {
+export async function withdrawAccountUsecase(_prevState: AuthState): Promise<AuthState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,7 +26,7 @@ export async function withdrawAccount(_prevState: AuthState): Promise<AuthState>
     redirect(routes.login);
   }
 
-  // 管理者は退会できない（代行退会 = usecases/withdraw-user-as-admin.ts の withdrawUserAsAdmin と同じ規則）。
+  // 管理者は退会できない（代行退会 = usecases/withdraw-user-as-admin.ts の withdrawUserAsAdminUsecase と同じ規則）。
   // 管理者が0人になるとアプリから戻す手段が無くなり、DB を直接触るしかなくなる＝取り返しがつかない。
   // 退会したい管理者は、先に他の管理者にロールを「一般」へ変更してもらう（自分では変えられない）。
   //

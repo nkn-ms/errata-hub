@@ -8,13 +8,13 @@ vi.mock("next/navigation", () => ({
 
 // Server Action はネットワーク越しの呼び出しになるため、テストではモジュールごとモックする
 vi.mock("@/usecases/delete-report", () => ({
-  deleteReport: vi.fn(),
+  deleteReportUsecase: vi.fn(),
 }));
 vi.mock("@/usecases/delete-report-image", () => ({
-  deleteReportImage: vi.fn(),
+  deleteReportImageUsecase: vi.fn(),
 }));
 vi.mock("@/usecases/update-report-status", () => ({
-  updateReportStatus: vi.fn(),
+  updateReportStatusUsecase: vi.fn(),
 }));
 
 afterEach(cleanup);

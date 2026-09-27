@@ -3,9 +3,9 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublisherFormValue } from "@/features/publisher/db/publishers";
-import { createPublisher } from "@/usecases/create-publisher";
-import { updatePublisher } from "@/usecases/update-publisher";
-import { deletePublisher } from "@/usecases/delete-publisher";
+import { createPublisherUsecase } from "@/usecases/create-publisher";
+import { updatePublisherUsecase } from "@/usecases/update-publisher";
+import { deletePublisherUsecase } from "@/usecases/delete-publisher";
 import type { PublisherState } from "@/features/publisher/types";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ export default function PublisherForm({ publisher }: { publisher?: PublisherForm
   const isEdit = !!publisher;
 
   const action = isEdit
-    ? updatePublisher.bind(null, publisher.id)
-    : createPublisher;
+    ? updatePublisherUsecase.bind(null, publisher.id)
+    : createPublisherUsecase;
   const submitLabel = isEdit ? "更新する" : "追加する";
 
   const [state, formAction, pending] = useActionState<PublisherState, FormData>(
@@ -29,7 +29,7 @@ export default function PublisherForm({ publisher }: { publisher?: PublisherForm
     if (!publisher) return;
     if (!confirm("この出版社を削除しますか？（書籍が紐づいている場合は削除できません）")) return;
     setDeleteError(null);
-    const result = await deletePublisher(publisher.id);
+    const result = await deletePublisherUsecase(publisher.id);
     if (result?.error) setDeleteError(result.error);
   }
 

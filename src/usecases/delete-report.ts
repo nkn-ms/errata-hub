@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { routes } from "@/constants/routes";
 import { findReportForDeletion, removeImageFiles } from "@/features/report/db/report-deletion";
 
-export async function deleteReport(id: string): Promise<ReportActionState> {
+export async function deleteReportUsecase(id: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
   let report: Awaited<ReturnType<typeof findReportForDeletion>>;

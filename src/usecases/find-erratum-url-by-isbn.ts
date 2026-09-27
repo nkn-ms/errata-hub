@@ -11,7 +11,7 @@ import { toCanonicalIsbn } from "@/utils/isbn";
  * HTTP 境界が必要な事情も無い（design.md §7 のデータアクセス境界）。
  * 公開情報なので認可は不要。
  */
-export async function findErratumUrlByIsbn(isbn: string): Promise<{ erratumUrl: string | null }> {
+export async function findErratumUrlByIsbnUsecase(isbn: string): Promise<{ erratumUrl: string | null }> {
   const canonicalIsbn = toCanonicalIsbn(isbn);
   if (!canonicalIsbn) return { erratumUrl: null };
 

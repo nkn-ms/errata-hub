@@ -10,9 +10,9 @@ import { z } from "zod";
  *   - 受け側は手書きの型を当てているだけで、`summary` の無い要素が来ると **TypeError**
  *
  * ⚠️ **`server-only` を付けない。** 型は client component も使う（ただし `parse*` を呼ぶのはサーバーだけ）。
- * ⚠️ **features/book ではなく lib に置く。** 書籍の検索（features/book）だけでなく投稿の作成
- *    （features/report の createReport が書籍を作るとき OpenBD を引き直す）も使い、
- *    フィーチャー同士は直接 import できないため（eslint.config.mjs の no-restricted-paths）。
+ * ⚠️ **features/book ではなく lib に置く。** OpenBD を引く口（lib/openbd.ts）がここで応答を均すので、
+ *    features には置けない（共有の層は features を import できない = eslint.config.mjs の no-restricted-paths）。
+ *    書籍の検索（features/book）と投稿の作成（usecases/create-report.ts）は、ここの型を読む。
  * ⚠️ **DB も認可も持ち込まない。** ここは「外から来た JSON を確かめて均す」だけ。
  */
 

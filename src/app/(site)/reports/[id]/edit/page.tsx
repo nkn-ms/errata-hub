@@ -11,7 +11,7 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-// ⚠️ この画面の判定は「出すかどうか」だけ。保存の可否は updateOwnReport が
+// ⚠️ この画面の判定は「出すかどうか」だけ。保存の可否は updateOwnReportUsecase が
 //    トランザクションの中で改めて確かめる（開いたまま時間が経つ・URL 直叩きがあるため）。
 export default async function ReportEditPage({ params }: Props) {
   const { id } = await params;

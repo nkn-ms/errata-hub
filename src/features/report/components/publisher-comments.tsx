@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { addPublisherComment } from "@/usecases/add-publisher-comment";
+import { addPublisherCommentUsecase } from "@/usecases/add-publisher-comment";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import type { PublisherCommentView } from "@/features/report/types";
@@ -44,7 +44,7 @@ export function PublisherComments({ reportId, initialComments, commentAs }: Prop
     setSubmitting(true);
     setErrors([]);
     try {
-      const result = await addPublisherComment(reportId, { body });
+      const result = await addPublisherCommentUsecase(reportId, { body });
       if (result.error !== undefined) {
         setErrors([{ message: result.error }]);
         return;

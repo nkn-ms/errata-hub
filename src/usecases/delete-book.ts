@@ -8,7 +8,7 @@ import { requireAdminServerAction } from "@/services/auth";
 import { routes } from "@/constants/routes";
 import type { BookActionState } from "@/features/book/types";
 
-export async function deleteBook(id: string): Promise<BookActionState> {
+export async function deleteBookUsecase(id: string): Promise<BookActionState> {
   const admin = await requireAdminServerAction();
 
   // 投稿が紐づく本は削除させない（出版社削除ガードと同じ「子があれば不可」の方針）。
@@ -21,7 +21,7 @@ export async function deleteBook(id: string): Promise<BookActionState> {
 
   let deleted: boolean;
   try {
-    // 削除と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 削除と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
     deleted = await prisma.$transaction(async (tx) => {
       const book = await tx.book.findUnique({ where: { id } });

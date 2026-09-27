@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { withdrawOwnReport } from "@/usecases/withdraw-own-report";
+import { withdrawOwnReportUsecase } from "@/usecases/withdraw-own-report";
 import { ErrorPanel } from "@/features/report/components/report-fields";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +24,7 @@ export function ReportWithdraw({ reportId, title }: { reportId: string; title: s
     setWithdrawing(true);
     setErrors([]);
     // 成功時はアクション側が投稿者のページへ redirect する（この投稿はもう無い）
-    const result = await withdrawOwnReport(reportId);
+    const result = await withdrawOwnReportUsecase(reportId);
     if (result.error !== undefined) {
       setErrors([{ message: result.error }]);
       setWithdrawing(false);

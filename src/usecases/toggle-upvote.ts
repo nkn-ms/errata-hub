@@ -16,7 +16,7 @@ function countUpvotes(reportId: string) {
  * 賛同を付ける / 取り消す。自分の投稿には不可。
  * 付与の重複は @@unique 制約で、取り消しの空振りは deleteMany で、どちらも冪等に扱う。
  */
-export async function toggleUpvote(reportId: string, upvote: boolean): Promise<UpvoteResult> {
+export async function toggleUpvoteUsecase(reportId: string, upvote: boolean): Promise<UpvoteResult> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

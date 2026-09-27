@@ -27,7 +27,7 @@ vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 vi.mock("next/headers", () => ({ headers: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { withdrawAccount } from "./withdraw-account";
+import { withdrawAccountUsecase } from "./withdraw-account";
 
 const ORIGINAL_PII = {
   email: "reader@local.test",
@@ -38,7 +38,7 @@ const ORIGINAL_PII = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // withdrawAccount は Profile を用途違いで2回読むので、select で返す値を振り分ける。
+  // withdrawAccountUsecase は Profile を用途違いで2回読むので、select で返す値を振り分ける。
   //   role → 管理者は退会できない規則の判定（既定は一般ユーザー＝規則を踏まない）
   //   PII  → auth.users の削除に失敗したときの書き戻しに使う退会前の値
   prismaMock.profile.findUnique.mockImplementation(async ({ select }) =>
@@ -46,10 +46,10 @@ beforeEach(() => {
   );
 });
 
-describe("withdrawAccount（退会 = 匿名化）", () => {
+describe("withdrawAccountUsecase（退会 = 匿名化）", () => {
   it("未ログインなら /login へリダイレクト", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    await expect(withdrawAccount(undefined)).rejects.toThrow("REDIRECT:/login");
+    await expect(withdrawAccountUsecase(undefined)).rejects.toThrow("REDIRECT:/login");
     expect(deleteUserMock).not.toHaveBeenCalled();
     expect(prismaMock.profile.update).not.toHaveBeenCalled();
   });
@@ -60,7 +60,7 @@ describe("withdrawAccount（退会 = 匿名化）", () => {
     prismaMock.profile.update.mockResolvedValue({});
     createAuditLogMock.mockResolvedValue(undefined);
 
-    await expect(withdrawAccount(undefined)).rejects.toThrow("REDIRECT:/account/withdrawn");
+    await expect(withdrawAccountUsecase(undefined)).rejects.toThrow("REDIRECT:/account/withdrawn");
 
     // Profile に PII 列を追加したらこの期待値にも追従させること（スクラブ漏れ防止の砦）
     const scrubbed = {
@@ -79,12 +79,12 @@ describe("withdrawAccount（退会 = 匿名化）", () => {
     expect(signOutMock).toHaveBeenCalled();
   });
 
-  // 本人退会と代行退会（withdrawUserAsAdmin）で同じ規則。管理者0人＝アプリからは戻せない
+  // 本人退会と代行退会（withdrawUserAsAdminUsecase）で同じ規則。管理者0人＝アプリからは戻せない
   it("管理者は退会できない（先にロールを変更してもらう）", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
     prismaMock.profile.findUnique.mockResolvedValue({ role: "ADMIN" });
 
-    const result = await withdrawAccount(undefined);
+    const result = await withdrawAccountUsecase(undefined);
 
     expect(result?.error).toContain("管理者アカウントは退会できません");
     expect(deleteUserMock).not.toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe("withdrawAccount（退会 = 匿名化）", () => {
     deleteUserMock.mockResolvedValue({ error: { code: "unexpected_failure", status: 500 } });
     prismaMock.profile.update.mockResolvedValue({});
 
-    const result = await withdrawAccount(undefined);
+    const result = await withdrawAccountUsecase(undefined);
 
     expect(result).toEqual({
       error: "退会処理に失敗しました。時間をおいて再度お試しください。",
@@ -121,7 +121,7 @@ describe("withdrawAccount（退会 = 匿名化）", () => {
       .mockResolvedValueOnce({})
       .mockRejectedValueOnce(new Error("書き戻し失敗"));
 
-    const result = await withdrawAccount(undefined);
+    const result = await withdrawAccountUsecase(undefined);
 
     expect(result?.error).toContain("退会処理に失敗しました");
     expect(createAuditLogMock).toHaveBeenCalledWith(

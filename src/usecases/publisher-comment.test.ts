@@ -47,8 +47,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { addPublisherComment } from "./add-publisher-comment";
-import { deletePublisherComment } from "./delete-publisher-comment";
+import { addPublisherCommentUsecase } from "./add-publisher-comment";
+import { deletePublisherCommentUsecase } from "./delete-publisher-comment";
 
 const USER_ID = "user-1";
 const REPORT_ID = "report-1";
@@ -68,25 +68,25 @@ beforeEach(() => {
   });
 });
 
-describe("addPublisherComment（出版社として回答する）", () => {
+describe("addPublisherCommentUsecase（出版社として回答する）", () => {
   it("未ログインでは書けない", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
 
-    const result = await addPublisherComment(REPORT_ID, { body: "回答" });
+    const result = await addPublisherCommentUsecase(REPORT_ID, { body: "回答" });
 
     expect(result.error).toBe("認証が必要です");
     expect(prismaMock.publisherComment.create).not.toHaveBeenCalled();
   });
 
   it("空の回答は保存しない", async () => {
-    const result = await addPublisherComment(REPORT_ID, { body: "   " });
+    const result = await addPublisherCommentUsecase(REPORT_ID, { body: "   " });
 
     expect(result.error).toBe("回答を入力してください");
     expect(prismaMock.publisherComment.create).not.toHaveBeenCalled();
   });
 
   it("上限を超える回答は保存しない", async () => {
-    const result = await addPublisherComment(REPORT_ID, {
+    const result = await addPublisherCommentUsecase(REPORT_ID, {
       body: "あ".repeat(REPORT_LIMITS.publisherComment + 1),
     });
 
@@ -99,7 +99,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   it("レート制限に達していれば保存しない", async () => {
     checkRateLimitMock.mockResolvedValue({ allowed: false, retryAfterSec: 60 });
 
-    const result = await addPublisherComment(REPORT_ID, { body: "回答" });
+    const result = await addPublisherCommentUsecase(REPORT_ID, { body: "回答" });
 
     expect(result.error).toBeDefined();
     expect(prismaMock.publisherComment.create).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   it("権限が無ければ、判定側の理由をそのまま返す", async () => {
     checkPermissionMock.mockResolvedValue({ error: "この投稿に回答する権限がありません。" });
 
-    const result = await addPublisherComment(REPORT_ID, { body: "回答" });
+    const result = await addPublisherCommentUsecase(REPORT_ID, { body: "回答" });
 
     expect(result.error).toBe("この投稿に回答する権限がありません。");
     expect(prismaMock.publisherComment.create).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   it("判定が返した出版社・代理記載の別をそのまま行に書く", async () => {
     checkPermissionMock.mockResolvedValue({ publisherId: PUBLISHER_ID, byAdmin: true });
 
-    await addPublisherComment(REPORT_ID, { body: "第3刷で修正します" });
+    await addPublisherCommentUsecase(REPORT_ID, { body: "第3刷で修正します" });
 
     expect(prismaMock.publisherComment.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -136,7 +136,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   // 見ているのは「判定を送信のたびにやり直しているか」であって、競合に勝てることではない
   // （READ COMMITTED では閉じない＝ services/publisher-access.ts のコメント）
   it("権限の判定は画面ではなくサーバー側でやり直す", async () => {
-    await addPublisherComment(REPORT_ID, { body: "回答" });
+    await addPublisherCommentUsecase(REPORT_ID, { body: "回答" });
 
     expect(prismaMock.$transaction).toHaveBeenCalled();
     // tx（$transaction が渡すクライアント）を受け取って判定していること
@@ -144,7 +144,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   });
 
   it("作った行を返す（呼び出し側が一覧に足すため）", async () => {
-    const result = await addPublisherComment(REPORT_ID, { body: "第3刷で修正します" });
+    const result = await addPublisherCommentUsecase(REPORT_ID, { body: "第3刷で修正します" });
 
     expect(result.comment).toEqual({
       id: "comment-1",
@@ -156,7 +156,7 @@ describe("addPublisherComment（出版社として回答する）", () => {
   });
 });
 
-describe("deletePublisherComment（運営者のモデレーション）", () => {
+describe("deletePublisherCommentUsecase（運営者のモデレーション）", () => {
   beforeEach(() => {
     prismaMock.publisherComment.findUnique.mockResolvedValue({
       id: "comment-1",
@@ -171,7 +171,7 @@ describe("deletePublisherComment（運営者のモデレーション）", () => 
   it("見つからなければ何も消さない", async () => {
     prismaMock.publisherComment.findUnique.mockResolvedValue(null);
 
-    const result = await deletePublisherComment("comment-1");
+    const result = await deletePublisherCommentUsecase("comment-1");
 
     expect(result.error).toBe("回答が見つかりません");
     expect(prismaMock.publisherComment.delete).not.toHaveBeenCalled();
@@ -180,7 +180,7 @@ describe("deletePublisherComment（運営者のモデレーション）", () => 
 
   // 行ごと消えるので、記録に当時の値が残っていないと後から何を消したのか分からない
   it("削除と監査ログを同じ塊で書き、消した内容を記録に残す", async () => {
-    const result = await deletePublisherComment("comment-1");
+    const result = await deletePublisherCommentUsecase("comment-1");
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.publisherComment.delete).toHaveBeenCalledWith({

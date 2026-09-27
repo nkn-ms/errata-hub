@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteBook } from "@/usecases/delete-book";
-import { updateBook } from "@/usecases/update-book";
+import { deleteBookUsecase } from "@/usecases/delete-book";
+import { updateBookUsecase } from "@/usecases/update-book";
 import { routes } from "@/constants/routes";
 import type { UpstreamBook } from "@/lib/book-upstream";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
     setError("");
     // バリデーションエラーはアクションがフィールド別メッセージをそのまま返す。
     // 成功時はアクション側の refresh() で画面が最新化される
-    const result = await updateBook(book.id, { title, author, publisherName, coverImageUrl, erratumUrl });
+    const result = await updateBookUsecase(book.id, { title, author, publisherName, coverImageUrl, erratumUrl });
     if (result?.error) {
       setError(result.error);
     } else {
@@ -127,7 +127,7 @@ export function AdminBookEditor({ book }: { book: Book }) {
     setSaving(true);
     setError("");
     // 成功時はアクション側が一覧へ redirect する
-    const result = await deleteBook(book.id);
+    const result = await deleteBookUsecase(book.id);
     if (result?.error) {
       setError(result.error);
       setSaving(false);

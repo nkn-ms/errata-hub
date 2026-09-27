@@ -17,12 +17,12 @@ import { removeImageFiles } from "@/features/report/db/report-deletion";
  *
  * 投稿本文には触れない＝**投稿を消さずに済ませる**ための手段であることが要点。
  */
-export async function deleteReportImage(imageId: string): Promise<ReportActionState> {
+export async function deleteReportImageUsecase(imageId: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
 
   let image: Awaited<ReturnType<typeof prisma.reportImage.findUnique>>;
   try {
-    // deleteReport と同じ形: 行の削除と監査ログを1つの塊にする。
+    // deleteReportUsecase と同じ形: 行の削除と監査ログを1つの塊にする。
     // ⚠️ 権利者からの削除要請に応じた証跡なので、**記録が残せないなら削除も成立させない**方が正しい。
     // 「記録だけが無い」状態を作らないことが目的で、同じ DB であることは条件にすぎない。
     image = await prisma.$transaction(async (tx) => {

@@ -41,7 +41,7 @@ const BookUpdateSchema = z.object({
 
 export type BookUpdateInput = z.input<typeof BookUpdateSchema>;
 
-export async function updateBook(id: string, input: BookUpdateInput): Promise<BookActionState> {
+export async function updateBookUsecase(id: string, input: BookUpdateInput): Promise<BookActionState> {
   const admin = await requireAdminServerAction();
 
   const parsed = BookUpdateSchema.safeParse(input);
@@ -52,7 +52,7 @@ export async function updateBook(id: string, input: BookUpdateInput): Promise<Bo
 
   let updated: boolean;
   try {
-    // 書誌の更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReport）。
+    // 書誌の更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 出版社の upsert も同じ塊に入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
     updated = await prisma.$transaction(async (tx) => {
       const book = await tx.book.findUnique({ where: { id }, include: { publisher: true } });

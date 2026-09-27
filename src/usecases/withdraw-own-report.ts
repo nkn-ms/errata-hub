@@ -25,9 +25,9 @@ type OwnReportWithdrawal =
  *
  * ⚠️ 賛同（`Upvote`）と追記は Cascade で一緒に消える。他人が付けた賛同まで消えるのは事実だが、
  *    PENDING の間しか取り下げられない＝外へ出る前なので、影響の範囲は投稿者本人の中に留まる。
- *    消えたこと自体は AuditLog の before に投稿の中身ごと残る（管理者の deleteReport と同じ）。
+ *    消えたこと自体は AuditLog の before に投稿の中身ごと残る（管理者の deleteReportUsecase と同じ）。
  */
-export async function withdrawOwnReport(id: string): Promise<ReportActionState> {
+export async function withdrawOwnReportUsecase(id: string): Promise<ReportActionState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -36,7 +36,7 @@ export async function withdrawOwnReport(id: string): Promise<ReportActionState> 
 
   let result: OwnReportWithdrawal;
   try {
-    // 認可もステータスの確認も塊の中で行う（updateOwnReport と同じ理由。画面を開いている間に
+    // 認可もステータスの確認も塊の中で行う（updateOwnReportUsecase と同じ理由。画面を開いている間に
     // 管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
     result = await prisma.$transaction(async (tx): Promise<OwnReportWithdrawal> => {
       const found = await findReportForDeletion(tx, id);

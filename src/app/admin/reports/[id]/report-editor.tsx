@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import { deleteReport } from "@/usecases/delete-report";
-import { deleteReportImage } from "@/usecases/delete-report-image";
-import { updateReportStatus } from "@/usecases/update-report-status";
+import { deleteReportUsecase } from "@/usecases/delete-report";
+import { deleteReportImageUsecase } from "@/usecases/delete-report-image";
+import { updateReportStatusUsecase } from "@/usecases/update-report-status";
 import { NumberField } from "@/components/ui/number-field";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -50,7 +50,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     setSaving(true);
     setError("");
     // 成功時はアクション側が一覧へ redirect する
-    const result = await deleteReport(id);
+    const result = await deleteReportUsecase(id);
     if (result?.error) {
       setError(result.error);
       setSaving(false);
@@ -73,7 +73,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     // 成功時はアクション側の refresh() で画面が最新化される。
     // 修正版・刷を「修正済み」以外で消すルールはサーバー（ReportUpdateSchema）が保証するので、
     // ここは入力値をそのまま送る（未入力は toIntOrNull が null にする）。
-    const result = await updateReportStatus(id, {
+    const result = await updateReportStatusUsecase(id, {
       status,
       statusNote: statusNote || null,
       fixedEdition: toIntOrNull(fixedEdition),
@@ -89,7 +89,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     // ＝もう一度「更新する」を押せば続きからやり直せる（成功した分を二重に消さない）
     const pendingRemovals = [...removedIds];
     for (const imageId of removedIds) {
-      const deleted = await deleteReportImage(imageId);
+      const deleted = await deleteReportImageUsecase(imageId);
       if (deleted.error !== undefined) {
         setRemovedIds(pendingRemovals);
         setError(deleted.error);
@@ -98,7 +98,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
       }
       pendingRemovals.shift();
     }
-    // 一覧そのものは持たない: 消えた分は deleteReportImage の refresh() でサーバー側が描き直す
+    // 一覧そのものは持たない: 消えた分は deleteReportImageUsecase の refresh() でサーバー側が描き直す
     setRemovedIds([]);
 
     setSaved(true);

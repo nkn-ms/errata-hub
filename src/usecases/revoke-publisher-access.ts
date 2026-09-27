@@ -7,7 +7,7 @@ import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import type { UserActionState } from "@/features/account/types";
 
-export async function revokePublisherAccess(
+export async function revokePublisherAccessUsecase(
   profileId: string,
   publisherId: string
 ): Promise<UserActionState> {

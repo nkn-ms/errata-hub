@@ -121,23 +121,23 @@ fixedEdition / fixedPrinting は FIXED に付随
 ※ §1〜6 は将来像（未実装の提案を含む）。この §7 は**現時点で確定・実装済みの方針**を集約する（背景・解説は `docs/learnings.md`、個別の判断ログは Claude メモリ参照）。
 
 ### 削除と退会（別々の2系統）
-- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `usecases/delete-report.ts` の `deleteReport`（ADMIN限定）。
-- **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `usecases/withdraw-account.ts` の `withdrawAccount`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
-- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `usecases/withdraw-user-as-admin.ts` の `withdrawUserAsAdmin`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`features/account/db/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
+- **管理者によるレポート削除（モデレーション）= 物理削除 + AuditLog 記録**。論理削除は不採用（全クエリに「未削除のみ」条件が要りクエリが複雑化するため）。`ReportImage` は Cascade で削除（Storage 上の画像ファイル実体も削除時に併せて掃除）。実装済 `usecases/delete-report.ts` の `deleteReportUsecase`（ADMIN限定）。
+- **ユーザー退会（GDPR）= 投稿者の匿名化（実装済）**。`auth.users` を削除（auth側PII除去）し、`Profile` は残して PII だけスクラブ（`email`→匿名ダミー・`displayName`/`githubUsername`/`xUsername`→null）、`Report` は保全して投稿者を「退会済みユーザー」表示。理由：公開UGCで Report はコミュニティ資産であり、匿名化すれば GDPR 消去権の対象外になるため。実装は `usecases/withdraw-account.ts` の `withdrawAccountUsecase`（監査ログには元メール・元表示名を残さず無期限のPII保持を回避）。
+- **管理者によるユーザーの始末 = 上の退会を代行する（「ユーザー削除」は作らない）**。スパム・規約違反・テスト垢の掃除は `usecases/withdraw-user-as-admin.ts` の `withdrawUserAsAdminUsecase`（`/admin/users/[id]`）で行い、本人退会とまったく同じ処理（`features/account/db/withdrawal.ts` の `scrubProfileForWithdrawal`）を通す。**Profile 行の物理削除は用意しない**：`Report.userId` が Restrict で消せない上に、目的（ログイン不可・PII 消去）はスクラブだけで達成でき、残るのは表示名 null・メールがダミーの抜け殻＝孤児行の許容と同じ判断だから。取り消せない操作なので防御を4つ重ねる（対象名の手入力照合をサーバー側でも／自分自身は不可／ADMIN は先にロールを落とさせる／`ADMIN_WITHDRAW_USER` を AuditLog に記録）。監査ログに対象の元メール・元表示名を残さないのは本人退会と同じ。
 
 ### 出版社からの回答（2026-08-12 確定）
 - **`PublisherAccess` を持つ担当者が、自社の書籍の投稿に公開ページから直接回答できる**（規約 第8条）。それまでは管理者が代筆する運用で、`PublisherAccess` は表示に使うだけで認可を何もゲートしていなかった。⚠️ **この行は今後「公開ページへの書き込み権限」そのもの**なので、付与前に本人確認を行うこと（技術的な検証は無い）。
 - **列ではなくテーブル（`PublisherComment`）**。理由は追記（`ReportAddendum`）と同じ「2回目が1回目を書き換えない」に加えて、**書き手が2種類いる**（担当者本人・運営者の代理記載）ため「誰が書いたか」を行が持つ必要があること。⭐ **列のままだと上書き事故が構造的に起きる**: ステータス更新のフォームは保存のたびに列の値を丸ごと送るので、管理者がステータスだけ変えるつもりで押すと、その間に出版社が書いた回答が消える。行を足すだけの形には上書きが存在しない。
-- **回答は作った時点で不変**（規約 第8条3項）。書いた本人も取り消せず、消せるのは運営者のモデレーションだけ（`deletePublisherComment`・AuditLog あり）。第三者が公開ページに書ける以上、不適切な回答1件のために投稿ごと消さずに済む手段が要る。
+- **回答は作った時点で不変**（規約 第8条3項）。書いた本人も取り消せず、消せるのは運営者のモデレーションだけ（`deletePublisherCommentUsecase`・AuditLog あり）。第三者が公開ページに書ける以上、不適切な回答1件のために投稿ごと消さずに済む手段が要る。
 - **代理記載は画面に明示する**（`byAdmin` 列 → 「運営者が代理で記載」）。規約 第8条4項が運営者に課している義務で、第6条3項の「編集したら明示する」と同じ考え方。
 - **`PENDING` には回答できない**。規約 第8条2項の建て付けであると同時に、PENDING の間は投稿者が本文を直せるため＝許すと「出版社が読んだ内容が後から書き換わる」が回答の側で再発する。
 - **ステータスに「回答あり」は足さない**。回答の有無は `PublisherComment` があるかで導出でき、状態として持つと二重管理になる（ステータスは後戻りさせない一本道なので、回答を消したときに戻す必要が出て衝突する）。`FORWARDED` ＋ 回答あり で表現する。
 - **`OTHER` が要求する説明は `Report.statusNote` へ分離した**。旧 `publisherComment` 列は「出版社の回答」と「運営者の事情説明」（例:「出版社が廃業しており連絡が取れません」）を兼ねており、テーブルへ移すと後者を出版社の発言として掲示してしまうため。旧 `publisherComment` 列は expand-contract で1リリース残したのち削除済み（#200 で移行 → 次のリリースで DROP）。⭐ **スキーマから消す変更は「移す」と「消す」を別のリリースに分ける**と、間に切り戻せる期間ができる。
 
 ### 投稿を後から直せる範囲（投稿者本人）
-- 境界は `ReportStatus`。**未対応（PENDING）の間は本文を編集でき、出版社へ連絡した後（PENDING 以外）は追記だけ**。理由は、出版社が見た内容と後から書き換えられた内容が食い違うと出版社側の対応が宙に浮くため。外に出す前は自由に直せて、外に出した後は上書きせず足す。実装は `usecases/update-own-report.ts` の `updateOwnReport` / `usecases/add-report-addendum.ts` の `addReportAddendum`。
+- 境界は `ReportStatus`。**未対応（PENDING）の間は本文を編集でき、出版社へ連絡した後（PENDING 以外）は追記だけ**。理由は、出版社が見た内容と後から書き換えられた内容が食い違うと出版社側の対応が宙に浮くため。外に出す前は自由に直せて、外に出した後は上書きせず足す。実装は `usecases/update-own-report.ts` の `updateOwnReportUsecase` / `usecases/add-report-addendum.ts` の `addReportAddendumUsecase`。
 - **追記は列1本ではなく別テーブル（`ReportAddendum`）**。列だと2回目の追記が1回目を書き換えられ、避けたい問題が追記の側で再発する。不変条件を1行で言える形にした＝**本文は PENDING の間だけ可変・追記は作った時点で不変**。`Report.note`（備考）は投稿の一部で別物。
-- **画像は追加＝いつでも可・削除＝PENDING の間だけ**。追加は追記と同じ「足すだけ」の操作だが、削除を認めると本文を凍結しても出版社が見た内容が結局変わるため。追加は `POST /api/reports/[id]/images`、削除は `deleteOwnReportImage`（権利者対応のための管理者削除 `deleteReportImage` はステータスに関わらず可＝別物）。
+- **画像は追加＝いつでも可・削除＝PENDING の間だけ**。追加は追記と同じ「足すだけ」の操作だが、削除を認めると本文を凍結しても出版社が見た内容が結局変わるため。追加は `POST /api/reports/[id]/images`、削除は `deleteOwnReportImageUsecase`（権利者対応のための管理者削除 `deleteReportImageUsecase` はステータスに関わらず可＝別物）。
 - **画像の操作は本文と同じ場所・同じボタンで確定する**。PENDING の間は編集画面の中で追加・削除して「更新する」で確定し、連絡後は追記フォームの中で説明と一緒に足して「確認する → 追記する」で確定する。**管理者の画像削除も同じ**で、`/admin/reports/[id]` の編集フォームの中に置き「保存する」で確定する（× は画面から外すだけ＝離脱すれば無かったことになる）。選んだ瞬間に送る作りは採らない（押していないのに反映済み・キャンセルしても戻らない、では確定ボタンの意味が無くなる）。公開ページの画像は閲覧のみ。
 - **追記は送る前に確認のダイアログを挟む**（新規投稿の「確認する → 投稿する」と同じ形 = `<dialog>`）。追記は作った時点で不変＝取り消せないため。出すのは**これから送るものそのもの**で、別に組み立て直さない。
 - **追記に添えた画像は追記の行に紐づける**（`ReportImage.addendumId`・null = 投稿本体の画像）。本体の「証拠画像」に混ぜると出版社が見た時点で何があったのかが読めなくなり、本文を凍結して追記を分けた意味が画像の側で消えるため。
@@ -199,7 +199,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 - **書籍単位で持つ**（Report ではなく Book）。正誤表は「本ごとに1ページ」なので、Report ごとに持つと同じ URL が重複し、移転時に直し漏れる。
 - **公開リンクの編集は管理者のみ**。外部リンクはフィッシング等の攻撃面であり、サイトの信用を借りた誘導になるため、**監視の仕組み（通報機能）が無いうちは読者に直接編集させない**。wiki 方式が成立するのは編集が監視されているとき。
-- 読者は**申告だけできる**（投稿フォームの任意欄 → `Report.reportedErratumUrl`）。これは**公開ページには出さず**管理画面にだけ表示し、管理者がワンクリックで `Book.erratumUrl` に採用する（`adoptReportedErratumUrl`）。開くのはいつでもできるが、閉じるのは信用を失った後になる。
+- 読者は**申告だけできる**（投稿フォームの任意欄 → `Report.reportedErratumUrl`）。これは**公開ページには出さず**管理画面にだけ表示し、管理者がワンクリックで `Book.erratumUrl` に採用する（`adoptReportedErratumUrlUsecase`）。開くのはいつでもできるが、閉じるのは信用を失った後になる。
 - 副次効果: 書籍を選んだ時点で登録済みの正誤表があればフォーム上で案内でき、**掲載済みの誤りの重複投稿を投稿前に減らせる**。
 - URL の検証は `utils/external-url.ts`（**https のみ**・ユーザー名/パスワード入り URL は表示ホストの偽装に使われるため拒否）。表示側は `rel="noopener noreferrer nofollow"`、リンク先ホストを併記する。
 
@@ -262,7 +262,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 
 ### 同じ DB への複数の書き込みは1つのトランザクションにまとめる（2026-08-01 追加）
 
-**削除とその監査ログのように、片方だけ成立すると説明がつかなくなる書き込みは `$transaction` で束ねる**（`deleteReport` / `deleteReportImage` に適用）。
+**削除とその監査ログのように、片方だけ成立すると説明がつかなくなる書き込みは `$transaction` で束ねる**（`deleteReportUsecase` / `deleteReportImageUsecase` に適用）。
 
 - **なぜ**: 束ねないと「**削除は成立したのに監査ログの書き込みが失敗して『削除に失敗しました』と返る**」が起きる。**半端な状態と嘘の文言**という、利用者からは直しようのない組み合わせが構造的に消える。
 - ⚠️ **塊の中では `tx` を使う**。グローバルの `prisma` は別接続なので、塊の中で呼んでも**塊の外**の書き込みになる（見落としやすい）。

@@ -2,6 +2,6 @@
 
 import { startOAuth } from "@/services/auth";
 
-export async function signInWithGitHub() {
+export async function signInWithGitHubUsecase() {
   await startOAuth("github");
 }

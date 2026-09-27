@@ -4,7 +4,7 @@ import { AdminAddendumList } from "./addendum-list";
 
 // Server Action はネットワーク越しの呼び出しになるため、テストではモジュールごとモックする
 vi.mock("@/usecases/delete-report-addendum", () => ({
-  deleteReportAddendum: vi.fn(),
+  deleteReportAddendumUsecase: vi.fn(),
 }));
 
 afterEach(cleanup);

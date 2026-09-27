@@ -14,7 +14,7 @@ import { ReportBodySchema, type ReportBodyInput } from "@/features/report/schema
 //
 // ⚠️ ステータスの確認はトランザクションの**中**で行う。編集画面を開いている間に管理者が
 //    連絡済みにする競合は現実にあり、画面を出した時点の判定では送信済みの投稿を書き換えられる。
-export async function updateOwnReport(id: string, input: ReportBodyInput): Promise<ReportActionState> {
+export async function updateOwnReportUsecase(id: string, input: ReportBodyInput): Promise<ReportActionState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -42,7 +42,7 @@ export async function updateOwnReport(id: string, input: ReportBodyInput): Promi
       });
 
       // 上書きなので他に痕跡が残らない。賛同が付いた後の書き換えを辿れる唯一の手段
-      // （本人の操作を載せる前例は withdrawAccount にもある）
+      // （本人の操作を載せる前例は withdrawAccountUsecase にもある）
       await createAuditLog(
         {
           userId: user.id,

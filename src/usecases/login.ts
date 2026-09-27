@@ -11,7 +11,7 @@ const LoginSchema = z.object({
   password: z.string().min(1, "パスワードを入力してください"),
 });
 
-export async function login(_prevState: AuthState, formData: FormData): Promise<AuthState> {
+export async function loginUsecase(_prevState: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = LoginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
