@@ -13,7 +13,7 @@ export type PublisherCommentPermission =
 /**
  * 「この人はこの投稿に、出版社として回答できるか」を判定する。
  *
- * 認可の**4つ目の形態**（既存は services/auth.ts の管理者2種と、features/report/actions/update.ts の
+ * 認可の**4つ目の形態**（既存は services/auth.ts の管理者2種と、usecases/update-own-report.ts の
  * `updateOwnReport` が持つ「その投稿の投稿者」）。ここだけ services/auth.ts に置いていないのは、
  * あちらが管理操作の入口のための2本だと自分で宣言しているため。
  *

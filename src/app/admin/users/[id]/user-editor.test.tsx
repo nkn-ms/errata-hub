@@ -13,10 +13,16 @@ const updateUserRoleMock = vi.fn();
 const grantPublisherAccessMock = vi.fn();
 const revokePublisherAccessMock = vi.fn();
 const withdrawUserAsAdminMock = vi.fn();
-vi.mock("@/features/account/actions/user", () => ({
+vi.mock("@/usecases/update-user-role", () => ({
   updateUserRole: (...args: unknown[]) => updateUserRoleMock(...args),
+}));
+vi.mock("@/usecases/grant-publisher-access", () => ({
   grantPublisherAccess: (...args: unknown[]) => grantPublisherAccessMock(...args),
+}));
+vi.mock("@/usecases/revoke-publisher-access", () => ({
   revokePublisherAccess: (...args: unknown[]) => revokePublisherAccessMock(...args),
+}));
+vi.mock("@/usecases/withdraw-user-as-admin", () => ({
   withdrawUserAsAdmin: (...args: unknown[]) => withdrawUserAsAdminMock(...args),
 }));
 

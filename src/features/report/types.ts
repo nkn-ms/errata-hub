@@ -4,7 +4,7 @@ export type { ReportType, ReportStatus, Medium };
 
 /**
  * Server Action の戻り値。`{ error }` を返して画面が出す（例外を投げない）。
- * ⚠️ 複数の `actions/*.ts` が返すので、どれか1本の中ではなくここに置く。
+ * ⚠️ 複数の usecases が返すので、どれか1本の中ではなくここに置く。
  */
 export type ReportActionState = { error?: string };
 

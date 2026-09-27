@@ -30,7 +30,9 @@ vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
-import { updateBook, deleteBook, adoptReportedErratumUrl } from "./book";
+import { updateBook } from "./update-book";
+import { deleteBook } from "./delete-book";
+import { adoptReportedErratumUrl } from "./adopt-reported-erratum-url";
 
 const BOOK_ID = "book-1";
 const existingBook = {

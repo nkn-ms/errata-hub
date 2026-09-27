@@ -40,7 +40,9 @@ vi.mock("@/generated/prisma/client", () => ({
   Prisma: { PrismaClientKnownRequestError },
 }));
 
-import { createPublisher, updatePublisher, deletePublisher } from "./publisher";
+import { createPublisher } from "./create-publisher";
+import { updatePublisher } from "./update-publisher";
+import { deletePublisher } from "./delete-publisher";
 
 const PUBLISHER_ID = "pub-1";
 

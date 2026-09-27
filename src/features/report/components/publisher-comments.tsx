@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { addPublisherComment } from "@/features/report/actions/publisher-comment";
+import { addPublisherComment } from "@/usecases/add-publisher-comment";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import type { PublisherCommentView } from "@/features/report/types";

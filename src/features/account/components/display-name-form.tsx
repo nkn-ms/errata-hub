@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateDisplayName } from "@/features/account/actions/auth";
+import { updateDisplayName } from "@/usecases/update-display-name";
 import { PROFILE_LIMITS } from "@/features/account/constants";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";

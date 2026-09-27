@@ -5,12 +5,10 @@ import { SelectField } from "@/components/ui/select-field";
 import { useRouter } from "next/navigation";
 import type { AdminProfileRow } from "@/features/account/db/profiles";
 import type { PublisherOption } from "@/features/publisher/db/publishers";
-import {
-  grantPublisherAccess,
-  revokePublisherAccess,
-  updateUserRole,
-  withdrawUserAsAdmin,
-} from "@/features/account/actions/user";
+import { grantPublisherAccess } from "@/usecases/grant-publisher-access";
+import { revokePublisherAccess } from "@/usecases/revoke-publisher-access";
+import { updateUserRole } from "@/usecases/update-user-role";
+import { withdrawUserAsAdmin } from "@/usecases/withdraw-user-as-admin";
 import { withdrawalConfirmationLabel } from "@/utils/withdrawal";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";

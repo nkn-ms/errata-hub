@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { deleteReportAddendum } from "@/features/report/actions/delete";
+import { deleteReportAddendum } from "@/usecases/delete-report-addendum";
 import { Button } from "@/components/ui/button";
 import { RecordId } from "./record-id";
 

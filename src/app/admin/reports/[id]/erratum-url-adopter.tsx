@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { adoptReportedErratumUrl } from "@/features/book/actions/book";
+import { adoptReportedErratumUrl } from "@/usecases/adopt-reported-erratum-url";
 import { hostnameOf } from "@/utils/external-url";
 import { Button } from "@/components/ui/button";
 

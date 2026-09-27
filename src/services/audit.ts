@@ -27,12 +27,12 @@ type AuditParams = {
  *    「ログだから安全」ではない。名前はログでも中身は**説明義務のある業務記録**なので、
  *    観測目的の best-effort なログ（console 等）と同じ扱いにしない。
  *
- * ⚠️ **管理操作の書き込みは原則すべて塊に入れる**（`actions/` の book / publisher / report / user）。
+ * ⚠️ **管理操作の書き込みは原則すべて塊に入れる**（`usecases/` の書籍・出版社・投稿・ユーザーの管理操作）。
  *    目的は「操作は成立したのに記録だけが無い」状態を作らないこと。
  *    ⇒ 呼び出し側で `prisma.$transaction` を張り、`tx` をこの関数に渡す。手本は
- *      features/report/actions/delete.ts の deleteReport。
+ *      usecases/delete-report.ts の deleteReport。
  *
- * ⚠️ 例外は**退会の2か所**（actions/auth.ts の withdraw / actions/user.ts の withdrawUserAsAdmin）。
+ * ⚠️ 例外は**退会の2か所**（usecases/withdraw-account.ts の withdrawAccount / usecases/withdraw-user-as-admin.ts の withdrawUserAsAdmin）。
  *    Supabase の admin API（外部）をまたぐのでトランザクションに入れられず、
  *    「退会は成立させ、記録の失敗は console.error に留める」方向に倒してある（各所のコメント参照）。
  */

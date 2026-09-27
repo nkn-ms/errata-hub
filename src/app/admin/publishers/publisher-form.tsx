@@ -3,12 +3,10 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublisherFormValue } from "@/features/publisher/db/publishers";
-import {
-  createPublisher,
-  updatePublisher,
-  deletePublisher,
-  type PublisherState,
-} from "@/features/publisher/actions/publisher";
+import { createPublisher } from "@/usecases/create-publisher";
+import { updatePublisher } from "@/usecases/update-publisher";
+import { deletePublisher } from "@/usecases/delete-publisher";
+import type { PublisherState } from "@/features/publisher/types";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 

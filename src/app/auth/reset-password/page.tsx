@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestPasswordReset } from "@/features/account/actions/auth";
+import { requestPasswordReset } from "@/usecases/request-password-reset";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";

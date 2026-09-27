@@ -3,7 +3,7 @@ import { findReportById } from "@/features/report/db/reports";
 import { createClient } from "@/lib/supabase/server";
 import { ReportEditForm } from "@/features/report/components/report-edit-form";
 import { ReportWithdraw } from "@/features/report/components/report-withdraw";
-import { toReportFieldsValue } from "@/features/report/utils/report-fields-value";
+import { toReportFieldsValue } from "@/features/report/components/report-fields-value";
 import { routes } from "@/constants/routes";
 import { FORM_COLUMN } from "@/constants/layout";
 

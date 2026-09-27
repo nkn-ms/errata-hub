@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { withdrawOwnReport } from "@/features/report/actions/delete";
+import { withdrawOwnReport } from "@/usecases/withdraw-own-report";
 import { ErrorPanel } from "@/features/report/components/report-fields";
 import { Button } from "@/components/ui/button";
 

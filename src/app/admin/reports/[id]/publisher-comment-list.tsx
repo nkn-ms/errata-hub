@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { deletePublisherComment } from "@/features/report/actions/publisher-comment";
+import { deletePublisherComment } from "@/usecases/delete-publisher-comment";
 import type { PublisherCommentView } from "@/features/report/types";
 import { Button } from "@/components/ui/button";
 import { RecordId } from "./record-id";

@@ -55,19 +55,23 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/generated/prisma/client", () => ({
   Prisma: { PrismaClientKnownRequestError },
 }));
-// updateReport（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
+// updateReportStatus（管理者操作）の検証だけを見たいので、認可・監査ログ・再描画は素通りさせる
 vi.mock("@/services/auth", () => ({
   requireAdminServerAction: async () => ({ id: "admin-1", email: "admin@local.test" }),
 }));
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
-// 書籍を新しく作るときだけ OpenBD を引く（actions/create.ts の findOrCreateBook）。既定は「該当なし」
+// 書籍を新しく作るときだけ OpenBD を引く（usecases/create-report.ts の findOrCreateBook）。既定は「該当なし」
 vi.mock("@/lib/openbd", () => ({ fetchOpenBdBooks: fetchOpenBdBooksMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { createReport } from "./create";
-import { addReportAddendum, updateReport } from "./update";
-import { deleteOwnReportImage, deleteReport, deleteReportAddendum, withdrawOwnReport } from "./delete";
-import { toggleUpvote } from "./upvote";
+import { createReport } from "./create-report";
+import { addReportAddendum } from "./add-report-addendum";
+import { updateReportStatus } from "./update-report-status";
+import { deleteOwnReportImage } from "./delete-own-report-image";
+import { deleteReport } from "./delete-report";
+import { deleteReportAddendum } from "./delete-report-addendum";
+import { withdrawOwnReport } from "./withdraw-own-report";
+import { toggleUpvote } from "./toggle-upvote";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/report-messages";
 import { BOOK_LIMITS, REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -152,9 +156,9 @@ describe("toggleUpvote（賛同を取り消す）", () => {
   });
 });
 
-describe("updateReport（ステータス更新のバリデーション）", () => {
+describe("updateReportStatus（ステータス更新のバリデーション）", () => {
   it("「その他」は運営者の補足が無いと保存できない（空の OTHER を作らせない）", async () => {
-    const result = await updateReport("r1", { status: "OTHER", statusNote: "" });
+    const result = await updateReportStatus("r1", { status: "OTHER", statusNote: "" });
 
     expect(result.error).toBe("「その他」を選んだときは、運営者の補足欄に事情を記載してください");
     expect(prismaMock.report.update).not.toHaveBeenCalled();
@@ -164,7 +168,7 @@ describe("updateReport（ステータス更新のバリデーション）", () =
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "OTHER" });
 
-    const result = await updateReport("r1", {
+    const result = await updateReportStatus("r1", {
       status: "OTHER",
       statusNote: "出版社が廃業しており連絡が取れません",
     });
@@ -177,7 +181,7 @@ describe("updateReport（ステータス更新のバリデーション）", () =
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "LISTED" });
 
-    const result = await updateReport("r1", { status: "LISTED", statusNote: "" });
+    const result = await updateReportStatus("r1", { status: "LISTED", statusNote: "" });
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.report.update).toHaveBeenCalled();
@@ -191,7 +195,7 @@ describe("updateReport（ステータス更新のバリデーション）", () =
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "FIXED" });
 
-    await updateReport("r1", { status: "FIXED" });
+    await updateReportStatus("r1", { status: "FIXED" });
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [, tx] = createAuditLogMock.mock.calls[0];
@@ -237,7 +241,7 @@ describe("文字数上限（フォームの maxLength をサーバーでも強�
   });
 
   it("運営者の補足にも上限がある", async () => {
-    const result = await updateReport("r1", {
+    const result = await updateReportStatus("r1", {
       status: "LISTED",
       statusNote: "あ".repeat(REPORT_LIMITS.statusNote + 1),
     });

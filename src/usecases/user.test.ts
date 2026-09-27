@@ -33,12 +33,10 @@ vi.mock("@/features/account/db/withdrawal", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import {
-  withdrawUserAsAdmin,
-  updateUserRole,
-  grantPublisherAccess,
-  revokePublisherAccess,
-} from "./user";
+import { withdrawUserAsAdmin } from "./withdraw-user-as-admin";
+import { updateUserRole } from "./update-user-role";
+import { grantPublisherAccess } from "./grant-publisher-access";
+import { revokePublisherAccess } from "./revoke-publisher-access";
 
 const TARGET_ID = "user-1";
 const target = {

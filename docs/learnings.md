@@ -34,7 +34,7 @@ DB に `@unique` を付けても、文字列が違えば別物扱いなので防
 
 - 正規化ロジック: [`src/utils/isbn.ts`](../src/utils/isbn.ts) の `toCanonicalIsbn(raw)`
   - ハイフン等を除去 → ISBN-10 なら ISBN-13 へ変換 → チェック数字を検証 → 不正なら `null`
-- 投稿時に通す場所: [`src/features/report/actions/create.ts`](../src/features/report/actions/create.ts) の `createReport`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
+- 投稿時に通す場所: [`src/usecases/create-report.ts`](../src/usecases/create-report.ts) の `createReport`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
   - `toCanonicalIsbn` で正規化し、不正ならエラーを返す。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
 - DB: `Book.isbn` は **必須 + `@unique`**（ISBN-13 を保存）。
 
@@ -243,7 +243,7 @@ Supabase のセッション維持は「短命のアクセストークンを裏�
 |---|---|---|
 | **Route Handler** | `app/**/route.ts` の `GET` / `POST` … 関数 | App Router の言葉（**現行**） |
 | **API Route** | `pages/api/*.ts` | Pages Router の言葉（**旧称。同じもの**） |
-| **Server Action** | `"use server"` を付けた async 関数（`features/<name>/actions/*.ts`） | Route Handler と**対になる**書き込み口 |
+| **Server Action** | `"use server"` を付けた async 関数（`usecases/*.ts`） | Route Handler と**対になる**書き込み口 |
 
 公式は Route Handler を「`pages` の API Routes と equivalent」と明記している。
 `docs/design.md` §7 が「API Route（Route Handler）」と併記しているのは、この新旧2つの名前を繋ぐため。
@@ -574,7 +574,7 @@ Profile を作る経路はこの callback だけ（パスワードログイン�
 GDPR の消去権が対象とするのは **PII**。**匿名化して個人と結びつかなくなったデータは GDPR の対象外**になる。
 → 退会では **PII だけ消し、コンテンツ（レポート）は匿名で残せる**。これが UGC（ユーザー投稿）サービスの定石。
 
-### このアプリの退会方針（実装済: `features/account/actions/auth.ts` の `withdraw`）
+### このアプリの退会方針（実装済: `usecases/withdraw-account.ts` の `withdrawAccount`）
 
 1. `auth.users` を Admin API で削除（**auth 側 PII** ＝メール/メタデータとログイン情報を消す）
 2. `Profile` は**消さず PII だけスクラブ**：`email`→匿名ダミー（@unique+必須なので null 不可）、`displayName`→null（UI で「退会済みユーザー」表示）

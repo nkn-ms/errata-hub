@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createReport } from "@/features/report/actions/create";
+import { createReport } from "@/usecases/create-report";
 import type { ReportInput } from "@/features/report/schema";
 import { routes } from "@/constants/routes";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";

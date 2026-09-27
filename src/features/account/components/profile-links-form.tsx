@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateProfileLinks } from "@/features/account/actions/auth";
+import { updateProfileLinks } from "@/usecases/update-profile-links";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 

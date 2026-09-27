@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteBook, updateBook } from "@/features/book/actions/book";
+import { deleteBook } from "@/usecases/delete-book";
+import { updateBook } from "@/usecases/update-book";
 import { routes } from "@/constants/routes";
 import type { UpstreamBook } from "@/lib/book-upstream";
 import { Button } from "@/components/ui/button";

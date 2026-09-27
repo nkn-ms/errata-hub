@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { login } from "@/features/account/actions/auth";
+import { login } from "@/usecases/login";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import {

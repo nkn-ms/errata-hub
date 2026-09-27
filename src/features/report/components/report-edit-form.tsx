@@ -4,8 +4,8 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteOwnReportImage } from "@/features/report/actions/delete";
-import { updateOwnReport } from "@/features/report/actions/update";
+import { deleteOwnReportImage } from "@/usecases/delete-own-report-image";
+import { updateOwnReport } from "@/usecases/update-own-report";
 import { routes } from "@/constants/routes";
 import {
   ErrorPanel,

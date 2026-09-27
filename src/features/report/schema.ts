@@ -4,9 +4,9 @@ import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/rep
 import { sanitizeExternalUrl } from "@/utils/external-url";
 
 /**
- * **投稿の入力を検査するスキーマ。** `actions/` から出してあるのは2つの理由から:
+ * **投稿の入力を検査するスキーマ。** `usecases/` から出してあるのは2つの理由から:
  *
- * 1. `actions/*.ts` は先頭が `"use server"` で、**async 関数しか export できない**
+ * 1. `usecases/*.ts` は先頭が `"use server"` で、**async 関数しか export できない**
  *    （スキーマを export すると next build だけが落ちる。tsc と eslint は通る）。
  *    複数のアクションとテスト（validation-parity.test.ts）から読むので、外に出す必要がある
  * 2. 新規投稿・編集・追記・管理者の更新が**同じ上限と同じ条件**を共有することを1箇所で保証する
@@ -29,7 +29,7 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
 // 手入力の欄は「〜を入力してください」に揃えている（下の reportBodyShape 以降）。
 //
 // 書誌（書名・著者・出版社）は、書籍を新しく作るときに OpenBD に無い項目だけ使われる
-// （= actions/create.ts の findOrCreateBook）。それでも上限は付ける: OpenBD に無い本では
+// （= usecases/create-report.ts の findOrCreateBook）。それでも上限は付ける: OpenBD に無い本では
 // この値がそのまま保存され、公開ページに出るため。上限は実在の書誌が収まる側に余裕を持たせている
 const BookSchema = z.object({
   googleBooksId: z.string().optional(),
@@ -137,7 +137,7 @@ export type ReportInput = z.input<typeof ReportSchema>;
 
 export const ReportUpdateSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),
-  // ⚠️ 出版社からの回答はここでは受けない（PublisherComment テーブル＝ actions/publisher-comment.ts）。
+  // ⚠️ 出版社からの回答はここでは受けない（PublisherComment テーブル＝ usecases/add-publisher-comment.ts）。
   //    この欄は**運営者自身の説明**で、書き手が管理者ひとりだから列のままでよい
   statusNote: limited(REPORT_LIMITS.statusNote, "運営者の補足").nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),

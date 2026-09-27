@@ -54,7 +54,7 @@ model Profile {
   // null の主な源は退会スクラブ。OAuth初回作成で氏名系metadataが皆無の場合もnullになり得る（表示は「匿名」フォールバック）。
   // 退会判定の正はこの列ではなく email の匿名接尾辞
   displayName    String?
-  githubUsername String?          // 公開リンク用（本人が任意で入力。ログイン手段とは独立。退会時にスクラブ = actions/auth.ts withdraw）
+  githubUsername String?          // 公開リンク用（本人が任意で入力。ログイン手段とは独立。退会時にスクラブ = usecases/withdraw-account.ts）
   xUsername      String?          // 公開リンク用（X / Twitter。任意。退会時にスクラブ）
   role           Role             @default(USER)
   // 利用規約・プライバシーポリシーへの同意の記録。Profile 作成時（/auth/callback の初回 upsert）に刻む。
@@ -93,7 +93,7 @@ model Publisher {
 // （docs/design.md §7・auth/callback/route.ts にも「ここでは一切付けない」と明記してある）。
 // ⚠️ **この行は公開ページへの書き込み権限そのもの**（規約 第8条1項の「運営者が認めた出版社等」）。
 // 対象書籍の出版社の行を持つ人だけが PublisherComment を作れる = services/publisher-access.ts
-// （呼ぶのは features/report/actions/publisher-comment.ts）。
+// （呼ぶのは usecases/add-publisher-comment.ts）。
 // 付与前に本人が本当にその出版社の関係者かを確かめること（担保は管理者の確認だけで、
 // 技術的な検証は無い = docs/design.md §2）。誤って付けても実害が無かった頃の運用のままにしない
 model PublisherAccess {
@@ -126,7 +126,7 @@ model Book {
   id            String     @id @default(uuid())
   publisherId   String?
   // 意図的に Restrict（optionalの既定 SetNull から変更）: 書籍が紐づく出版社は削除不可（出版社削除ガード）。
-  // UX側の件数チェックは features/publisher/actions/publisher.ts、最終保証はこの制約が担う
+  // UX側の件数チェックは usecases/delete-publisher.ts、最終保証はこの制約が担う
   publisher     Publisher? @relation(fields: [publisherId], references: [id], onDelete: Restrict)
   title         String
   author        String?
@@ -299,7 +299,7 @@ model AuditLog {
 // 上限チェックはフォームと API の両方で行う）。投稿の作成後にクライアントが別途アップロードする
 // （Server Actions のボディ上限 1MB を超えるため、ここだけ Route Handler = api/reports/[id]/images）。
 // 投稿削除時は DB の行を先に消し、Storage のファイル削除が失敗しても投稿削除は成立させる
-// （残った孤児ファイルは AuditLog の before に残る imageUrl から辿る = features/report/actions/delete.ts の removeImageFiles）
+// （残った孤児ファイルは AuditLog の before に残る imageUrl から辿る = features/report/db/report-deletion.ts の removeImageFiles）
 model ReportImage {
   id         String   @id @default(uuid())
   reportId String

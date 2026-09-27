@@ -1,4 +1,5 @@
-import { signInWithGitHub, signInWithGoogle } from "@/features/account/actions/auth";
+import { signInWithGitHub } from "@/usecases/sign-in-with-github";
+import { signInWithGoogle } from "@/usecases/sign-in-with-google";
 import { GitHubIcon, GoogleIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 

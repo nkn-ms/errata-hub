@@ -47,7 +47,7 @@ function isUserAlreadyDeleted(error: { code?: string; status?: number }): boolea
  *
  * Profile がスクラブ済みでも auth.users が残っていれば、それは「完了した退会」ではなく
  * 「補償に失敗して途中で止まった退会」。管理者がそこから完了させられるよう、
- * 「既に退会済み」の判定にこれを重ねる（= actions/user.ts / admin/users/[id]）。
+ * 「既に退会済み」の判定にこれを重ねる（= usecases/withdraw-user-as-admin.ts / admin/users/[id]）。
  *
  * ⚠️ 判定できないとき（通信断など）は **true（残っている）を返さない**。
  * 「退会済み扱いで止める」側に倒すと、実際には未完了のものを取りこぼすため。
@@ -65,8 +65,8 @@ export async function authUserExists(profileId: string): Promise<boolean> {
 }
 
 /**
- * 退会処理の実体。本人による退会（actions/auth.ts の withdraw）と
- * 管理者による代行（actions/user.ts の withdrawUserAsAdmin）で共有する。
+ * 退会処理の実体。本人による退会（usecases/withdraw-account.ts の withdrawAccount）と
+ * 管理者による代行（usecases/withdraw-user-as-admin.ts の withdrawUserAsAdmin）で共有する。
  *
  * 投稿（Report）はコミュニティ資産として残し、投稿者の個人情報だけを消す。
  * Report.userId は Restrict なので Profile 行は物理削除できない → 残して PII をスクラブする。

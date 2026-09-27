@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updatePassword } from "@/features/account/actions/auth";
+import { updatePassword } from "@/usecases/update-password";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 

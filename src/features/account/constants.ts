@@ -1,4 +1,4 @@
-// プロフィールの入力欄の文字数上限。フォーム（maxLength）とサーバー（actions/auth.ts の zod）、
+// プロフィールの入力欄の文字数上限。フォーム（maxLength）とサーバー（usecases/update-display-name.ts の zod）、
 // および Profile を実際に作る auth/callback で共用する。
 //
 // なぜ定数にするか: 表示名の上限は**入口が3つある**（会員登録フォーム / アカウント設定 /

@@ -47,7 +47,8 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import { addPublisherComment, deletePublisherComment } from "./publisher-comment";
+import { addPublisherComment } from "./add-publisher-comment";
+import { deletePublisherComment } from "./delete-publisher-comment";
 
 const USER_ID = "user-1";
 const REPORT_ID = "report-1";
