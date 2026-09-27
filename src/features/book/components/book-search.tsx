@@ -192,6 +192,9 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
         const { books }: { books: UpstreamBook[] } = await res.json();
         // 書誌情報は OpenBD を正として補正（書影は Google を維持）
         const enriched = await enrichWithOpenBD(books, controller.signal);
+        // ⚠️ 補正は失敗を（打ち切りも）飲み込んで元の結果を返す。ここで打ち切りを見ないと、
+        //    打ち切った検索の結果で候補が開き直る（変換を始めて閉じた一覧が開くなど）
+        if (controller.signal.aborted) return;
         setResults(enriched);
         setOpen(true);
       } catch {
@@ -218,9 +221,12 @@ export function BookSearch({ onSelect, labelledBy }: Props) {
     // ⚠️ デバウンスでは防げない。人が 400ms 止まるのは変換候補を見ている瞬間なので、
     //    すり抜けるのは「うぇb」のような未確定の文字列に偏る＝意味の無い語で上流を叩き、
     //    「見つかりません」が変換中に点滅する。確定するまで検索は張らない。
+    // ⚠️ 前の検索の候補も閉じる。開いたままだと、今打っている語と食い違う結果（「見つかりません」を
+    //    含む）が変換中ずっと見える。確定したら handleCompositionEnd が検索し直して開く。
     if ((e.nativeEvent as InputEvent).isComposing) {
       if (timerRef.current) clearTimeout(timerRef.current);
       abortRef.current?.abort();
+      setOpen(false);
       return;
     }
 
