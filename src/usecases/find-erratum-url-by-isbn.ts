@@ -1,7 +1,7 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import { toCanonicalIsbn } from "@/utils/isbn";
+import { findErratumUrlByIsbn } from "@/features/book/db/books";
 
 /**
  * ISBN からその本の公式な正誤表 URL を引く（投稿フォームで書籍を選んだ直後に使う）。
@@ -15,9 +15,5 @@ export async function findErratumUrlByIsbnUsecase(isbn: string): Promise<{ errat
   const canonicalIsbn = toCanonicalIsbn(isbn);
   if (!canonicalIsbn) return { erratumUrl: null };
 
-  const book = await prisma.book.findUnique({
-    where: { isbn: canonicalIsbn },
-    select: { erratumUrl: true },
-  });
-  return { erratumUrl: book?.erratumUrl ?? null };
+  return { erratumUrl: await findErratumUrlByIsbn(canonicalIsbn) };
 }

@@ -1,14 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { requireAdminServerAction } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
 import type { PublisherState } from "@/features/publisher/types";
 import { parsePublisherForm } from "@/features/publisher/schema";
-import { toMessage } from "@/features/publisher/db/publishers";
+import { findPublisherForAuditLog, toMessage, updatePublisher } from "@/features/publisher/db/publishers";
 
 export async function updatePublisherUsecase(
   id: string,
@@ -21,21 +21,12 @@ export async function updatePublisherUsecase(
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
-  const { name, email, emailDomain, note } = parsed.data;
 
   try {
     // 更新と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    await prisma.$transaction(async (tx) => {
-      const before = await tx.publisher.findUnique({ where: { id } });
-      const publisher = await tx.publisher.update({
-        where: { id },
-        data: {
-          name,
-          email: email || null,
-          emailDomain: emailDomain || null,
-          note: note || null,
-        },
-      });
+    await runInTransaction(async (tx) => {
+      const before = await findPublisherForAuditLog(id, tx);
+      const after = await updatePublisher(id, parsed.data, tx);
 
       // 「誰が連絡先やメモを書き換えたか」を後から説明できるよう、変更前後を残す
       await createAuditLog(
@@ -46,7 +37,7 @@ export async function updatePublisherUsecase(
           targetType: TARGET_TYPE.PUBLISHER,
           targetId: id,
           before: (before ?? null) as unknown as Record<string, unknown> | null,
-          after: publisher as unknown as Record<string, unknown>,
+          after: after as unknown as Record<string, unknown>,
         },
         tx
       );

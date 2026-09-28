@@ -16,6 +16,9 @@ const PublisherSchema = z.object({
   note: z.string().or(z.literal("")),
 });
 
+// 検査を通った出版社の欄（登録と編集で同じ）
+export type SubmittedPublisher = z.output<typeof PublisherSchema>;
+
 export function parsePublisherForm(formData: FormData) {
   return PublisherSchema.safeParse({
     name: formData.get("name"),

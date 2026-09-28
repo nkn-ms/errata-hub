@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { routes } from "@/constants/routes";
+import { countReportsByBook, deleteBook, findBookForAuditLog } from "@/features/book/db/books";
 import type { BookActionState } from "@/features/book/types";
 
 export async function deleteBookUsecase(id: string): Promise<BookActionState> {
@@ -14,7 +15,7 @@ export async function deleteBookUsecase(id: string): Promise<BookActionState> {
   // 投稿が紐づく本は削除させない（出版社削除ガードと同じ「子があれば不可」の方針）。
   // 件数を文言に出すための早期チェックで、トランザクションの外に置いてよい: 隙間で投稿が増えても
   // DB 側の Restrict（Report.bookId は必須リレーション）が最終的に削除を拒むため。
-  const reportCount = await prisma.report.count({ where: { bookId: id } });
+  const reportCount = await countReportsByBook(id);
   if (reportCount > 0) {
     return { error: `${reportCount}件の投稿が紐づいているため削除できません。先に投稿を削除してください。` };
   }
@@ -23,11 +24,11 @@ export async function deleteBookUsecase(id: string): Promise<BookActionState> {
   try {
     // 削除と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行が消えると他に痕跡が無いので、記録が残せないなら削除も成立させない。
-    deleted = await prisma.$transaction(async (tx) => {
-      const book = await tx.book.findUnique({ where: { id } });
+    deleted = await runInTransaction(async (tx) => {
+      const book = await findBookForAuditLog(id, tx);
       if (!book) return false;
 
-      await tx.book.delete({ where: { id } });
+      await deleteBook(id, tx);
 
       await createAuditLog(
         {
