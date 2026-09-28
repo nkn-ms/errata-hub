@@ -11,8 +11,8 @@ const { prismaMock, createAuditLogMock, redirectMock } = vi.hoisted(() => {
   return {
     prismaMock: {
       ...models,
-      // $transaction はコールバックに「塊の中で使うクライアント（tx）」を渡す。
-      // テストでは同じモックを tx として渡すので、塊の中の呼び出しも外と同じ vi.fn() に記録される。
+      // $transaction はコールバックに「トランザクションの中で使うクライアント（tx）」を渡す。
+      // テストでは同じモックを tx として渡すので、トランザクションの中の呼び出しも外と同じ vi.fn() に記録される。
       // ⚠️ 巻き戻りは再現しない（原子性はローカル実 DB で確認する = PR#168）。
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
@@ -127,7 +127,7 @@ describe("updateBookUsecase（書誌の手修正）", () => {
   });
 
   // 「操作は成立したのに記録だけが無い」状態を作らないための構造を固定する（PR#168）
-  it("更新と監査ログは1つの塊の中で書く", async () => {
+  it("更新と監査ログは1つのトランザクションの中で書く", async () => {
     await updateBookUsecase(BOOK_ID, validInput);
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -162,7 +162,7 @@ describe("deleteBookUsecase（書籍の削除）", () => {
     expect(redirectMock).toHaveBeenCalled();
   });
 
-  it("削除と監査ログは1つの塊の中で書く", async () => {
+  it("削除と監査ログは1つのトランザクションの中で書く", async () => {
     await deleteBookUsecase(BOOK_ID);
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -229,7 +229,7 @@ describe("adoptReportedErratumUrlUsecase（申告された正誤表URLの採用�
       where: { id: BOOK_ID },
       data: { erratumUrl: url },
     });
-    // 採用と監査ログは1つの塊の中
+    // 採用と監査ログは1つのトランザクションの中
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [, tx] = createAuditLogMock.mock.calls[0];
     expect(tx).toBeDefined();

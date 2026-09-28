@@ -6,7 +6,7 @@ import { storagePathFromPublicUrl } from "@/features/report/utils/report-images"
 
 // 投稿を消す操作（投稿者の取り下げ・管理者の削除・画像1枚・追記1件）が共有する処理。
 
-// 削除対象の読み出し。監査ログの before に使う値なので、削除と同じ塊の中で読む
+// 削除対象の読み出し。監査ログの before に使う値なので、削除と同じトランザクションの中で読む
 // （読んでから消すまでの間に他の変更が入り込まないようにする）。
 // ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
 //    （1件ずつ消すときの deleteReportAddendumUsecase / deletePublisherCommentUsecase と揃える）。

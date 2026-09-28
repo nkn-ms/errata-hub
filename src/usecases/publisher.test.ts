@@ -20,7 +20,7 @@ const { prismaMock, createAuditLogMock, redirectMock, PrismaClientKnownRequestEr
       prismaMock: {
         ...models,
         // $transaction はコールバックに tx を渡す。テストでは同じモックを渡すので、
-        // 塊の中の呼び出しも外と同じ vi.fn() に記録される（巻き戻りは再現しない）。
+        // トランザクションの中の呼び出しも外と同じ vi.fn() に記録される（巻き戻りは再現しない）。
         $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
       },
       createAuditLogMock: vi.fn(),
@@ -134,7 +134,7 @@ describe("createPublisherUsecase（出版社の登録）", () => {
     expect(result?.error).toBe("同じ名前の出版社が既に登録されています");
   });
 
-  it("登録と監査ログは1つの塊の中で書く", async () => {
+  it("登録と監査ログは1つのトランザクションの中で書く", async () => {
     await createPublisherUsecase(undefined, form({}));
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -152,7 +152,7 @@ describe("updatePublisherUsecase（出版社の更新）", () => {
     expect(result?.error).toBe("対象の出版社が見つかりません");
   });
 
-  it("更新と監査ログは1つの塊の中で書く", async () => {
+  it("更新と監査ログは1つのトランザクションの中で書く", async () => {
     await updatePublisherUsecase(PUBLISHER_ID, undefined, form({}));
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -178,7 +178,7 @@ describe("deletePublisherUsecase（出版社の削除）", () => {
     expect(redirectMock).toHaveBeenCalled();
   });
 
-  it("削除と監査ログは1つの塊の中で書く", async () => {
+  it("削除と監査ログは1つのトランザクションの中で書く", async () => {
     await deletePublisherUsecase(PUBLISHER_ID);
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();

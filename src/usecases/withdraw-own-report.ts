@@ -36,7 +36,7 @@ export async function withdrawOwnReportUsecase(id: string): Promise<ReportAction
 
   let result: OwnReportWithdrawal;
   try {
-    // 認可もステータスの確認も塊の中で行う（updateOwnReportUsecase と同じ理由。画面を開いている間に
+    // 認可もステータスの確認もトランザクションの中で行う（updateOwnReportUsecase と同じ理由。画面を開いている間に
     // 管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
     result = await prisma.$transaction(async (tx): Promise<OwnReportWithdrawal> => {
       const found = await findReportForDeletion(tx, id);

@@ -44,7 +44,7 @@ export async function createReportUsecase(input: ReportInput): Promise<CreateRep
       return { error: "ISBNが正しくありません" };
     }
 
-    // 書籍（と出版社）の用意と投稿の作成は1つの塊にしない。投稿の作成が失敗して書籍と出版社だけが
+    // 書籍（と出版社）の用意と投稿の作成は1つのトランザクションにしない。投稿の作成が失敗して書籍と出版社だけが
     // 残っても、次の投稿で ISBN と名前から再利用される（孤児の行は許容 = docs/design.md「参照整合性」）
     const bookId = await findOrCreateBook(canonicalIsbn, book);
     const { id } = await createReport({ userId: user.id, bookId, report });

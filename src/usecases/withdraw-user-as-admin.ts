@@ -77,7 +77,7 @@ export async function withdrawUserAsAdminUsecase(
     // ここに残すと auth.users 削除後にこの UUID からメールを辿れる唯一の場所になり、
     // 無期限で PII を保持することになってしまうため（本人退会と同じ扱い）。
     //
-    // ⚠️ 本人退会（usecases/withdraw-account.ts の withdrawAccountUsecase）と同じ理由で**塊にできない**（上の
+    // ⚠️ 本人退会（usecases/withdraw-account.ts の withdrawAccountUsecase）と同じ理由で**1つのトランザクションにまとめられない**（上の
     //    scrubProfileForWithdrawal が Supabase の admin API を叩く）。倒す方向も揃える:
     //    退会は既に成立して取り消せないので、記録の失敗で「失敗しました」とは返さない。
     try {

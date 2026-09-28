@@ -18,7 +18,7 @@ export async function deletePublisherCommentUsecase(commentId: string): Promise<
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 監査ログの before に使う値なので、削除と同じ塊の中で読む
+      // 監査ログの before に使う値なので、削除と同じトランザクションの中で読む
       const before = await tx.publisherComment.findUnique({
         where: { id: commentId },
         include: { publisher: { select: { name: true } } },

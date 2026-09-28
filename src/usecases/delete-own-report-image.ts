@@ -30,7 +30,7 @@ export async function deleteOwnReportImageUsecase(imageId: string): Promise<Repo
   let result: OwnImageDeletion;
   try {
     result = await prisma.$transaction(async (tx): Promise<OwnImageDeletion> => {
-      // 認可もステータスの確認も塊の中で行う（updateOwnReportUsecase と同じ理由。詳細ページを開いて
+      // 認可もステータスの確認もトランザクションの中で行う（updateOwnReportUsecase と同じ理由。詳細ページを開いて
       // いる間に管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
       const found = await tx.reportImage.findUnique({
         where: { id: imageId },

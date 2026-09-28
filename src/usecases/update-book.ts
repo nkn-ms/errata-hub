@@ -54,8 +54,8 @@ export async function updateBookUsecase(id: string, input: BookUpdateInput): Pro
 
   let updated: boolean;
   try {
-    // 書誌の更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    // 出版社の用意も同じ塊に入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
+    // 書誌の更新と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
+    // 出版社の用意も同じトランザクションに入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
     updated = await runInTransaction(async (tx) => {
       const before = await findBookForAuditLog(id, tx);
       if (!before) return false;

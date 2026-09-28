@@ -16,7 +16,7 @@ import type { BookActionState } from "@/features/book/types";
  *
  * リンクの公開は管理者の判断を通す、という方針の実装（schema.prisma の Book.erratumUrl 参照）。
  */
-// 塊の結果は「採用した」以外に2通りある。文言の組み立ては塊の外に置きたいので、
+// トランザクションの結果は「採用した」以外に2通りある。文言の組み立てはトランザクションの外に置きたいので、
 // どれに当たったかだけを返す（例外で流すと「失敗」と「採用できない」の区別が付かなくなる）。
 type AdoptOutcome = "adopted" | "report-not-found" | "no-url";
 
@@ -25,8 +25,8 @@ export async function adoptReportedErratumUrlUsecase(reportId: string): Promise<
 
   let outcome: AdoptOutcome;
   try {
-    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    // 申告値の読み出しも塊の中で行う: 監査ログの before に使う値なので、
+    // 採用（Book.erratumUrl の更新）と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
+    // 申告値の読み出しもトランザクションの中で行う: 監査ログの before に使う値なので、
     // 読んでから書くまでの間に他の変更が入り込まないようにする。
     outcome = await runInTransaction<AdoptOutcome>(async (tx) => {
       const reported = await findReportedErratumUrl(reportId, tx);

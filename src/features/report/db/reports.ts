@@ -20,7 +20,7 @@ import type { SubmittedReport } from "@/features/report/schema";
  *    同じガイドの例は書き込みの認可も DAL の中で行うが、ここでは外に出す。同じ関数を、認可の違う操作が
  *    呼ぶため（例: features/publisher/db/publishers.ts の ensurePublisher は、投稿する人の操作と
  *    管理者の操作の両方から呼ばれる）。操作した人は引数で受け取る（db/ は cookie を読まない）。
- *    トランザクションの中で呼ぶ関数は、最後の引数 `client` に塊のクライアント（tx）を受ける
+ *    トランザクションの中で呼ぶ関数は、最後の引数 `client` にトランザクションのクライアント（tx）を受ける
  *    （= services/transaction.ts）。
  *
  * ⚠️ **`"use server"` は付けない。** 付けると Server Action 扱いになり、
