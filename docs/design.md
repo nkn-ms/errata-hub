@@ -170,7 +170,7 @@ fixedEdition / fixedPrinting は FIXED に付随
 - **Tailwind 標準ブレークポイントを据え置き**（カスタムしない。sm640/md768/lg1024/xl1280/2xl1536・min-width 積み上げ式）。対応は breakpoint の数値変更ではなく「**崩れるコンポーネント単位**」で行う（例：モバイルのテーブル横溢れはカード型化）。
 
 ### データアクセスの境界（2026-07 に Server Actions へ統一）
-- **読み取り（ページ表示）= サーバーコンポーネントからサービス関数/Prisma を直接 await**。内部利用のためだけの自前 API Route は挟まない（同一プロセス内で HTTP 往復と JSON 二重シリアライズを増やすだけで、分離の実も速度も得られないため）。
+- **読み取り（ページ表示）= サーバーコンポーネントから `features/<name>/db/` の関数を直接 await**（`app/` は prisma を import しない＝lint）。内部利用のためだけの自前 API Route は挟まない（同一プロセス内で HTTP 往復と JSON 二重シリアライズを増やすだけで、分離の実も速度も得られないため）。
 - **自アプリ UI からの更新 = Server Actions**（`usecases/*.ts`）。理由：関数呼び出しの型安全（引数・戻り値をコンパイル時検証）、`useActionState` 等 React 統合、更新と画面反映が1往復で完結（アクション内の `refresh()` / `redirect()`）。エラーは `{ error?: string }` を返し、成功時に一覧へ戻る操作は `redirect()`（出版社の管理操作＝ usecases/create-publisher.ts ほかが発祥のパターン）。**認可はレンダリングではなく各アクション内で必ず検証する**（アクションは直接 POST 可能な公開エンドポイントであるため。管理系は `requireAdminServerAction`）。
 - **API Route（Route Handler）は「HTTP 境界が本当に必要なもの」だけ**に限定。現存は次の2種のみ：①画像アップロード `POST /api/reports/[id]/images`（Server Actions のボディ上限は既定 1MB。`bodySizeLimit` を緩めると全アクション共通に効いて DDoS 耐性を削るため、大きいバイナリの受口だけ Route Handler に隔離）②外部書誌 API のプロキシ `GET /api/books/openbd`・`/api/books/search`（外部データ源への読み取り窓口）。
 

@@ -119,17 +119,44 @@ const eslintConfig = defineConfig([
   },
 
   {
-    // DB に触るのは features/<name>/db/ の読み取りと services/ の中だけ。
+    // usecases は DB に直接触らない。usecase が持つのは手順（認可 → 検査 → db の関数を呼ぶ → 監査ログ）と
+    // トランザクションの開始だけで、DB の読み書きは持ち主の features/<name>/db/ に置く。
+    //
+    // ⚠️ import の禁止だけでは足りない。runInTransaction から受け取った tx を使えば、prisma を
+    //    import しなくても DB を直接操作できてしまう。なので `tx.<モデル>` の直書きも禁じる
+    //    （tx は db の関数に渡すだけ）。変数名が tx であることに頼った判定なので、別名にすると抜ける。
+    files: ["src/usecases/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/prisma",
+              message:
+                "usecases から DB に直接触らない。DB の読み書きは features/<name>/db/ に関数を作って呼ぶ（トランザクションは services/transaction.ts の runInTransaction で開始する）。",
+            },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='tx']",
+          message: "usecases の中で tx.<モデル> を直接使わない。tx は features/<name>/db/ の関数に渡すだけにする。",
+        },
+      ],
+    },
+  },
+
+  {
+    // DB に触るのは features/<name>/db/ と services/ の中だけ。
     // ページは DTO を受け取って並べるだけにする。
     //
     // 出典: node_modules/next/dist/docs/01-app/02-guides/data-security.md
     //   「Data Access Layer は新規プロジェクト向け／page.tsx への直書きはプロトタイプ向け」
     //   「We recommend choosing one data fetching approach and avoiding mixing them.」
-    //
-    // ⚠️ **テストは対象外**（Route Handler の unit は prisma をモジュールごとモックするため
-    //    `vi.mock("@/lib/prisma")` で名前を書く必要がある）。
     files: ["src/app/**"],
-    ignores: ["src/app/**/*.test.ts", "src/app/**/*.test.tsx"],
     rules: {
       "no-restricted-imports": [
         "error",
