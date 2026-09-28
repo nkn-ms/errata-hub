@@ -1,13 +1,13 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createClient } from "@/lib/supabase/server";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import type { ReportActionState } from "@/features/report/types";
 import { redirect } from "next/navigation";
 import { routes } from "@/constants/routes";
-import { findReportForDeletion, removeImageFiles } from "@/features/report/db/report-deletion";
+import { deleteReport, findReportForDeletion, removeImageFiles } from "@/features/report/db/report-deletion";
 
 type OwnReportWithdrawal =
   | { error: string; imageUrls?: undefined }
@@ -38,8 +38,8 @@ export async function withdrawOwnReportUsecase(id: string): Promise<ReportAction
   try {
     // 認可もステータスの確認もトランザクションの中で行う（updateOwnReportUsecase と同じ理由。画面を開いている間に
     // 管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
-    result = await prisma.$transaction(async (tx): Promise<OwnReportWithdrawal> => {
-      const found = await findReportForDeletion(tx, id);
+    result = await runInTransaction(async (tx): Promise<OwnReportWithdrawal> => {
+      const found = await findReportForDeletion(id, tx);
       if (!found) return { error: "投稿が見つかりません" };
       if (found.userId !== user.id) {
         return { error: "この投稿を取り下げる権限がありません" };
@@ -48,7 +48,7 @@ export async function withdrawOwnReportUsecase(id: string): Promise<ReportAction
         return { error: "連絡済みの投稿は取り下げられません。追記でご対応ください。" };
       }
 
-      await tx.report.delete({ where: { id } });
+      await deleteReport(id, tx);
       await createAuditLog(
         {
           userId: user.id,

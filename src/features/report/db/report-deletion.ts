@@ -1,10 +1,13 @@
 import "server-only";
+import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { REPORT_IMAGE_BUCKET } from "@/features/report/constants/report-images";
 import { storagePathFromPublicUrl } from "@/features/report/utils/report-images";
 
-// 投稿を消す操作（投稿者の取り下げ・管理者の削除・画像1枚・追記1件）が共有する処理。
+// 投稿と、その一部（画像・追記・出版社の回答）を消す操作が使う処理
+// （投稿者の取り下げ・管理者の削除・画像1枚・追記1件・回答1件）。
+// 認可とステータスの確認は呼び出し側の usecase が行う（理由は reports.ts の冒頭）。
 
 // 削除対象の読み出し。監査ログの before に使う値なので、削除と同じトランザクションの中で読む。
 // ⚠️ ただし読んでから消すまでの間の他の変更は防げない（Postgres の既定の READ COMMITTED では、
@@ -13,7 +16,7 @@ import { storagePathFromPublicUrl } from "@/features/report/utils/report-images"
 // ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
 //    （1件ずつ消すときの deleteReportAddendumUsecase / deletePublisherCommentUsecase と揃える）。
 //    画像は投稿本体の分も追記の分も images に入っている（どちらの行も reportId を持つ）。
-export function findReportForDeletion(client: Prisma.TransactionClient, id: string) {
+export function findReportForDeletion(id: string, client: Prisma.TransactionClient = prisma) {
   return client.report.findUnique({
     where: { id },
     include: {
@@ -26,6 +29,53 @@ export function findReportForDeletion(client: Prisma.TransactionClient, id: stri
       },
     },
   });
+}
+
+/** 投稿を消す。画像・賛同・追記・出版社の回答の行は Cascade で一緒に消える（Storage のファイルは消えない＝下の removeImageFiles）。 */
+export async function deleteReport(id: string, client: Prisma.TransactionClient = prisma): Promise<void> {
+  await client.report.delete({ where: { id } });
+}
+
+/** 画像1枚を、持ち主とステータスの確認に要る投稿の欄つきで引く（無ければ null）。監査ログの before にも使う。 */
+export function findReportImageForDeletion(imageId: string, client: Prisma.TransactionClient = prisma) {
+  return client.reportImage.findUnique({
+    where: { id: imageId },
+    include: { report: { select: { userId: true, status: true } } },
+  });
+}
+
+/** 画像1枚の行を消す（Storage のファイルは下の removeImageFiles で、コミット後に消す）。 */
+export async function deleteReportImage(imageId: string, client: Prisma.TransactionClient = prisma): Promise<void> {
+  await client.reportImage.delete({ where: { id: imageId } });
+}
+
+/**
+ * 追記1件を、添えた画像つきで引く（無ければ null）。
+ * ⚠️ 画像の行は addendumId の Cascade で消えるがファイルは残るので、消す前に URL を読んでおく。
+ */
+export function findReportAddendumForDeletion(addendumId: string, client: Prisma.TransactionClient = prisma) {
+  return client.reportAddendum.findUnique({
+    where: { id: addendumId },
+    include: { images: true },
+  });
+}
+
+/** 追記1件を消す（添えた画像の行も Cascade で消える）。 */
+export async function deleteReportAddendum(addendumId: string, client: Prisma.TransactionClient = prisma): Promise<void> {
+  await client.reportAddendum.delete({ where: { id: addendumId } });
+}
+
+/** 出版社の回答1件を、出版社名つきで引く（無ければ null）。監査ログに名前で残すため。 */
+export function findPublisherCommentForDeletion(commentId: string, client: Prisma.TransactionClient = prisma) {
+  return client.publisherComment.findUnique({
+    where: { id: commentId },
+    include: { publisher: { select: { name: true } } },
+  });
+}
+
+/** 出版社の回答1件を消す。 */
+export async function deletePublisherComment(commentId: string, client: Prisma.TransactionClient = prisma): Promise<void> {
+  await client.publisherComment.delete({ where: { id: commentId } });
 }
 
 /**

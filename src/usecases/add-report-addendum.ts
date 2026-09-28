@@ -1,11 +1,12 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { AddendumSchema, type AddendumInput } from "@/features/report/schema";
 import { formatJstDateTime } from "@/utils/format";
+import { createReportAddendum, findReportOwnerAndStatus } from "@/features/report/db/reports";
 
 // images は**作った直後は必ず空**（画像は追記を作ってから別リクエストで送るため）。
 // 呼び出し側が送り終えた分を自分の一覧に足す = features/report/components/report-addenda.tsx
@@ -42,8 +43,8 @@ export async function addReportAddendumUsecase(id: string, input: AddendumInput)
       return { error: rateLimitMessage(limit.retryAfterSec) };
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const report = await tx.report.findUnique({ where: { id } });
+    const result = await runInTransaction(async (tx) => {
+      const report = await findReportOwnerAndStatus(id, tx);
       if (!report) return { error: "投稿が見つかりません" };
       if (report.userId !== user.id) return { error: "この投稿に追記する権限がありません" };
       // PENDING のうちは本文を直せるので追記させない（同じことを2つの経路で言えるようにしない）
@@ -51,9 +52,7 @@ export async function addReportAddendumUsecase(id: string, input: AddendumInput)
         return { error: "この投稿はまだ編集できます。本文を直してください。" };
       }
 
-      const created = await tx.reportAddendum.create({
-        data: { reportId: id, body: parsed.data.body },
-      });
+      const created = await createReportAddendum(id, parsed.data.body, tx);
       return {
         addendum: {
           id: created.id,

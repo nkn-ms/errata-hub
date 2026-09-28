@@ -132,6 +132,8 @@ export const ReportSchema = z.object({
 
 export const ReportBodySchema = ReportBodyBase.superRefine(refineReportBody);
 export type ReportBodyInput = z.input<typeof ReportBodySchema>;
+// 検査を通った本文（投稿者の編集）
+export type SubmittedReportBody = z.output<typeof ReportBodySchema>;
 
 export type ReportInput = z.input<typeof ReportSchema>;
 // 検査を通った新規投稿の中身（書籍を除く）。書籍は呼び出し側が別に用意し、id で紐づける
@@ -167,6 +169,8 @@ export const ReportUpdateSchema = z.object({
 });
 
 export type ReportUpdateInput = z.input<typeof ReportUpdateSchema>;
+// 検査を通った管理者の更新（ステータス・運営者の補足・修正版と刷）
+export type SubmittedReportUpdate = z.output<typeof ReportUpdateSchema>;
 
 export const AddendumSchema = z.object({
   body: limited(REPORT_LIMITS.addendum, "追記").min(1, "追記を入力してください"),

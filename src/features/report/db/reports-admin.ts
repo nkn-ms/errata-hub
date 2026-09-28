@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Report } from "@/features/report/types";
+import type { SubmittedReportUpdate } from "@/features/report/schema";
 import { latestDate } from "@/utils/latest-date";
 
 /**
@@ -243,4 +244,16 @@ export async function findReportForAdmin(id: string): Promise<AdminReport | null
       createdAt: comment.createdAt,
     })),
   };
+}
+
+/**
+ * 管理者の更新（ステータス・運営者の補足・修正版と刷）を保存し、保存後の行を返す（監査ログの after に残す形）。
+ * ⚠️ ステータスの後戻りは止めていない（どの値へも変えられる）。
+ */
+export function updateReportStatus(
+  id: string,
+  update: SubmittedReportUpdate,
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.report.update({ where: { id }, data: update });
 }

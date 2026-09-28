@@ -1,12 +1,16 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import type { ReportActionState } from "@/features/report/types";
-import { removeImageFiles } from "@/features/report/db/report-deletion";
+import {
+  deleteReportAddendum,
+  findReportAddendumForDeletion,
+  removeImageFiles,
+} from "@/features/report/db/report-deletion";
 
 /**
  * 追記を1件削除する（管理者のみ）。
@@ -26,14 +30,11 @@ export async function deleteReportAddendumUsecase(addendumId: string): Promise<R
 
   let deleted: { reportId: string; imageUrls: string[] } | null = null;
   try {
-    deleted = await prisma.$transaction(async (tx) => {
-      const found = await tx.reportAddendum.findUnique({
-        where: { id: addendumId },
-        include: { images: true },
-      });
+    deleted = await runInTransaction(async (tx) => {
+      const found = await findReportAddendumForDeletion(addendumId, tx);
       if (!found) return null;
 
-      await tx.reportAddendum.delete({ where: { id: addendumId } });
+      await deleteReportAddendum(addendumId, tx);
       // 対象は投稿（追記は投稿の一部）なので targetId は reportId にし、消した中身を before に残す。
       // ⚠️ ここが孤児ファイルを後から辿る唯一の手掛かりになる（removeImageFiles のコメント）。
       await createAuditLog(
