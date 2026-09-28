@@ -6,8 +6,10 @@ import { storagePathFromPublicUrl } from "@/features/report/utils/report-images"
 
 // 投稿を消す操作（投稿者の取り下げ・管理者の削除・画像1枚・追記1件）が共有する処理。
 
-// 削除対象の読み出し。監査ログの before に使う値なので、削除と同じトランザクションの中で読む
-// （読んでから消すまでの間に他の変更が入り込まないようにする）。
+// 削除対象の読み出し。監査ログの before に使う値なので、削除と同じトランザクションの中で読む。
+// ⚠️ ただし読んでから消すまでの間の他の変更は防げない（Postgres の既定の READ COMMITTED では、
+//    SELECT は行をロックしない）。その間に足された画像は before に載らず、Storage に辿れないファイルが
+//    残りうる。起きるにはアップロードと削除がほぼ同時に重なる必要があるので、行ロック（FOR UPDATE）は入れていない。
 // ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
 //    （1件ずつ消すときの deleteReportAddendumUsecase / deletePublisherCommentUsecase と揃える）。
 //    画像は投稿本体の分も追記の分も images に入っている（どちらの行も reportId を持つ）。

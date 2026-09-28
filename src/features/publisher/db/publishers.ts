@@ -27,7 +27,7 @@ export async function findPublishersPageForAdmin(
   const [rows, total] = await Promise.all([
     prisma.publisher.findMany({
       include: { _count: { select: { books: true, publisherAccess: true } } },
-      // 出版社名は一意ではない（同名が入りうる）。id での決着はページ跨ぎのズレ防止（理由は utils/pagination.ts）
+      // 出版社名は @unique なので、名前だけで順番が決まる（id は、同順が起きうる他の一覧と形を揃えているだけ）
       orderBy: [{ name: "asc" }, { id: "asc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
