@@ -14,14 +14,14 @@ export async function deleteReportUsecase(id: string): Promise<ReportActionState
 
   let report: Awaited<ReturnType<typeof findReportForDeletion>>;
   try {
-    // 塊にする理由は「操作は成立したのに記録だけが無い」状態を作らないため。
+    // トランザクションにする理由は「操作は成立したのに記録だけが無い」状態を作らないため。
     // 分けると「投稿は消えたが記録が無い」半端な状態が残り、しかも監査ログの失敗で
     // catch に入るため画面には「削除に失敗しました」と出る（実際は消えている）。
-    // 塊にすれば、記録が残せないときは削除ごと巻き戻るので、その文言が事実になる。
+    // トランザクションにすれば、記録が残せないときは削除ごと巻き戻るので、その文言が事実になる。
     // （投稿と監査ログが同じ DB にあることは、この手段を使える条件であって理由ではない。
     //   外部サービスをまたぐ操作は包めないので、別途「どちらに倒すか」を決める＝ features/report/db/report-deletion.ts の removeImageFiles）
     //
-    // ⚠️ 塊の中では tx を使うこと。グローバルの prisma を使うと別接続になり塊の外に出る。
+    // ⚠️ トランザクションの中では tx を使うこと。グローバルの prisma を使うと別接続になりトランザクションの外に出る。
     report = await prisma.$transaction(async (tx) => {
       const found = await findReportForDeletion(tx, id);
       if (!found) return null;

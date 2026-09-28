@@ -134,6 +134,8 @@ export const ReportBodySchema = ReportBodyBase.superRefine(refineReportBody);
 export type ReportBodyInput = z.input<typeof ReportBodySchema>;
 
 export type ReportInput = z.input<typeof ReportSchema>;
+// 検査を通った新規投稿の中身（書籍を除く）。書籍は呼び出し側が別に用意し、id で紐づける
+export type SubmittedReport = Omit<z.output<typeof ReportSchema>, "book">;
 
 export const ReportUpdateSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),

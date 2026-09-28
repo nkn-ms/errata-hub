@@ -33,7 +33,7 @@ export async function grantPublisherAccessUsecase(
       return { error: "出版社の指定が不正です" };
     }
 
-    // 付与と監査ログを1つの塊にする。行にも出所（grantedBy*）が残るが、剥奪すると行ごと
+    // 付与と監査ログを1つのトランザクションにする。行にも出所（grantedBy*）が残るが、剥奪すると行ごと
     // 消えるので、**権限が存在した事実の履歴は監査ログにしか残らない**（剥奪側と対称にする）。
     const access = await prisma.$transaction(async (tx) => {
       const created = await tx.publisherAccess.create({

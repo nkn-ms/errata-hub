@@ -17,20 +17,21 @@ type AuditParams = {
 /**
  * 監査ログを1件書く。
  *
- * `client` にトランザクションのクライアントを渡すと、**その塊の一部として**書かれる
+ * `client` にトランザクションのクライアントを渡すと、**そのトランザクションの一部として**書かれる
  * （＝呼び出し元の操作が巻き戻れば、この記録も一緒に巻き戻る）。
  *
  * ⚠️ トランザクションの中からグローバルの `prisma` を使うと**別の接続で実行され、
- *    塊の外に出てしまう**（ロールバックされない）。中で書くときは必ず `tx` を渡すこと。
+ *    トランザクションの外に出てしまう**（ロールバックされない）。中で書くときは必ず `tx` を渡すこと。
  *
  * ⚠️ この関数は DB への INSERT なので、普通に失敗しうる（接続の枯渇・タイムアウト等）。
  *    「ログだから安全」ではない。名前はログでも中身は**説明義務のある業務記録**なので、
  *    観測目的の best-effort なログ（console 等）と同じ扱いにしない。
  *
- * ⚠️ **管理操作の書き込みは原則すべて塊に入れる**（`usecases/` の書籍・出版社・投稿・ユーザーの管理操作）。
+ * ⚠️ **管理操作の書き込みは原則すべてトランザクションに入れる**（`usecases/` の書籍・出版社・投稿・ユーザーの管理操作）。
  *    目的は「操作は成立したのに記録だけが無い」状態を作らないこと。
- *    ⇒ 呼び出し側で `prisma.$transaction` を張り、`tx` をこの関数に渡す。手本は
- *      usecases/delete-report.ts の deleteReportUsecase。
+ *    ⇒ 呼び出し側の usecase がトランザクションを開始し（services/transaction.ts の runInTransaction）、
+ *      `tx` をこの関数に渡す。
+ *      手本は usecases/update-book.ts の updateBookUsecase（複数のフィーチャーにまたがるトランザクション）。
  *
  * ⚠️ 例外は**退会の2か所**（usecases/withdraw-account.ts の withdrawAccountUsecase / usecases/withdraw-user-as-admin.ts の withdrawUserAsAdminUsecase）。
  *    Supabase の admin API（外部）をまたぐのでトランザクションに入れられず、

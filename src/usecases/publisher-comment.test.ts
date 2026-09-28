@@ -16,7 +16,7 @@ const {
   return {
     prismaMock: {
       ...models,
-      // 塊の中の呼び出しも外と同じ vi.fn() に記録される（⚠️ 巻き戻りは再現しない）
+      // トランザクションの中の呼び出しも外と同じ vi.fn() に記録される（⚠️ 巻き戻りは再現しない）
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
     getUserMock: vi.fn(),
@@ -179,7 +179,7 @@ describe("deletePublisherCommentUsecase（運営者のモデレーション）",
   });
 
   // 行ごと消えるので、記録に当時の値が残っていないと後から何を消したのか分からない
-  it("削除と監査ログを同じ塊で書き、消した内容を記録に残す", async () => {
+  it("削除と監査ログを同じトランザクションで書き、消した内容を記録に残す", async () => {
     const result = await deletePublisherCommentUsecase("comment-1");
 
     expect(result.error).toBeUndefined();

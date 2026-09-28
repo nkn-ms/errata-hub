@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 
 /**
- * **出版社の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
+ * **出版社の読み書き（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **出版社の情報は管理画面にしか出ない**（`Publisher.email` は連絡先で、公開ページには出さない
- * = schema.prisma）。認可は app/admin/layout.tsx の requireAdminPage() が担う。
+ * = schema.prisma）。読み取りの認可は app/admin/layout.tsx の requireAdminPage() が担う。
  */
 
 /** 出版社マスタ一覧の1行。 */
@@ -106,6 +106,25 @@ export type PublisherOption = { id: string; name: string };
 
 export function findPublisherOptions(): Promise<PublisherOption[]> {
   return prisma.publisher.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+}
+
+/**
+ * 名前で出版社を用意し、id を返す（無ければ作り、あれば何も変えない）。書籍に紐づける出版社を
+ * 名前で受け取る操作（投稿で書籍を新しく作るとき・管理者が書籍の出版社を直すとき）が使う。
+ *
+ * 名前は @unique（下の toMessage）。探してから作る2段だと、同時実行の隙間で衝突（P2002 → 失敗）
+ * し得るので、upsert の1命令で競合に安全にしてある。
+ */
+export async function ensurePublisher(
+  name: string,
+  client: Prisma.TransactionClient = prisma
+): Promise<string> {
+  const publisher = await client.publisher.upsert({
+    where: { name },
+    update: {},
+    create: { name },
+  });
+  return publisher.id;
 }
 
 // 出版社名は @unique（投稿時に名前で upsert して名寄せするため = schema.prisma）。

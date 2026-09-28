@@ -20,8 +20,8 @@ const { prismaMock, getUserMock, checkRateLimitMock, uploadMock, removeMock } = 
   return {
     prismaMock: {
       ...models,
-      // $transaction はコールバックに「塊の中で使うクライアント（tx）」を渡す。
-      // 塊の中で投げられた例外はそのまま外へ出る＝ロールバックに相当する扱いにする
+      // $transaction はコールバックに「トランザクションの中で使うクライアント（tx）」を渡す。
+      // トランザクションの中で投げられた例外はそのまま外へ出る＝ロールバックに相当する扱いにする
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
     getUserMock: vi.fn(),

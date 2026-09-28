@@ -20,7 +20,7 @@ export async function revokePublisherAccessUsecase(
       return { error: "出版社の指定が不正です" };
     }
 
-    // 剥奪と監査ログを1つの塊にする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
+    // 剥奪と監査ログを1つのトランザクションにする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
     const revoked = await prisma.$transaction(async (tx) => {
       const publisher = await tx.publisher.findUnique({ where: { id: parsed.data } });
       // 誰から剥奪したかを記録に残すため（付与側 = usecases/grant-publisher-access.ts と対称。理由はあちらのコメント）

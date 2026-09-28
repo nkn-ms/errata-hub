@@ -24,7 +24,7 @@ export async function updatePublisherUsecase(
   const { name, email, emailDomain, note } = parsed.data;
 
   try {
-    // 更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
+    // 更新と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     await prisma.$transaction(async (tx) => {
       const before = await tx.publisher.findUnique({ where: { id } });
       const publisher = await tx.publisher.update({

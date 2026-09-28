@@ -1,8 +1,11 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { sanitizeCoverImageUrl } from "@/utils/cover-image";
+import { sanitizeExternalUrl } from "@/utils/external-url";
 
 /**
- * **書籍の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
+ * **書籍の読み書き（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **投稿は返さない。** 書籍と投稿は別のフィーチャーなので、両方を必要とする画面（書籍ページ）が
  *    app 層で2つを呼んで組み立てる = README「組み合わせるのは、サーバー側なら usecases、画面側なら app」。
@@ -120,4 +123,82 @@ export async function findBookForAdmin(id: string): Promise<AdminBook | null> {
 /** サイトマップ用。公開している書籍ページの ISBN と更新時刻だけ。 */
 export function findAllBookIsbns(): Promise<{ isbn: string; updatedAt: Date }[]> {
   return prisma.book.findMany({ select: { isbn: true, updatedAt: true } });
+}
+
+
+// ────────────────────────────────────────────────────────────────────────
+// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている
+// （理由は features/report/db/reports.ts の冒頭）。戻り値は画面に出さない（id と、監査ログに残す行）。
+// ────────────────────────────────────────────────────────────────────────
+
+/** ISBN で書籍の id を引く（無ければ null）。渡す ISBN は正規形にしておくこと（ここでも正規化しない＝findBookByIsbn と同じ）。 */
+export async function findBookIdByIsbn(isbn: string): Promise<string | null> {
+  const book = await prisma.book.findUnique({ where: { isbn }, select: { id: true } });
+  return book?.id ?? null;
+}
+
+/**
+ * ISBN で書籍を用意し、id を返す（無ければ作る）。
+ *
+ * ⚠️ **既にあれば何も変えない**（書誌を直すのは管理者の書籍編集＝下の updateBook）。
+ *    呼び出し側が findBookIdByIsbn で「無い」と確かめた後でも、同じ ISBN の同時投稿が先に
+ *    作っていることがある。ISBN を同一性の基準として upsert で名寄せする（@unique 制約により競合にも安全）。
+ */
+export async function ensureBook(book: {
+  isbn: string;
+  title: string;
+  author: string | null;
+  coverImageUrl: string | null;
+  publisherId: string | null;
+}): Promise<string> {
+  const { id } = await prisma.book.upsert({
+    where: { isbn: book.isbn },
+    update: {},
+    create: book,
+  });
+  return id;
+}
+
+/** 1冊を、監査ログにそのまま残す形（出版社の行を含む）で引く（無ければ null）。 */
+export function findBookForAuditLog(id: string, client: Prisma.TransactionClient = prisma) {
+  return client.book.findUnique({ where: { id }, include: { publisher: true } });
+}
+
+/**
+ * 管理者による書誌の手修正を保存し、保存後の行を監査ログに残す形（出版社の行を含む）で返す。
+ *
+ * 空の欄は「未設定」として null で保存する。書影と正誤表の URL は呼び出し側で検査済みの値を受け、
+ * ここでは保存する形（整えた URL か null）にするだけ。
+ */
+export function updateBook(
+  id: string,
+  book: {
+    title: string;
+    author?: string;
+    coverImageUrl?: string;
+    erratumUrl?: string;
+    publisherId: string | null;
+  },
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.book.update({
+    where: { id },
+    data: {
+      title: book.title,
+      author: book.author || null,
+      coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+      erratumUrl: sanitizeExternalUrl(book.erratumUrl),
+      publisherId: book.publisherId,
+    },
+    include: { publisher: true },
+  });
+}
+
+/** 正誤表の URL だけを差し替え、保存後の行を返す。URL は呼び出し側で整えた値を受ける。 */
+export function updateBookErratumUrl(
+  id: string,
+  erratumUrl: string,
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.book.update({ where: { id }, data: { erratumUrl } });
 }

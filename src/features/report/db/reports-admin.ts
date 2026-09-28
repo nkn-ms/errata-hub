@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import type { Report } from "@/features/report/types";
 import { latestDate } from "@/utils/latest-date";
 
@@ -10,7 +11,8 @@ import { latestDate } from "@/utils/latest-date";
  * 片方に足した欄がもう片方から漏れるのを防ぐ（実際、管理画面が Prisma の行を丸ごと
  * client component へ渡していた = #292 で修正）。
  *
- * 認可は app/admin/layout.tsx の requireAdminPage() が担う。
+ * 画面が読むものの認可は app/admin/layout.tsx の requireAdminPage() が担う。
+ * 操作（usecases）が呼ぶものは、その usecase が済ませる（理由は reports.ts の冒頭）。
  */
 
 /** 投稿一覧（管理）の1行。 */
@@ -63,6 +65,26 @@ export function findReportedErratumUrls(
     select: { id: true, reportedErratumUrl: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+/**
+ * 1件の投稿で申告された正誤表 URL と、その本のいまの正誤表 URL（投稿が無ければ null）。
+ * 申告を本の正誤表として採用する操作が、採用する値と、監査ログの before に残す値を読む。
+ */
+export async function findReportedErratumUrl(
+  reportId: string,
+  client: Prisma.TransactionClient = prisma
+): Promise<{ bookId: string; reportedErratumUrl: string | null; currentErratumUrl: string | null } | null> {
+  const report = await client.report.findUnique({
+    where: { id: reportId },
+    select: { bookId: true, reportedErratumUrl: true, book: { select: { erratumUrl: true } } },
+  });
+  if (!report) return null;
+  return {
+    bookId: report.bookId,
+    reportedErratumUrl: report.reportedErratumUrl,
+    currentErratumUrl: report.book.erratumUrl,
+  };
 }
 
 /** サイトマップ用の投稿1件。 */

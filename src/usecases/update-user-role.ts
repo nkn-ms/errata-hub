@@ -34,7 +34,7 @@ export async function updateUserRoleUsecase(profileId: string, role: string): Pr
       return { error: "自分自身のロールは変更できません。他の管理者に依頼してください" };
     }
 
-    // ロール変更と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
+    // ロール変更と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
     await prisma.$transaction(async (tx) => {
       const before = await tx.profile.findUnique({ where: { id: profileId } });

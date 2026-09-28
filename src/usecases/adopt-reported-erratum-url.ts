@@ -1,11 +1,13 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { sanitizeExternalUrl } from "@/utils/external-url";
+import { findReportedErratumUrl } from "@/features/report/db/reports-admin";
+import { updateBookErratumUrl } from "@/features/book/db/books";
 import type { BookActionState } from "@/features/book/types";
 
 /**
@@ -14,7 +16,7 @@ import type { BookActionState } from "@/features/book/types";
  *
  * リンクの公開は管理者の判断を通す、という方針の実装（schema.prisma の Book.erratumUrl 参照）。
  */
-// 塊の結果は「採用した」以外に2通りある。文言の組み立ては塊の外に置きたいので、
+// トランザクションの結果は「採用した」以外に2通りある。文言の組み立てはトランザクションの外に置きたいので、
 // どれに当たったかだけを返す（例外で流すと「失敗」と「採用できない」の区別が付かなくなる）。
 type AdoptOutcome = "adopted" | "report-not-found" | "no-url";
 
@@ -23,23 +25,17 @@ export async function adoptReportedErratumUrlUsecase(reportId: string): Promise<
 
   let outcome: AdoptOutcome;
   try {
-    // 採用（Book.erratumUrl の更新）と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    // 申告値の読み出しも塊の中で行う: 監査ログの before に使う値なので、
+    // 採用（Book.erratumUrl の更新）と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
+    // 申告値の読み出しもトランザクションの中で行う: 監査ログの before に使う値なので、
     // 読んでから書くまでの間に他の変更が入り込まないようにする。
-    outcome = await prisma.$transaction<AdoptOutcome>(async (tx) => {
-      const report = await tx.report.findUnique({
-        where: { id: reportId },
-        include: { book: true },
-      });
-      if (!report) return "report-not-found";
+    outcome = await runInTransaction<AdoptOutcome>(async (tx) => {
+      const reported = await findReportedErratumUrl(reportId, tx);
+      if (!reported) return "report-not-found";
 
-      const url = sanitizeExternalUrl(report.reportedErratumUrl);
+      const url = sanitizeExternalUrl(reported.reportedErratumUrl);
       if (!url) return "no-url";
 
-      const updated = await tx.book.update({
-        where: { id: report.bookId },
-        data: { erratumUrl: url },
-      });
+      const updated = await updateBookErratumUrl(reported.bookId, url, tx);
 
       await createAuditLog(
         {
@@ -47,8 +43,8 @@ export async function adoptReportedErratumUrlUsecase(reportId: string): Promise<
           userEmail: admin.email,
           action: AUDIT_ACTION.ADOPT_ERRATUM_URL,
           targetType: TARGET_TYPE.BOOK,
-          targetId: report.bookId,
-          before: { erratumUrl: report.book.erratumUrl },
+          targetId: reported.bookId,
+          before: { erratumUrl: reported.currentErratumUrl },
           after: { erratumUrl: updated.erratumUrl },
         },
         tx

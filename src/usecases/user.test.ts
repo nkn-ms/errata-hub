@@ -12,7 +12,7 @@ const { prismaMock, scrubMock, authUserExistsMock, createAuditLogMock } = vi.hoi
     prismaMock: {
       ...models,
       // $transaction はコールバックに tx を渡す。テストでは同じモックを渡すので、
-      // 塊の中の呼び出しも外と同じ vi.fn() に記録される（巻き戻りは再現しない）。
+      // トランザクションの中の呼び出しも外と同じ vi.fn() に記録される（巻き戻りは再現しない）。
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
     scrubMock: vi.fn(),
@@ -209,7 +209,7 @@ describe("updateUserRoleUsecase（ロール変更）", () => {
   });
 
   // 行に残るのは現在のロールだけなので、誰が昇格させたかは監査ログにしか残らない（PR#168）
-  it("変更と監査ログは1つの塊の中で書き、変更前後を残す", async () => {
+  it("変更と監査ログは1つのトランザクションの中で書き、変更前後を残す", async () => {
     await updateUserRoleUsecase(TARGET_ID, "ADMIN");
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -266,7 +266,7 @@ describe("grantPublisherAccessUsecase（出版社アクセスの付与）", () =
     );
   });
 
-  it("付与と監査ログは1つの塊の中で書く", async () => {
+  it("付与と監査ログは1つのトランザクションの中で書く", async () => {
     const result = await grantPublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     expect(result.access).toBeDefined();
@@ -309,7 +309,7 @@ describe("revokePublisherAccessUsecase（出版社アクセスの剥奪）", () 
     expect(createAuditLogMock).not.toHaveBeenCalled();
   });
 
-  it("実際に剥奪できたときだけ、監査ログを同じ塊の中でどの出版社かまで残す", async () => {
+  it("実際に剥奪できたときだけ、監査ログを同じトランザクションの中でどの出版社かまで残す", async () => {
     prismaMock.publisher.findUnique.mockResolvedValue({ id: PUBLISHER_ID, name: "オーム社" });
     prismaMock.profile.findUnique.mockResolvedValue({ email: "reader@local.test" });
     prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 1 });

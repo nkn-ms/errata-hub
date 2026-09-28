@@ -27,9 +27,9 @@ const { prismaMock, getUserMock, checkRateLimitMock, createAuditLogMock, fetchOp
   return {
     prismaMock: {
       ...models,
-      // $transaction はコールバックに「塊の中で使うクライアント（tx）」を渡す。
-      // テストでは同じモックを tx として渡すので、塊の中の呼び出しも外と同じ vi.fn() に記録される。
-      // ⚠️ 巻き戻りは再現しない。ここで見るのは塊の中身の挙動であって、原子性ではない
+      // $transaction はコールバックに「トランザクションの中で使うクライアント（tx）」を渡す。
+      // テストでは同じモックを tx として渡すので、トランザクションの中の呼び出しも外と同じ vi.fn() に記録される。
+      // ⚠️ 巻き戻りは再現しない。ここで見るのはトランザクションの中身の挙動であって、原子性ではない
       //    （原子性はローカル実 DB で確認する = PR#161 と同じ）。
       $transaction: vi.fn(async (run: (tx: typeof models) => unknown) => run(models)),
     },
@@ -189,9 +189,9 @@ describe("updateReportStatusUsecase（ステータス更新のバリデーショ
 
   // 「操作は成立したのに記録だけが無い」状態を作らないための構造を固定する。
   // 巻き戻り自体はモックでは再現できない（実 DB で確認する）ので、ここで見るのは
-  // ①塊を張っていること ②監査ログをグローバルの prisma でなく tx で書いていること の2点。
-  // ②を落とすと別接続で実行され、塊の外に出て静かに壊れる（services/audit.ts の警告）。
-  it("ステータス更新と監査ログは1つの塊の中で書く", async () => {
+  // ①トランザクションを張っていること ②監査ログをグローバルの prisma でなく tx で書いていること の2点。
+  // ②を落とすと別接続で実行され、トランザクションの外に出て静かに壊れる（services/audit.ts の警告）。
+  it("ステータス更新と監査ログは1つのトランザクションの中で書く", async () => {
     prismaMock.report.findUnique.mockResolvedValue({ id: "r1", status: "PENDING" });
     prismaMock.report.update.mockResolvedValue({ id: "r1", status: "FIXED" });
 
@@ -636,7 +636,7 @@ describe("deleteReportAddendumUsecase（運営者による追記の削除）", (
     expect(prismaMock.reportAddendum.delete).not.toHaveBeenCalled();
   });
 
-  it("削除と監査ログは1つの塊の中で書き、消した中身を before に残す", async () => {
+  it("削除と監査ログは1つのトランザクションの中で書き、消した中身を before に残す", async () => {
     // before に残すのは、添えていた画像の URL を後から辿れる唯一の手掛かりだから
     // （Storage のファイルは Cascade では消えない = removeImageFiles のコメント）
     prismaMock.reportAddendum.findUnique.mockResolvedValue(addendum);
