@@ -18,7 +18,7 @@ import type { Report } from "@/features/report/types";
  *
  * ⚠️ **管理画面が読むものは `reports-admin.ts`。** DTO を混ぜないための分割（理由はそちらに）。
  *
- * ⚠️ 書き込みは `actions/`（ブラウザから呼ぶ口）か、この `db/` の中の別ファイル。
+ * ⚠️ 書き込みは `usecases/`（ブラウザから呼ぶ口）か、この `db/` の中の別ファイル。
  *    **ファイル名は対象で付ける**ので、読み書きはファイル名ではなく関数名で分かる（`find*` は読み）。
  */
 
@@ -116,7 +116,7 @@ export async function findReportsByUser(userId: string): Promise<Report[]> {
  *
  * ⭐ **書籍と一緒に1回で引かないのは、フィーチャーを跨がないため。** 書籍は features/book が持ち、
  * 投稿は features/report が持つ。両方を必要とする書籍ページ（app 層）が2つを呼んで組み立てる
- * ＝「またがるものは app 層で組み立てる」（README）。
+ * ＝「組み合わせるのは、サーバー側なら usecases、画面側なら app」（README）。
  *
  * ⚠️ 書籍の UUID ではなく ISBN で受ける。呼び出し側に内部 ID を渡さずに済み、
  *    問い合わせも1回で足りる（`Book.isbn` は unique）。渡す ISBN は正規形にしておくこと。

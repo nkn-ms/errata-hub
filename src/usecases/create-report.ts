@@ -14,7 +14,7 @@ import { ReportType, Medium } from "@/generated/prisma/client";
 
 export type CreateReportResult = { id: string; error?: undefined } | { id?: undefined; error: string };
 
-export async function createReport(input: ReportInput): Promise<CreateReportResult> {
+export async function createReportUsecase(input: ReportInput): Promise<CreateReportResult> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

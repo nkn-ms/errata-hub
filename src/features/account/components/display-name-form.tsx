@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateDisplayName } from "@/features/account/actions/auth";
+import { updateDisplayNameUsecase } from "@/usecases/update-display-name";
 import { PROFILE_LIMITS } from "@/features/account/constants";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
@@ -9,7 +9,7 @@ import { Notice } from "@/components/ui/notice";
 // 表示名のセルフ変更フォーム。アカウント設定ページに埋め込む。
 // 表示名は投稿に紐づいて公開されるため、変更は即時に反映される。
 export function DisplayNameForm({ currentDisplayName }: { currentDisplayName: string | null }) {
-  const [state, action, pending] = useActionState(updateDisplayName, undefined);
+  const [state, action, pending] = useActionState(updateDisplayNameUsecase, undefined);
 
   return (
     <form action={action} className="space-y-3">

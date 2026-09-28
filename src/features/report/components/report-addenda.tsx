@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
-import { addReportAddendum, type Addendum } from "@/features/report/actions/update";
+import { addReportAddendumUsecase, type Addendum } from "@/usecases/add-report-addendum";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
 import { CharCounter, ErrorPanel } from "@/features/report/components/report-fields";
 import { routes } from "@/constants/routes";
@@ -105,7 +105,7 @@ export function ReportAddenda({ reportId, initialAddenda, canAdd }: Props) {
     setSubmitting(true);
     setErrors([]);
     try {
-      const result = await addReportAddendum(reportId, { body });
+      const result = await addReportAddendumUsecase(reportId, { body });
       if (result.error !== undefined) {
         setErrors([{ message: result.error }]);
         return;

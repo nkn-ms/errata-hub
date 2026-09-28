@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { adoptReportedErratumUrl } from "@/features/book/actions/book";
+import { adoptReportedErratumUrlUsecase } from "@/usecases/adopt-reported-erratum-url";
 import { hostnameOf } from "@/utils/external-url";
 import { Button } from "@/components/ui/button";
 
@@ -38,7 +38,7 @@ export function ErratumUrlAdopter({
     confirmRef.current?.close();
     setSaving(true);
     setError("");
-    const result = await adoptReportedErratumUrl(reportId);
+    const result = await adoptReportedErratumUrlUsecase(reportId);
     if (result.error) {
       setError(result.error);
     } else {

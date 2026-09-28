@@ -33,12 +33,10 @@ vi.mock("@/features/account/db/withdrawal", () => ({
 vi.mock("@/services/audit", () => ({ createAuditLog: createAuditLogMock }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
-import {
-  withdrawUserAsAdmin,
-  updateUserRole,
-  grantPublisherAccess,
-  revokePublisherAccess,
-} from "./user";
+import { withdrawUserAsAdminUsecase } from "./withdraw-user-as-admin";
+import { updateUserRoleUsecase } from "./update-user-role";
+import { grantPublisherAccessUsecase } from "./grant-publisher-access";
+import { revokePublisherAccessUsecase } from "./revoke-publisher-access";
 
 const TARGET_ID = "user-1";
 const target = {
@@ -64,9 +62,9 @@ beforeEach(() => {
   });
 });
 
-describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
+describe("withdrawUserAsAdminUsecase（管理者による代行退会）", () => {
   it("表示名を正しく入力すると退会処理と監査ログが走る", async () => {
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reader");
 
     expect(result).toEqual({});
     expect(scrubMock).toHaveBeenCalledWith(TARGET_ID);
@@ -85,7 +83,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   });
 
   it("表示名が一致しなければ何もしない（押し間違いの砦・サーバー側でも照合する）", async () => {
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reade");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reade");
 
     expect(result.error).toBe("確認のため、表示された名前をそのまま入力してください");
     expect(scrubMock).not.toHaveBeenCalled();
@@ -94,12 +92,12 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   it("表示名が null のユーザーはメールアドレスでの確認になる", async () => {
     prismaMock.profile.findUnique.mockResolvedValue({ ...target, displayName: null });
 
-    expect((await withdrawUserAsAdmin(TARGET_ID, "reader")).error).toBeDefined();
-    expect(await withdrawUserAsAdmin(TARGET_ID, "reader@local.test")).toEqual({});
+    expect((await withdrawUserAsAdminUsecase(TARGET_ID, "reader")).error).toBeDefined();
+    expect(await withdrawUserAsAdminUsecase(TARGET_ID, "reader@local.test")).toEqual({});
   });
 
   it("自分自身は退会させられない（対象を読む前に止める）", async () => {
-    const result = await withdrawUserAsAdmin("admin-1", "admin@local.test");
+    const result = await withdrawUserAsAdminUsecase("admin-1", "admin@local.test");
 
     expect(result.error).toBe("自分自身を退会させることはできません");
     expect(prismaMock.profile.findUnique).not.toHaveBeenCalled();
@@ -109,7 +107,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   it("ADMIN ロールは退会させられない（先にロールを落とさせる）", async () => {
     prismaMock.profile.findUnique.mockResolvedValue({ ...target, role: "ADMIN" });
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reader");
 
     expect(result.error).toContain("管理者は退会させられません");
     expect(scrubMock).not.toHaveBeenCalled();
@@ -122,7 +120,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
       displayName: null,
     });
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, `deleted-${TARGET_ID}@deleted.local`);
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, `deleted-${TARGET_ID}@deleted.local`);
 
     expect(result.error).toBe("このユーザーは既に退会済みです");
     expect(scrubMock).not.toHaveBeenCalled();
@@ -138,7 +136,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
     });
     authUserExistsMock.mockResolvedValue(true);
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, `deleted-${TARGET_ID}@deleted.local`);
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, `deleted-${TARGET_ID}@deleted.local`);
 
     expect(result).toEqual({});
     expect(scrubMock).toHaveBeenCalledWith(TARGET_ID);
@@ -148,7 +146,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   it("退会が未完了で残ったら監査ログに残す", async () => {
     scrubMock.mockResolvedValue({ ok: false, reason: "withdrawal-incomplete" });
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reader");
 
     expect(result.error).toContain("退会処理に失敗しました");
     expect(createAuditLogMock).toHaveBeenCalledWith(
@@ -159,7 +157,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   it("存在しないユーザーには何もしない", async () => {
     prismaMock.profile.findUnique.mockResolvedValue(null);
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reader");
 
     expect(result.error).toBe("ユーザーが見つかりません");
     expect(scrubMock).not.toHaveBeenCalled();
@@ -168,7 +166,7 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
   it("auth.users の削除に失敗したら監査ログを残さない", async () => {
     scrubMock.mockResolvedValue({ ok: false, reason: "auth-delete-failed" });
 
-    const result = await withdrawUserAsAdmin(TARGET_ID, "reader");
+    const result = await withdrawUserAsAdminUsecase(TARGET_ID, "reader");
 
     expect(result.error).toContain("退会処理に失敗しました");
     expect(createAuditLogMock).not.toHaveBeenCalled();
@@ -177,14 +175,14 @@ describe("withdrawUserAsAdmin（管理者による代行退会）", () => {
 
 const PUBLISHER_ID = "11111111-2222-4333-8444-555555555555";
 
-describe("updateUserRole（ロール変更）", () => {
+describe("updateUserRoleUsecase（ロール変更）", () => {
   beforeEach(() => {
     prismaMock.profile.update.mockResolvedValue({ ...target, role: "ADMIN" });
   });
 
   // Role は identity（ADMIN/USER）の2値。出版社かどうかは PublisherAccess から導出する
   it("知らないロールは弾く", async () => {
-    const result = await updateUserRole(TARGET_ID, "PUBLISHER");
+    const result = await updateUserRoleUsecase(TARGET_ID, "PUBLISHER");
 
     expect(result.error).toBeDefined();
     expect(prismaMock.profile.update).not.toHaveBeenCalled();
@@ -193,7 +191,7 @@ describe("updateUserRole（ロール変更）", () => {
   // ロールを減らせる操作はこれだけなので、自己降格を塞げば「誰かは必ず ADMIN」が保たれる。
   // 管理者が0人になるとアプリからは誰も戻せず、DB を直接触るしかなくなる＝取り返しがつかない
   it("自分自身のロールは変更できない（管理者0人を構造的に防ぐ）", async () => {
-    const result = await updateUserRole("admin-1", "USER");
+    const result = await updateUserRoleUsecase("admin-1", "USER");
 
     expect(result.error).toContain("自分自身のロールは変更できません");
     expect(prismaMock.profile.update).not.toHaveBeenCalled();
@@ -201,7 +199,7 @@ describe("updateUserRole（ロール変更）", () => {
   });
 
   it("ADMIN へ昇格できる", async () => {
-    const result = await updateUserRole(TARGET_ID, "ADMIN");
+    const result = await updateUserRoleUsecase(TARGET_ID, "ADMIN");
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.profile.update).toHaveBeenCalledWith({
@@ -212,7 +210,7 @@ describe("updateUserRole（ロール変更）", () => {
 
   // 行に残るのは現在のロールだけなので、誰が昇格させたかは監査ログにしか残らない（PR#168）
   it("変更と監査ログは1つの塊の中で書き、変更前後を残す", async () => {
-    await updateUserRole(TARGET_ID, "ADMIN");
+    await updateUserRoleUsecase(TARGET_ID, "ADMIN");
 
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
     const [params, tx] = createAuditLogMock.mock.calls[0];
@@ -226,7 +224,7 @@ describe("updateUserRole（ロール変更）", () => {
   });
 });
 
-describe("grantPublisherAccess（出版社アクセスの付与）", () => {
+describe("grantPublisherAccessUsecase（出版社アクセスの付与）", () => {
   beforeEach(() => {
     prismaMock.publisherAccess.create.mockResolvedValue({
       id: "access-1",
@@ -237,7 +235,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
 
   // 付けると、自分の回答が「運営者が代理で記載」の表示なしで出版社本人の発言として公開される
   it("自分自身には付けられない（ロールの自己変更と同じく、判断する本人には向けられない）", async () => {
-    const result = await grantPublisherAccess("admin-1", PUBLISHER_ID);
+    const result = await grantPublisherAccessUsecase("admin-1", PUBLISHER_ID);
 
     expect(result.error).toContain("自分自身には");
     expect(prismaMock.publisherAccess.create).not.toHaveBeenCalled();
@@ -245,7 +243,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
   });
 
   it("出版社の指定が UUID でなければ弾く", async () => {
-    const result = await grantPublisherAccess(TARGET_ID, "not-a-uuid");
+    const result = await grantPublisherAccessUsecase(TARGET_ID, "not-a-uuid");
 
     expect(result.error).toBe("出版社の指定が不正です");
     expect(prismaMock.publisherAccess.create).not.toHaveBeenCalled();
@@ -254,7 +252,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
   // 「なぜこの人が権限を持つのか」を出版社の画面から説明できるように出所を行に持たせる（PR#162）。
   // メールも控えるのは、付与した管理者が後に退会しても記録が読めるようにするため
   it("付与の出所（誰が付けたか）を行に残す", async () => {
-    await grantPublisherAccess(TARGET_ID, PUBLISHER_ID);
+    await grantPublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     expect(prismaMock.publisherAccess.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -269,7 +267,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
   });
 
   it("付与と監査ログは1つの塊の中で書く", async () => {
-    const result = await grantPublisherAccess(TARGET_ID, PUBLISHER_ID);
+    const result = await grantPublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     expect(result.access).toBeDefined();
     expect(prismaMock.$transaction).toHaveBeenCalledOnce();
@@ -280,7 +278,7 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
   // ⚠️ userEmail は**操作した管理者**。誰に付与したかは targetId の UUID しか無く、
   //    後から DB で名寄せしないと読めなかった（対象者が退会・削除されると辿れない）
   it("誰に付与したかを記録に残す（当時のメール）", async () => {
-    await grantPublisherAccess(TARGET_ID, PUBLISHER_ID);
+    await grantPublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     const [params] = createAuditLogMock.mock.calls[0];
     expect(params).toMatchObject({
@@ -291,9 +289,9 @@ describe("grantPublisherAccess（出版社アクセスの付与）", () => {
   });
 });
 
-describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
+describe("revokePublisherAccessUsecase（出版社アクセスの剥奪）", () => {
   it("出版社の指定が UUID でなければ弾く（付与側と揃える）", async () => {
-    const result = await revokePublisherAccess(TARGET_ID, "not-a-uuid");
+    const result = await revokePublisherAccessUsecase(TARGET_ID, "not-a-uuid");
 
     expect(result.error).toBe("出版社の指定が不正です");
     expect(prismaMock.publisherAccess.deleteMany).not.toHaveBeenCalled();
@@ -305,7 +303,7 @@ describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
     prismaMock.publisher.findUnique.mockResolvedValue({ id: PUBLISHER_ID, name: "オーム社" });
     prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 0 });
 
-    const result = await revokePublisherAccess(TARGET_ID, PUBLISHER_ID);
+    const result = await revokePublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     expect(result.error).toContain("アクセス権を持っていません");
     expect(createAuditLogMock).not.toHaveBeenCalled();
@@ -316,7 +314,7 @@ describe("revokePublisherAccess（出版社アクセスの剥奪）", () => {
     prismaMock.profile.findUnique.mockResolvedValue({ email: "reader@local.test" });
     prismaMock.publisherAccess.deleteMany.mockResolvedValue({ count: 1 });
 
-    const result = await revokePublisherAccess(TARGET_ID, PUBLISHER_ID);
+    const result = await revokePublisherAccessUsecase(TARGET_ID, PUBLISHER_ID);
 
     expect(result.error).toBeUndefined();
     expect(prismaMock.publisherAccess.deleteMany).toHaveBeenCalledWith({

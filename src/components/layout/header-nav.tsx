@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { NavLink } from "@/components/ui/nav-link";
 import { routes } from "@/constants/routes";
-import { logout } from "@/features/account/actions/auth";
+import { logoutUsecase } from "@/usecases/logout";
 import { CtaLink } from "@/components/ui/cta-link";
 
 // 常時出すナビ項目。デスクトップ列・モバイルメニューの両方で使い回す。
@@ -96,7 +96,7 @@ function AccountMenuItems({ isAdmin, onSelect }: { isAdmin: boolean; onSelect?: 
       <Link href={routes.account} onClick={onSelect} role="menuitem" className={dropdownItemClass}>
         アカウント設定
       </Link>
-      <form action={logout}>
+      <form action={logoutUsecase}>
         <button type="submit" role="menuitem" className={`w-full text-left ${dropdownItemClass}`}>
           ログアウト
         </button>

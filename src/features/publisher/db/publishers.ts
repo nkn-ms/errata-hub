@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 /**
  * **出版社の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
@@ -105,4 +106,15 @@ export type PublisherOption = { id: string; name: string };
 
 export function findPublisherOptions(): Promise<PublisherOption[]> {
   return prisma.publisher.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+}
+
+// 出版社名は @unique（投稿時に名前で upsert して名寄せするため = schema.prisma）。
+// 同名を作ろうとすると P2002 が飛ぶので、エラーページに落とさず文言で返す。
+export function toMessage(error: unknown, fallback: string): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") return "同じ名前の出版社が既に登録されています";
+    if (error.code === "P2025") return "対象の出版社が見つかりません";
+  }
+  console.error(error);
+  return fallback;
 }

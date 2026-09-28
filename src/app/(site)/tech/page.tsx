@@ -32,10 +32,10 @@ const TREE = `src/
 │   ├── (site)/             公開ページ
 │   ├── admin/              管理画面
 │   └── api/                Route Handler（HTTP で直接受ける必要がある4本だけ）
+├── usecases/             利用者の操作1つ＝1ファイルの Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
 ├── features/             機能ごとのまとまり（下は「投稿」の例）
 │   └── report/
-│       ├── db/             DB を読み書きする。ここと actions 以外からは DB を操作しない
-│       ├── actions/        Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
+│       ├── db/             DB を読み書きする。ここと usecases 以外からは DB を操作しない
 │       ├── components/     この機能でしか使わない画面部品
 │       ├── constants/      ラベル・文字数上限
 │       ├── utils/          DB にも画面にも依存しない関数
@@ -144,9 +144,10 @@ export default function TechPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">ディレクトリ構成</h2>
         <p className="mb-3 text-sm text-gray-600">
-          機能ごとに縦に切っています（<code className="font-mono text-xs">features/</code>）。
+          機能ごとに縦に切り（<code className="font-mono text-xs">features/</code>）、利用者の操作は
+          1つ1ファイルで <code className="font-mono text-xs">usecases/</code> に並べています。
           DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と{" "}
-          <code className="font-mono text-xs">actions/</code> だけで、画面側のコードから DB の
+          <code className="font-mono text-xs">usecases/</code> だけで、画面側のコードから DB の
           クライアントを読み込もうとすると lint エラーで落ちます。
         </p>
         {/* ツリーは横に長いので、折り返さずに横スクロールさせる（折ると縦線が繋がらなくなる）。

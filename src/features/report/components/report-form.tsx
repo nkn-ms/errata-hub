@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createReport } from "@/features/report/actions/create";
+import { createReportUsecase } from "@/usecases/create-report";
 import type { ReportInput } from "@/features/report/schema";
 import { routes } from "@/constants/routes";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
@@ -117,7 +117,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
   const [images, setImages] = useState<SelectedImage[]>([]);
   // 検証を通った送信内容。ここに値が入るとフォームを畳んで確認画面に差し替える。
   // 「入力中か確認中か」を別のフラグで持たず送信内容そのもので表すのは、確認画面に出すものと
-  // createReport に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
+  // createReportUsecase に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
   const [pending, setPending] = useState<ReportInput | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
@@ -220,7 +220,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
     setError("");
 
     try {
-      const created = await createReport(input);
+      const created = await createReportUsecase(input);
 
       if (created.error !== undefined) {
         setError(created.error);

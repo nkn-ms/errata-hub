@@ -136,7 +136,7 @@ function toAdminProfileRow(profile: ProfileRowWithAccess): AdminProfileRow {
 
 // ────────────────────────────────────────────────────────────────────────
 // ログイン後に Profile を用意する。**Server Action ではない**（呼ぶのは認証コールバックの
-// Route Handler で、フォームからは呼ばれない）ので actions/ には置かない。
+// Route Handler で、フォームからは呼ばれない）ので usecases/ には置かない。
 // ⚠️ "use server" を付けない。付けるとクライアントから呼べる口になる。
 // ────────────────────────────────────────────────────────────────────────
 
@@ -156,7 +156,7 @@ export type EnsureProfileResult =
  *    突き合わせて自動付与していたが、**人の判断を経ない常時付与**になるため廃止した
  *    （退職者・大企業の無関係な人・後からそのドメインのアドレスを取得した人にも付いてしまう。
  *     一般的な auto-join 機能は DNS でドメイン所有を証明させるが、ここにはその仕組みが無い）。
- *    付与は管理画面のユーザー編集からの個別付与だけ = actions/user.ts の grantPublisherAccess。
+ *    付与は管理画面のユーザー編集からの個別付与だけ = usecases/grant-publisher-access.ts の grantPublisherAccessUsecase。
  *
  * ⚠️ **例外を投げずに理由を返す。** 呼び出し側（callback）は失敗時にセッションを畳んでから
  *    エラーページへ送る必要があり、投げると「ログインできるが Profile が無い」状態が残る。

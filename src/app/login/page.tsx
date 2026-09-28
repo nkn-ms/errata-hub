@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { login } from "@/features/account/actions/auth";
+import { loginUsecase } from "@/usecases/login";
 import Link from "next/link";
 import { routes } from "@/constants/routes";
 import {
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 
 export default function LoginPage() {
-  const [state, action, pending] = useActionState(login, undefined);
+  const [state, action, pending] = useActionState(loginUsecase, undefined);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

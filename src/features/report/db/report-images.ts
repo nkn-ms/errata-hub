@@ -4,7 +4,7 @@ import type { ReportStatus } from "@/generated/prisma/client";
 import { ADDENDUM_IMAGE_MAX_COUNT, REPORT_IMAGE_MAX_COUNT } from "@/features/report/constants/report-images";
 
 /**
- * **添付画像の読み書き。Server Action ではない**ので `actions/` には置かない
+ * **添付画像の読み書き。Server Action ではない**ので `usecases/` には置かない
  * （呼ぶのは Route Handler = app/api/reports/[id]/images。画像だけ Route Handler なのは
  * Server Actions のボディ上限（既定 1MB）を超えるため = README）。
  *
@@ -29,7 +29,7 @@ export function imagePool(addendumId: string | null) {
         limit: ADDENDUM_IMAGE_MAX_COUNT,
         where: (reportId: string) => ({ reportId, addendumId: { not: null } }),
         message: `追記に添付できる画像は1件の投稿につき${ADDENDUM_IMAGE_MAX_COUNT}枚までです`,
-        // 追記は連絡後にしか作れない（addReportAddendum）ので、ここでステータスを絞る必要が無い
+        // 追記は連絡後にしか作れない（addReportAddendumUsecase）ので、ここでステータスを絞る必要が無い
         isOpen: () => true,
       };
 }

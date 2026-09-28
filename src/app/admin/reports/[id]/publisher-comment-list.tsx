@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { deletePublisherComment } from "@/features/report/actions/publisher-comment";
+import { deletePublisherCommentUsecase } from "@/usecases/delete-publisher-comment";
 import type { PublisherCommentView } from "@/features/report/types";
 import { Button } from "@/components/ui/button";
 import { RecordId } from "./record-id";
@@ -31,7 +31,7 @@ export function AdminPublisherCommentList({ comments }: Props) {
     setDeleting(true);
     setError("");
     // 成功時はアクション側の refresh() でこのページが描き直される（一覧はここで持たない）
-    const result = await deletePublisherComment(target.id);
+    const result = await deletePublisherCommentUsecase(target.id);
     if (result.error !== undefined) {
       setError(result.error);
     }

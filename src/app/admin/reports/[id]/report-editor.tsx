@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import { deleteReport, deleteReportImage } from "@/features/report/actions/delete";
-import { updateReport } from "@/features/report/actions/update";
+import { deleteReportUsecase } from "@/usecases/delete-report";
+import { deleteReportImageUsecase } from "@/usecases/delete-report-image";
+import { updateReportStatusUsecase } from "@/usecases/update-report-status";
 import { NumberField } from "@/components/ui/number-field";
 import { STATUS_LABELS } from "@/features/report/constants/report-status";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -49,7 +50,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     setSaving(true);
     setError("");
     // 成功時はアクション側が一覧へ redirect する
-    const result = await deleteReport(id);
+    const result = await deleteReportUsecase(id);
     if (result?.error) {
       setError(result.error);
       setSaving(false);
@@ -72,7 +73,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     // 成功時はアクション側の refresh() で画面が最新化される。
     // 修正版・刷を「修正済み」以外で消すルールはサーバー（ReportUpdateSchema）が保証するので、
     // ここは入力値をそのまま送る（未入力は toIntOrNull が null にする）。
-    const result = await updateReport(id, {
+    const result = await updateReportStatusUsecase(id, {
       status,
       statusNote: statusNote || null,
       fixedEdition: toIntOrNull(fixedEdition),
@@ -88,7 +89,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
     // ＝もう一度「更新する」を押せば続きからやり直せる（成功した分を二重に消さない）
     const pendingRemovals = [...removedIds];
     for (const imageId of removedIds) {
-      const deleted = await deleteReportImage(imageId);
+      const deleted = await deleteReportImageUsecase(imageId);
       if (deleted.error !== undefined) {
         setRemovedIds(pendingRemovals);
         setError(deleted.error);
@@ -97,7 +98,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
       }
       pendingRemovals.shift();
     }
-    // 一覧そのものは持たない: 消えた分は deleteReportImage の refresh() でサーバー側が描き直す
+    // 一覧そのものは持たない: 消えた分は deleteReportImageUsecase の refresh() でサーバー側が描き直す
     setRemovedIds([]);
 
     setSaved(true);
@@ -154,7 +155,7 @@ export function AdminReportEditor({ id, currentStatus, currentStatusNote, curren
       )}
 
       {/* ⚠️ **ここは出版社の回答を書く欄ではない。** 出版社からの回答は公開ページの
-          「出版社として回答する」から入れる（代理記載も同じ経路 = actions/publisher-comment.ts）。
+          「出版社として回答する」から入れる（代理記載も同じ経路 = usecases/add-publisher-comment.ts）。
           この欄は運営者自身の説明で、ステータスの属性なのでステータスと同じ確定ボタンで保存する */}
       <div>
         <label htmlFor="status-note" className="block text-sm font-medium text-gray-700 mb-1">運営者の補足</label>

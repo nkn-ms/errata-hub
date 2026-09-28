@@ -133,7 +133,7 @@ export type AdminReport = {
   note: string | null;
   fixedEdition: number | null;
   fixedPrinting: number | null;
-  /** 投稿者が申告した正誤表 URL（採用は管理者の操作 = features/book/actions/book.ts）。 */
+  /** 投稿者が申告した正誤表 URL（採用は管理者の操作 = usecases/adopt-reported-erratum-url.ts）。 */
   reportedErratumUrl: string | null;
   createdAt: Date;
   book: {
