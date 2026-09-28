@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
  * **書籍の読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **投稿は返さない。** 書籍と投稿は別のフィーチャーなので、両方を必要とする画面（書籍ページ）が
- *    app 層で2つを呼んで組み立てる = README「またがるものは app 層で組み立てる」。
+ *    app 層で2つを呼んで組み立てる = README「組み合わせるのは、サーバー側なら usecases、画面側なら app」。
  *    ただし**件数だけは返す** — `Book.reports` は Book が持つリレーションで、
  *    数えるのに features/report のコードは要らない（メタデータと OG 画像がこれだけを使う）。
  */
