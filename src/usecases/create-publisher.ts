@@ -1,14 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { requireAdminServerAction } from "@/services/auth";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { routes } from "@/constants/routes";
 import type { PublisherState } from "@/features/publisher/types";
 import { parsePublisherForm } from "@/features/publisher/schema";
-import { toMessage } from "@/features/publisher/db/publishers";
+import { createPublisher, toMessage } from "@/features/publisher/db/publishers";
 
 export async function createPublisherUsecase(
   _prev: PublisherState,
@@ -20,19 +20,11 @@ export async function createPublisherUsecase(
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
-  const { name, email, emailDomain, note } = parsed.data;
 
   try {
     // 作成と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    await prisma.$transaction(async (tx) => {
-      const publisher = await tx.publisher.create({
-        data: {
-          name,
-          email: email || null,
-          emailDomain: emailDomain || null,
-          note: note || null,
-        },
-      });
+    await runInTransaction(async (tx) => {
+      const publisher = await createPublisher(parsed.data, tx);
 
       await createAuditLog(
         {

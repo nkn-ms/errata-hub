@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import type { SubmittedPublisher } from "@/features/publisher/schema";
 
 /**
  * **出版社の読み書き（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
@@ -108,6 +109,12 @@ export function findPublisherOptions(): Promise<PublisherOption[]> {
   return prisma.publisher.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
 }
 
+
+// ────────────────────────────────────────────────────────────────────────
+// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている
+// （理由は features/report/db/reports.ts の冒頭）。戻り値は画面に出さない（id と、監査ログに残す行）。
+// ────────────────────────────────────────────────────────────────────────
+
 /**
  * 名前で出版社を用意し、id を返す（無ければ作り、あれば何も変えない）。書籍に紐づける出版社を
  * 名前で受け取る操作（投稿で書籍を新しく作るとき・管理者が書籍の出版社を直すとき）が使う。
@@ -125,6 +132,51 @@ export async function ensurePublisher(
     create: { name },
   });
   return publisher.id;
+}
+
+/**
+ * 出版社に紐づく書籍の冊数。削除できるかの早期判定と、断るときの文言に使う。
+ * 子の件数は親の側で数える（一覧の書籍数と同じ＝上の findPublishersPageForAdmin）。
+ */
+export function countBooksByPublisher(publisherId: string): Promise<number> {
+  return prisma.book.count({ where: { publisherId } });
+}
+
+/** 1社を、監査ログにそのまま残す形で引く（無ければ null）。 */
+export function findPublisherForAuditLog(id: string, client: Prisma.TransactionClient = prisma) {
+  return client.publisher.findUnique({ where: { id } });
+}
+
+/** 出版社を登録し、登録した行を返す（監査ログの after に残す形）。同名があれば P2002（下の toMessage が文言にする）。 */
+export function createPublisher(publisher: SubmittedPublisher, client: Prisma.TransactionClient = prisma) {
+  return client.publisher.create({ data: toPublisherColumns(publisher) });
+}
+
+/** 出版社の編集を保存し、保存後の行を返す。対象が無ければ P2025・同名があれば P2002（下の toMessage が文言にする）。 */
+export function updatePublisher(
+  id: string,
+  publisher: SubmittedPublisher,
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.publisher.update({ where: { id }, data: toPublisherColumns(publisher) });
+}
+
+/**
+ * 出版社を削除し、削除した行を返す（監査ログの before に残す形）。対象が無ければ P2025。
+ * 書籍が紐づいていれば、DB の Restrict（Book.publisherId）が削除を拒む。
+ */
+export function deletePublisher(id: string, client: Prisma.TransactionClient = prisma) {
+  return client.publisher.delete({ where: { id } });
+}
+
+// 空の欄は「未設定」として null で保存する（登録と編集で同じ）
+function toPublisherColumns(publisher: SubmittedPublisher) {
+  return {
+    name: publisher.name,
+    email: publisher.email || null,
+    emailDomain: publisher.emailDomain || null,
+    note: publisher.note || null,
+  };
 }
 
 // 出版社名は @unique（投稿時に名前で upsert して名寄せするため = schema.prisma）。

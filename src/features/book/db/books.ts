@@ -194,6 +194,25 @@ export function updateBook(
   });
 }
 
+/** ISBN で正誤表の URL を引く（書籍が無い・URL が無ければ null）。渡す ISBN は正規形にしておくこと。 */
+export async function findErratumUrlByIsbn(isbn: string): Promise<string | null> {
+  const book = await prisma.book.findUnique({ where: { isbn }, select: { erratumUrl: true } });
+  return book?.erratumUrl ?? null;
+}
+
+/**
+ * 1冊に紐づく投稿の件数。削除できるかの早期判定と、断るときの文言に使う。
+ * 子の件数は親の側で数える（管理画面の投稿数と同じ＝上の findBookForAdmin）。
+ */
+export function countReportsByBook(bookId: string): Promise<number> {
+  return prisma.report.count({ where: { bookId } });
+}
+
+/** 書籍を削除する。投稿が紐づいていれば、DB の Restrict（Report.bookId）が削除を拒む。 */
+export async function deleteBook(id: string, client: Prisma.TransactionClient = prisma): Promise<void> {
+  await client.book.delete({ where: { id } });
+}
+
 /** 正誤表の URL だけを差し替え、保存後の行を返す。URL は呼び出し側で整えた値を受ける。 */
 export function updateBookErratumUrl(
   id: string,
