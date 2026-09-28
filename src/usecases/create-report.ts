@@ -1,16 +1,16 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { toCanonicalIsbn } from "@/utils/isbn";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
-import { sanitizeExternalUrl } from "@/utils/external-url";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { ReportSchema, type ReportInput, type SubmittedBook } from "@/features/report/schema";
+import { createReport } from "@/features/report/db/reports";
+import { ensureBook, findBookIdByIsbn } from "@/features/book/db/books";
+import { ensurePublisher } from "@/features/publisher/db/publishers";
 import { fetchOpenBdBooks } from "@/lib/openbd";
 import type { UpstreamBook } from "@/lib/book-upstream";
-import { ReportType, Medium } from "@/generated/prisma/client";
 
 export type CreateReportResult = { id: string; error?: undefined } | { id?: undefined; error: string };
 
@@ -36,9 +36,7 @@ export async function createReportUsecase(input: ReportInput): Promise<CreateRep
     if (!parsed.success) {
       return { error: parsed.error.issues[0].message };
     }
-    const { book, edition, printing, title, type, medium, page, line,
-            hasMultiplePages, locationNote, ebookLocation, wrong, correct, content, note,
-            reportedErratumUrl } = parsed.data;
+    const { book, ...report } = parsed.data;
 
     // ISBN-13 に正規化（ISBN-10 は変換、不正な ISBN は弾く）
     const canonicalIsbn = toCanonicalIsbn(book.isbn);
@@ -46,33 +44,13 @@ export async function createReportUsecase(input: ReportInput): Promise<CreateRep
       return { error: "ISBNが正しくありません" };
     }
 
+    // 書籍（と出版社）の用意と投稿の作成は1つの塊にしない。投稿の作成が失敗して書籍と出版社だけが
+    // 残っても、次の投稿で ISBN と名前から再利用される（孤児の行は許容 = docs/design.md「参照整合性」）
     const bookId = await findOrCreateBook(canonicalIsbn, book);
-
-    const report = await prisma.report.create({
-      data: {
-        userId: user.id,
-        bookId,
-        title,
-        edition: edition ?? null,
-        printing: printing ?? null,
-        type: type as ReportType,
-        medium: medium as Medium,
-        page: page ?? null,
-        line: line ?? null,
-        hasMultiplePages: hasMultiplePages ?? false,
-        locationNote: locationNote ?? null,
-        ebookLocation: ebookLocation ?? null,
-        wrong: wrong ?? null,
-        correct: correct ?? null,
-        content: content ?? null,
-        note: note ?? null,
-        // 申告 URL は公開しないが、保存時にもサニタイズしておく（不正な値を DB に入れない）
-        reportedErratumUrl: sanitizeExternalUrl(reportedErratumUrl),
-      },
-    });
+    const { id } = await createReport({ userId: user.id, bookId, report });
 
     // 画像は投稿の作成後にクライアントが別途アップロードするため id を返す
-    return { id: report.id };
+    return { id };
   } catch (error) {
     console.error(error);
     return { error: "投稿に失敗しました" };
@@ -80,7 +58,7 @@ export async function createReportUsecase(input: ReportInput): Promise<CreateRep
 }
 
 /**
- * 投稿先の書籍の行を返す。無ければ作る。
+ * 投稿先の書籍の id を返す。無ければ作る。
  *
  * ⭐ **書誌（書名・著者・出版社）はブラウザが送ってきた値を信じない。** 作るときはサーバーが
  * ISBN で OpenBD を引き直し、そちらを正とする。送られてきた値を使うのは OpenBD に無い項目だけ。
@@ -95,43 +73,24 @@ export async function createReportUsecase(input: ReportInput): Promise<CreateRep
  * ⚠️ 既にある書籍には触らない（書誌を直すのは管理者の書籍編集）。OpenBD を引くのも作るときだけ。
  */
 async function findOrCreateBook(isbn: string, submitted: SubmittedBook): Promise<string> {
-  const existing = await prisma.book.findUnique({ where: { isbn }, select: { id: true } });
-  if (existing) return existing.id;
+  const existingId = await findBookIdByIsbn(isbn);
+  if (existingId) return existingId;
 
   const upstream = await lookupOpenBd(isbn);
-  const title = upstream?.title || submitted.title;
-  const author = upstream?.author || submitted.author || null;
   const publisherName = upstream?.publisher || submitted.publisher;
+  const publisherId = publisherName ? await ensurePublisher(publisherName) : null;
 
-  // 出版社を名前で upsert（name は @unique — 同時投稿でも重複作成されない）
-  let publisherId: string | null = null;
-  if (publisherName) {
-    const publisher = await prisma.publisher.upsert({
-      where: { name: publisherName },
-      update: {},
-      create: { name: publisherName },
-    });
-    publisherId = publisher.id;
-  }
-
-  // 上で見つからなくても、同じ ISBN の同時投稿が先に作っていることがある。
-  // ISBN を同一性の基準として upsert で名寄せする（@unique 制約により競合にも安全）
-  const created = await prisma.book.upsert({
-    where: { isbn },
-    update: {},
-    create: {
-      title,
-      author,
-      isbn,
-      // 許可ホスト（OpenBD / Google Books）以外は null に落とす。書影は装飾情報なので、
-      // 提供元のホスト変更等があっても投稿自体は失敗させない（エラーにしない）。
-      coverImageUrl:
-        sanitizeCoverImageUrl(submitted.coverImageUrl) ??
-        sanitizeCoverImageUrl(upstream?.coverImageUrl),
-      publisherId,
-    },
+  return ensureBook({
+    isbn,
+    title: upstream?.title || submitted.title,
+    author: upstream?.author || submitted.author || null,
+    // 許可ホスト（OpenBD / Google Books）以外は null に落とす。書影は装飾情報なので、
+    // 提供元のホスト変更等があっても投稿自体は失敗させない（エラーにしない）。
+    coverImageUrl:
+      sanitizeCoverImageUrl(submitted.coverImageUrl) ??
+      sanitizeCoverImageUrl(upstream?.coverImageUrl),
+    publisherId,
   });
-  return created.id;
 }
 
 /**

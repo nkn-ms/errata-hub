@@ -1,25 +1,34 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { sanitizeExternalUrl } from "@/utils/external-url";
 import { mapReport } from "@/features/report/utils/mappers";
 import type { Report } from "@/features/report/types";
+import type { SubmittedReport } from "@/features/report/schema";
 
 /**
- * **投稿の読み取り（Data Access Layer）。** ページ（サーバーコンポーネント）が描画のために await する。
+ * **投稿の読み書き（Data Access Layer）。** 読み取りはページ（サーバーコンポーネント）が描画のために
+ * await し、書き込みは usecases（ブラウザから呼ばれる操作）が呼ぶ。
  *
- * 満たすべき条件は3つで、Next.js のガイドがそのまま挙げているもの
+ * 読み取りが満たすべき条件は3つで、Next.js のガイドがそのまま挙げているもの
  * （`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）:
  *   1. サーバーでしか動かない … 先頭の `import "server-only"`（クライアントから import するとビルドが落ちる）
  *   2. 認可を行う … 公開情報なのでここでは不要。閲覧者ごとに変わる判定は呼び出し側（services/publisher-access.ts）
  *   3. **安全で最小の DTO を返す** … 生の行ではなく `Report`（= types.ts）を返す。下の ⚠️ を参照
+ *
+ * ⚠️ **書き込みの認可は、呼び出し側（usecases と Route Handler）が済ませてから呼ぶ**（ここでは確かめない）。
+ *    同じガイドの例は書き込みの認可も DAL の中で行うが、ここでは外に出す。同じ関数を、認可の違う操作が
+ *    呼ぶため（例: features/publisher/db/publishers.ts の ensurePublisher は、投稿する人の操作と
+ *    管理者の操作の両方から呼ばれる）。操作した人は引数で受け取る（db/ は cookie を読まない）。
+ *    トランザクションの中で呼ぶ関数は、最後の引数 `client` に塊のクライアント（tx）を受ける
+ *    （= services/transaction.ts）。
  *
  * ⚠️ **`"use server"` は付けない。** 付けると Server Action 扱いになり、
  *    クライアントから呼べるエンドポイントとして公開されてしまう。
  *
  * ⚠️ **管理画面が読むものは `reports-admin.ts`。** DTO を混ぜないための分割（理由はそちらに）。
  *
- * ⚠️ 書き込みは `usecases/`（ブラウザから呼ぶ口）か、この `db/` の中の別ファイル。
- *    **ファイル名は対象で付ける**ので、読み書きはファイル名ではなく関数名で分かる（`find*` は読み）。
+ * ⚠️ **ファイル名は対象で付ける**ので、読み書きはファイル名ではなく関数名で分かる（`find*` は読み）。
  */
 
 // ⚠️ **export しない。** この形（どの関連をどう取るか）が外に出ると、呼び出し側が
@@ -137,4 +146,39 @@ export async function hasUpvoted(reportId: string, profileId: string): Promise<b
     select: { id: true },
   });
   return upvote !== null;
+}
+
+/**
+ * 投稿を1件作り、id を返す。書籍は呼び出し側が用意して id を渡す（書籍は別のフィーチャー）。
+ * 画像はここでは扱わない（作成後にブラウザが別途アップロードする = api/reports/[id]/images）。
+ */
+export async function createReport(params: {
+  userId: string;
+  bookId: string;
+  report: SubmittedReport;
+}): Promise<{ id: string }> {
+  const { userId, bookId, report } = params;
+  const created = await prisma.report.create({
+    data: {
+      userId,
+      bookId,
+      title: report.title,
+      edition: report.edition ?? null,
+      printing: report.printing ?? null,
+      type: report.type,
+      medium: report.medium,
+      page: report.page ?? null,
+      line: report.line ?? null,
+      hasMultiplePages: report.hasMultiplePages ?? false,
+      locationNote: report.locationNote ?? null,
+      ebookLocation: report.ebookLocation ?? null,
+      wrong: report.wrong ?? null,
+      correct: report.correct ?? null,
+      content: report.content ?? null,
+      note: report.note ?? null,
+      // 申告 URL は公開しないが、保存時にもサニタイズしておく（不正な値を DB に入れない）
+      reportedErratumUrl: sanitizeExternalUrl(report.reportedErratumUrl),
+    },
+  });
+  return { id: created.id };
 }

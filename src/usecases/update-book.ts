@@ -2,16 +2,18 @@
 
 import { z } from "zod";
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { sanitizeCoverImageUrl } from "@/utils/cover-image";
 import { sanitizeExternalUrl } from "@/utils/external-url";
+import { findBookForAuditLog, updateBook } from "@/features/book/db/books";
+import { ensurePublisher } from "@/features/publisher/db/publishers";
 import type { BookActionState } from "@/features/book/types";
 
 // 管理者による書誌の手修正。ISBN は本の同一性の基準のため変更させない（読取専用）。
-// 空文字は「未設定」とみなして null に倒す。
+// 空の欄は「未設定」として保存される（null に倒すのは features/book/db/books.ts の updateBook）。
 // 書影URLは許可ホスト（OpenBD / Google Books）のみ。手入力ミスに気づけるよう、
 // 投稿アクション（黙って null に落とす）と違いここでは明示的にエラーで弾く。
 const BookUpdateSchema = z.object({
@@ -48,40 +50,19 @@ export async function updateBookUsecase(id: string, input: BookUpdateInput): Pro
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
-  const { title, author, publisherName, coverImageUrl, erratumUrl } = parsed.data;
+  const { publisherName, ...book } = parsed.data;
 
   let updated: boolean;
   try {
     // 書誌の更新と監査ログを1つの塊にする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    // 出版社の upsert も同じ塊に入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
-    updated = await prisma.$transaction(async (tx) => {
-      const book = await tx.book.findUnique({ where: { id }, include: { publisher: true } });
-      if (!book) return false;
+    // 出版社の用意も同じ塊に入れる: 更新が巻き戻るなら、そのために作った出版社も残さない。
+    updated = await runInTransaction(async (tx) => {
+      const before = await findBookForAuditLog(id, tx);
+      if (!before) return false;
 
-      // 出版社は名前で upsert（usecases/create-report.ts と同型）。findFirst→create の2段だと
-      // 同時実行の隙間で name @unique に衝突（P2002→失敗）し得るため、1命令で競合安全にする。
-      // 空なら紐付け無し（null）。
-      let publisherId: string | null = null;
-      if (publisherName) {
-        const publisher = await tx.publisher.upsert({
-          where: { name: publisherName },
-          update: {},
-          create: { name: publisherName },
-        });
-        publisherId = publisher.id;
-      }
-
-      const next = await tx.book.update({
-        where: { id },
-        data: {
-          title,
-          author: author || null,
-          coverImageUrl: sanitizeCoverImageUrl(coverImageUrl),
-          erratumUrl: sanitizeExternalUrl(erratumUrl),
-          publisherId,
-        },
-        include: { publisher: true },
-      });
+      // 出版社名が空なら紐付け無し（null）
+      const publisherId = publisherName ? await ensurePublisher(publisherName, tx) : null;
+      const after = await updateBook(id, { ...book, publisherId }, tx);
 
       await createAuditLog(
         {
@@ -90,8 +71,8 @@ export async function updateBookUsecase(id: string, input: BookUpdateInput): Pro
           action: AUDIT_ACTION.UPDATE_BOOK,
           targetType: TARGET_TYPE.BOOK,
           targetId: id,
-          before: book as Record<string, unknown>,
-          after: next as Record<string, unknown>,
+          before: before as Record<string, unknown>,
+          after: after as Record<string, unknown>,
         },
         tx
       );

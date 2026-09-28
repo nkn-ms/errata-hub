@@ -29,8 +29,8 @@ type AuditParams = {
  *
  * ⚠️ **管理操作の書き込みは原則すべて塊に入れる**（`usecases/` の書籍・出版社・投稿・ユーザーの管理操作）。
  *    目的は「操作は成立したのに記録だけが無い」状態を作らないこと。
- *    ⇒ 呼び出し側で `prisma.$transaction` を張り、`tx` をこの関数に渡す。手本は
- *      usecases/delete-report.ts の deleteReportUsecase。
+ *    ⇒ 呼び出し側の usecase が塊を開き（services/transaction.ts の runInTransaction）、`tx` をこの関数に渡す。
+ *      手本は usecases/update-book.ts の updateBookUsecase（複数のフィーチャーにまたがる塊）。
  *
  * ⚠️ 例外は**退会の2か所**（usecases/withdraw-account.ts の withdrawAccountUsecase / usecases/withdraw-user-as-admin.ts の withdrawUserAsAdminUsecase）。
  *    Supabase の admin API（外部）をまたぐのでトランザクションに入れられず、
