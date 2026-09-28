@@ -241,7 +241,7 @@ src/
 ├── constants/    横断する定数（routes, site, rate-limits など）。何も import しない
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
 ├── lib/          外部との口そのもの（prisma / supabase のクライアント・OG 画像のフォント取得）
-├── services/     DB・認証に触る横断処理（auth, audit, publisher-access, rate-limit）
+├── services/     DB・認証に触る横断処理（auth, audit, publisher-access, rate-limit, transaction）
 └── utils/        横断する純粋関数（ISBN 正規化・整形・退会の語彙など）
 docs/             設計・学習メモ・ER 図
 ```
@@ -306,6 +306,11 @@ src/usecases/
 認可（誰が呼べるか）・回数制限・入力の検査は、各ファイルの中で行う。管理者だけの操作にも名前に印は付けない
 （誰が呼べるかは中の認可が示す＝下の「管理画面用でディレクトリを切らない」と同じ考え方）。
 
+⭐ **トランザクションを開始するのも usecases。** 開始するのは `services/transaction.ts` の
+`runInTransaction` で、その中で呼ぶ `features/<name>/db/` の関数には、トランザクションの中で
+DB を操作するためのオブジェクト（`tx`）を最後の引数で渡す。複数のフィーチャーにまたがる処理
+（`update-book.ts` ＝出版社の用意と書籍の更新）も、フィーチャー同士を import せずに1つのトランザクションにまとめられる。
+
 ⚠️ **複数の操作が共有する関数は usecases の外に置く**（`features/<name>/` か `services/`）。
 `"use server"` のファイルは async 関数しか export できず、export した関数はブラウザから呼べる口になるため。
 共有する型も、どれか1本の中ではなく `features/<name>/types.ts` に置く。
@@ -348,6 +353,8 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 
 1. **サーバーでしか動かない** … 先頭に `import "server-only"`。クライアントから import するとビルドが落ちる
 2. **認可を行う** … 公開情報には不要。閲覧者ごとに変わる判定は呼び出し側（`services/publisher-access.ts`）
+   ⚠️ 書き込みの認可も呼び出し側（usecases・Route Handler）が行う。公式の例は DAL の中で行うが、ここでは外に出す
+   （同じ関数を、認可の違う操作が呼ぶため。例: 出版社を名前で用意する関数は、投稿する人の操作と管理者の操作の両方が呼ぶ）
 3. **安全で最小の DTO を返す** … 生の行を外に出さない。⭐ 投稿の `Report`（`types.ts`）がその形で、
    退会判定に使う `email` は `db/` の中で捨てられる＝**ページは email を持つ値に触れない**
 
@@ -364,8 +371,8 @@ features と `app/` は `no-restricted-imports` で機械的に禁止）。`comp
 ```
 features/report/
 ├── db/            ← DB に触るのはここ（と usecases/）
-│   ├── reports.ts          投稿（公開ページが読む）
-│   ├── reports-admin.ts    投稿（管理画面が読む）
+│   ├── reports.ts          投稿（公開側）
+│   ├── reports-admin.ts    投稿（管理側）
 │   ├── report-images.ts    添付画像
 │   └── report-deletion.ts  投稿を消す操作が共有する処理
 └── components/ constants/ utils/ schema.ts types.ts
@@ -376,7 +383,7 @@ features/report/
 
 ⭐ **この命名の基準は「定義を読まなくても通じるか」。** `db/` は定義が要らない（データベースに触る、以上）。
 `service` や `queries` のような名前は**使う前に定義を書く必要があり**、定義を読まない人に誤読される。
-⚠️ 読みか書きかは**ファイル名ではなく関数名**が示す（`find*` は読み。`db/` の32本中22本）。
+⚠️ 読みか書きかは**ファイル名ではなく関数名**が示す（`find*` は読み）。
 ファイル名に重ねると、書き込みが1本入った時点でファイル名と中身が食い違う。
 
 ⚠️ **公開と管理は別ファイルにする**（`reports.ts` と `reports-admin.ts`）。DTO を混ぜないための分割で、
