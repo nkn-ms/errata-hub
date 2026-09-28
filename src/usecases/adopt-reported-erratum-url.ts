@@ -26,8 +26,9 @@ export async function adoptReportedErratumUrlUsecase(reportId: string): Promise<
   let outcome: AdoptOutcome;
   try {
     // 採用（Book.erratumUrl の更新）と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
-    // 申告値の読み出しもトランザクションの中で行う: 監査ログの before に使う値なので、
-    // 読んでから書くまでの間に他の変更が入り込まないようにする。
+    // ⚠️ 監査ログの before に使う値（採用前の URL）も中で読むが、読んでから書くまでの間の他の変更は
+    //    防げない（Postgres の既定の READ COMMITTED では、SELECT は行をロックしない）。起きても before が
+    //    古くなる程度なので、行ロック（FOR UPDATE）は入れていない。
     outcome = await runInTransaction<AdoptOutcome>(async (tx) => {
       const reported = await findReportedErratumUrl(reportId, tx);
       if (!reported) return "report-not-found";
