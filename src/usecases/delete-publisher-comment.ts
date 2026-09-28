@@ -1,10 +1,11 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
+import { deletePublisherComment, findPublisherCommentForDeletion } from "@/features/report/db/report-deletion";
 
 /**
  * 回答を削除する（運営者のモデレーションのみ＝規約 第10条1項）。
@@ -17,15 +18,12 @@ export async function deletePublisherCommentUsecase(commentId: string): Promise<
   const admin = await requireAdminServerAction();
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await runInTransaction(async (tx) => {
       // 監査ログの before に使う値なので、削除と同じトランザクションの中で読む
-      const before = await tx.publisherComment.findUnique({
-        where: { id: commentId },
-        include: { publisher: { select: { name: true } } },
-      });
+      const before = await findPublisherCommentForDeletion(commentId, tx);
       if (!before) return { error: "回答が見つかりません" };
 
-      await tx.publisherComment.delete({ where: { id: commentId } });
+      await deletePublisherComment(commentId, tx);
 
       await createAuditLog(
         {

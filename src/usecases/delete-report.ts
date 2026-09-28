@@ -1,13 +1,13 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import type { ReportActionState } from "@/features/report/types";
 import { redirect } from "next/navigation";
 import { routes } from "@/constants/routes";
-import { findReportForDeletion, removeImageFiles } from "@/features/report/db/report-deletion";
+import { deleteReport, findReportForDeletion, removeImageFiles } from "@/features/report/db/report-deletion";
 
 export async function deleteReportUsecase(id: string): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
@@ -22,11 +22,11 @@ export async function deleteReportUsecase(id: string): Promise<ReportActionState
     //   外部サービスをまたぐ操作は包めないので、別途「どちらに倒すか」を決める＝ features/report/db/report-deletion.ts の removeImageFiles）
     //
     // ⚠️ トランザクションの中では tx を使うこと。グローバルの prisma を使うと別接続になりトランザクションの外に出る。
-    report = await prisma.$transaction(async (tx) => {
-      const found = await findReportForDeletion(tx, id);
+    report = await runInTransaction(async (tx) => {
+      const found = await findReportForDeletion(id, tx);
       if (!found) return null;
 
-      await tx.report.delete({ where: { id } });
+      await deleteReport(id, tx);
       await createAuditLog(
         {
           userId: admin.id,

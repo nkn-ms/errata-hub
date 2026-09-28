@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { sanitizeExternalUrl } from "@/utils/external-url";
 import { mapReport } from "@/features/report/utils/mappers";
 import type { Report } from "@/features/report/types";
-import type { SubmittedReport } from "@/features/report/schema";
+import type { SubmittedReport, SubmittedReportBody } from "@/features/report/schema";
 
 /**
  * **投稿の読み書き（Data Access Layer）。** 読み取りはページ（サーバーコンポーネント）が描画のために
@@ -148,6 +148,13 @@ export async function hasUpvoted(reportId: string, profileId: string): Promise<b
   return upvote !== null;
 }
 
+
+// ────────────────────────────────────────────────────────────────────────
+// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている（理由はこのファイルの冒頭）。
+// 戻り値の行は、そのまま画面へ返さない（usecase が要る欄だけを選んで返す）。
+// ⚠️ 管理者だけの操作は reports-admin.ts、消す操作は report-deletion.ts。
+// ────────────────────────────────────────────────────────────────────────
+
 /**
  * 投稿を1件作り、id を返す。書籍は呼び出し側が用意して id を渡す（書籍は別のフィーチャー）。
  * 画像はここでは扱わない（作成後にブラウザが別途アップロードする = api/reports/[id]/images）。
@@ -181,4 +188,65 @@ export async function createReport(params: {
     },
   });
   return { id: created.id };
+}
+
+/** 1件を、監査ログにそのまま残す形で引く（無ければ null）。本人の編集では、持ち主とステータスの確認にも使う。 */
+export function findReportForAuditLog(id: string, client: Prisma.TransactionClient = prisma) {
+  return client.report.findUnique({ where: { id } });
+}
+
+/** 持ち主とステータスだけを引く（無ければ null）。本人の操作か・連絡済みかの確認に使う。 */
+export function findReportOwnerAndStatus(id: string, client: Prisma.TransactionClient = prisma) {
+  return client.report.findUnique({ where: { id }, select: { userId: true, status: true } });
+}
+
+/**
+ * 投稿者による本文の編集を保存し、保存後の行を返す（監査ログの after に残す形）。
+ * editedAt は投稿者が本文を触ったときだけ動かす（updatedAt は管理者の操作でも動くため）。
+ */
+export function updateReportBody(
+  id: string,
+  body: SubmittedReportBody,
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.report.update({ where: { id }, data: { ...body, editedAt: new Date() } });
+}
+
+/** 追記を1件作り、作った行を返す。 */
+export function createReportAddendum(
+  reportId: string,
+  body: string,
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.reportAddendum.create({ data: { reportId, body } });
+}
+
+/** 出版社としての回答を1件作り、作った行を出版社名つきで返す。 */
+export function createPublisherComment(
+  comment: { reportId: string; publisherId: string; body: string; authorId: string; byAdmin: boolean },
+  client: Prisma.TransactionClient = prisma
+) {
+  return client.publisherComment.create({
+    data: comment,
+    include: { publisher: { select: { name: true } } },
+  });
+}
+
+/** 賛同を付ける。**既に付いていれば何もしない**（二重クリック等。@@unique の衝突＝P2002 を成功扱いにする）。 */
+export async function addUpvote(reportId: string, profileId: string): Promise<void> {
+  try {
+    await prisma.upvote.create({ data: { reportId, profileId } });
+  } catch (e) {
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+  }
+}
+
+/** 賛同を取り消す。付いていなくても成功する（deleteMany は対象が無くても失敗しない）。 */
+export async function removeUpvote(reportId: string, profileId: string): Promise<void> {
+  await prisma.upvote.deleteMany({ where: { reportId, profileId } });
+}
+
+/** 賛同の数。 */
+export function countUpvotes(reportId: string): Promise<number> {
+  return prisma.upvote.count({ where: { reportId } });
 }

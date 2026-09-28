@@ -1,11 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createClient } from "@/lib/supabase/server";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import type { ReportActionState } from "@/features/report/types";
-import { removeImageFiles } from "@/features/report/db/report-deletion";
+import {
+  deleteReportImage,
+  findReportImageForDeletion,
+  removeImageFiles,
+} from "@/features/report/db/report-deletion";
 
 type OwnImageDeletion =
   | { error: string; imageUrl?: undefined }
@@ -29,13 +33,10 @@ export async function deleteOwnReportImageUsecase(imageId: string): Promise<Repo
 
   let result: OwnImageDeletion;
   try {
-    result = await prisma.$transaction(async (tx): Promise<OwnImageDeletion> => {
+    result = await runInTransaction(async (tx): Promise<OwnImageDeletion> => {
       // 認可もステータスの確認もトランザクションの中で行う（updateOwnReportUsecase と同じ理由。詳細ページを開いて
       // いる間に管理者が連絡済みにする競合があり、画面を出した時点の判定では防げない）
-      const found = await tx.reportImage.findUnique({
-        where: { id: imageId },
-        include: { report: { select: { userId: true, status: true } } },
-      });
+      const found = await findReportImageForDeletion(imageId, tx);
       if (!found) return { error: "画像が見つかりません" };
       if (found.report.userId !== user.id) {
         return { error: "この画像を削除する権限がありません" };
@@ -44,7 +45,7 @@ export async function deleteOwnReportImageUsecase(imageId: string): Promise<Repo
         return { error: "連絡済みの投稿は画像を削除できません。" };
       }
 
-      await tx.reportImage.delete({ where: { id: imageId } });
+      await deleteReportImage(imageId, tx);
       // 消せる期間でも記録は残す。上書きと同じで、消した後は画像があったことを辿る手段が
       // これしかない（賛同が付いた後に根拠だけ消える形を検知できるようにしておく）。
       // 対象は投稿（画像は投稿の一部）なので targetId は reportId にする。

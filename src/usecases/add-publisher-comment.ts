@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createClient } from "@/lib/supabase/server";
 import { checkPublisherCommentPermission } from "@/services/publisher-access";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -9,6 +9,7 @@ import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
 import { formatJstDateTime } from "@/utils/format";
 import type { PublisherCommentView } from "@/features/report/types";
+import { createPublisherComment } from "@/features/report/db/reports";
 
 const PublisherCommentSchema = z.object({
   body: z
@@ -63,22 +64,22 @@ export async function addPublisherCommentUsecase(
     // 追記（addReportAddendumUsecase）と同じ形。⚠️ 書き込みは1本なので原子性のためではない。
     // 判定を送信のたびにやり直すのが目的で、**競合は閉じていない**（READ COMMITTED なので、
     // 判定と INSERT の間に権限を剥奪されても気づかない）＝理由は checkPublisherCommentPermission
-    return await prisma.$transaction(async (tx): Promise<AddResult> => {
+    return await runInTransaction(async (tx): Promise<AddResult> => {
       const permission = await checkPublisherCommentPermission(user.id, reportId, tx);
       if (permission.error !== undefined) {
         return { error: permission.error };
       }
 
-      const created = await tx.publisherComment.create({
-        data: {
+      const created = await createPublisherComment(
+        {
           reportId,
           publisherId: permission.publisherId,
           body: parsed.data.body,
           authorId: user.id,
           byAdmin: permission.byAdmin,
         },
-        include: { publisher: { select: { name: true } } },
-      });
+        tx
+      );
 
       return {
         comment: {

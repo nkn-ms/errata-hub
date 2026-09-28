@@ -1,13 +1,14 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createClient } from "@/lib/supabase/server";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import type { ReportActionState } from "@/features/report/types";
-import { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { ReportBodySchema, type ReportBodyInput } from "@/features/report/schema";
+import { findReportForAuditLog, updateReportBody } from "@/features/report/db/reports";
 
 // 認可の3つ目の形態（「ログイン済み かつ その投稿の投稿者」）なので services/auth は使わない。
 // ステータスは一本道なので「FORWARDED 未満」は PENDING で足りる。DISMISSED も弾く。
@@ -27,19 +28,15 @@ export async function updateOwnReportUsecase(id: string, input: ReportBodyInput)
       return { error: parsed.error.issues[0].message };
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const before = await tx.report.findUnique({ where: { id } });
+    const result = await runInTransaction(async (tx) => {
+      const before = await findReportForAuditLog(id, tx);
       if (!before) return { error: "投稿が見つかりません" };
       if (before.userId !== user.id) return { error: "この投稿を編集する権限がありません" };
       if (before.status !== "PENDING") {
         return { error: "連絡済みの投稿は編集できません。追記でご対応ください。" };
       }
 
-      // editedAt は投稿者が本文を触ったときだけ動かす（updatedAt は管理者の操作でも動くため）
-      const after = await tx.report.update({
-        where: { id },
-        data: { ...parsed.data, editedAt: new Date() },
-      });
+      const after = await updateReportBody(id, parsed.data, tx);
 
       // 上書きなので他に痕跡が残らない。賛同が付いた後の書き換えを辿れる唯一の手段
       // （本人の操作を載せる前例は withdrawAccountUsecase にもある）

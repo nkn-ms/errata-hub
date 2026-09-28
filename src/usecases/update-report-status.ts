@@ -1,12 +1,14 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import type { ReportActionState } from "@/features/report/types";
 import { ReportUpdateSchema, type ReportUpdateInput } from "@/features/report/schema";
+import { findReportForAuditLog } from "@/features/report/db/reports";
+import { updateReportStatus } from "@/features/report/db/reports-admin";
 
 export async function updateReportStatusUsecase(id: string, input: ReportUpdateInput): Promise<ReportActionState> {
   const admin = await requireAdminServerAction();
@@ -17,12 +19,9 @@ export async function updateReportStatusUsecase(id: string, input: ReportUpdateI
       return { error: parsed.error.issues[0].message };
     }
 
-    await prisma.$transaction(async (tx) => {
-      const before = await tx.report.findUnique({ where: { id } });
-      const report = await tx.report.update({
-        where: { id },
-        data: parsed.data,
-      });
+    await runInTransaction(async (tx) => {
+      const before = await findReportForAuditLog(id, tx);
+      const report = await updateReportStatus(id, parsed.data, tx);
 
       await createAuditLog(
         {

@@ -1,20 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma/client";
 import { createClient } from "@/lib/supabase/server";
 import { RATE_LIMITS } from "@/constants/rate-limits";
 import { checkRateLimit, rateLimitKey, rateLimitMessage } from "@/services/rate-limit";
+import { addUpvote, countUpvotes, findReportOwnerAndStatus, removeUpvote } from "@/features/report/db/reports";
 
 export type UpvoteResult = { upvoted: boolean; count: number; error?: undefined } | { error: string };
 
-function countUpvotes(reportId: string) {
-  return prisma.upvote.count({ where: { reportId } });
-}
-
 /**
  * 賛同を付ける / 取り消す。自分の投稿には不可。
- * 付与の重複は @@unique 制約で、取り消しの空振りは deleteMany で、どちらも冪等に扱う。
+ * 付与の重複も取り消しの空振りも、成功として扱う（冪等＝features/report/db/reports.ts の addUpvote・removeUpvote）。
  */
 export async function toggleUpvoteUsecase(reportId: string, upvote: boolean): Promise<UpvoteResult> {
   try {
@@ -34,7 +29,7 @@ export async function toggleUpvoteUsecase(reportId: string, upvote: boolean): Pr
     }
 
     if (upvote) {
-      const report = await prisma.report.findUnique({ where: { id: reportId }, select: { userId: true } });
+      const report = await findReportOwnerAndStatus(reportId);
       if (!report) {
         return { error: "投稿が見つかりません" };
       }
@@ -42,14 +37,9 @@ export async function toggleUpvoteUsecase(reportId: string, upvote: boolean): Pr
         return { error: "自分の投稿には賛同できません" };
       }
 
-      try {
-        await prisma.upvote.create({ data: { reportId, profileId: user.id } });
-      } catch (e) {
-        // P2002 = unique 制約違反（すでに賛同済み）。二重クリック等を想定し成功扱いにする。
-        if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
-      }
+      await addUpvote(reportId, user.id);
     } else {
-      await prisma.upvote.deleteMany({ where: { reportId, profileId: user.id } });
+      await removeUpvote(reportId, user.id);
     }
 
     return { upvoted: upvote, count: await countUpvotes(reportId) };
