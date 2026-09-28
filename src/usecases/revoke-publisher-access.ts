@@ -1,10 +1,13 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
+import { findProfileEmail } from "@/features/account/db/profiles";
+import { revokePublisherAccess } from "@/features/account/db/publisher-access";
+import { findPublisherName } from "@/features/publisher/db/publishers";
 import type { UserActionState } from "@/features/account/types";
 
 export async function revokePublisherAccessUsecase(
@@ -21,21 +24,15 @@ export async function revokePublisherAccessUsecase(
     }
 
     // 剥奪と監査ログを1つのトランザクションにする。行ごと消えるので、**権限が存在した事実は監査ログにしか残らない**。
-    const revoked = await prisma.$transaction(async (tx) => {
-      const publisher = await tx.publisher.findUnique({ where: { id: parsed.data } });
+    const revoked = await runInTransaction(async (tx) => {
+      const publisherName = await findPublisherName(parsed.data, tx);
       // 誰から剥奪したかを記録に残すため（付与側 = usecases/grant-publisher-access.ts と対称。理由はあちらのコメント）
-      const profile = await tx.profile.findUnique({
-        where: { id: profileId },
-        select: { email: true },
-      });
+      const targetEmail = await findProfileEmail(profileId, tx);
 
-      // deleteMany は対象が無くても成功する。**0件のまま監査ログを書くと「剥奪した」という
-      // 起きていない操作の記録が残る**ので、消えた件数で分岐する。
-      // 記録は後から説明するためのものなので、事実でない行を増やさないことが目的。
-      const { count } = await tx.publisherAccess.deleteMany({
-        where: { profileId, publisherId: parsed.data },
-      });
-      if (count === 0) return false;
+      // **持っていなかったのに監査ログを書くと「剥奪した」という起きていない操作の記録が残る**ので、
+      // 書かずに抜ける。記録は後から説明するためのものなので、事実でない行を増やさないことが目的。
+      const removed = await revokePublisherAccess(profileId, parsed.data, tx);
+      if (!removed) return false;
 
       await createAuditLog(
         {
@@ -45,9 +42,9 @@ export async function revokePublisherAccessUsecase(
           targetType: TARGET_TYPE.PUBLISHER_ACCESS,
           targetId: profileId,
           before: {
-            targetEmail: profile?.email,
+            targetEmail,
             publisherId: parsed.data,
-            publisherName: publisher?.name,
+            publisherName,
           },
         },
         tx

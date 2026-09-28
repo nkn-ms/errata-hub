@@ -2,10 +2,11 @@
 
 import { z } from "zod";
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
+import { findProfileRole, updateUserRole } from "@/features/account/db/profiles";
 import type { UserActionState } from "@/features/account/types";
 
 const RoleSchema = z.enum(["ADMIN", "USER"]);
@@ -36,12 +37,9 @@ export async function updateUserRoleUsecase(profileId: string, role: string): Pr
 
     // ロール変更と監査ログを1つのトランザクションにする（理由は usecases/delete-report.ts の deleteReportUsecase）。
     // 行に残るのは現在のロールだけなので、**誰が昇格させたかは監査ログにしか残らない**。
-    await prisma.$transaction(async (tx) => {
-      const before = await tx.profile.findUnique({ where: { id: profileId } });
-      const profile = await tx.profile.update({
-        where: { id: profileId },
-        data: { role: parsed.data },
-      });
+    await runInTransaction(async (tx) => {
+      const before = await findProfileRole(profileId, tx);
+      const after = await updateUserRole(profileId, parsed.data, tx);
 
       await createAuditLog(
         {
@@ -50,8 +48,8 @@ export async function updateUserRoleUsecase(profileId: string, role: string): Pr
           action: AUDIT_ACTION.UPDATE_USER_ROLE,
           targetType: TARGET_TYPE.PROFILE,
           targetId: profileId,
-          before: { role: before?.role },
-          after: { role: profile.role },
+          before: { role: before },
+          after: { role: after },
         },
         tx
       );

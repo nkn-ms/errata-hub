@@ -4,9 +4,9 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
 import { PROFILE_LIMITS } from "@/features/account/constants";
+import { updateDisplayName } from "@/features/account/db/profiles";
 import type { ProfileState } from "@/features/account/types";
 
 const DisplayNameSchema = z.object({
@@ -47,10 +47,7 @@ export async function updateDisplayNameUsecase(
   }
 
   try {
-    await prisma.profile.update({
-      where: { id: user.id },
-      data: { displayName: parsed.data.displayName },
-    });
+    await updateDisplayName(user.id, parsed.data.displayName);
   } catch (error) {
     // Profile 行が無い（P2025）等の失敗はエラーページにせず、他アクションと同じく {error} を返す
     console.error(error);

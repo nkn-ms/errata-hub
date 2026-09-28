@@ -1,11 +1,11 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import { scrubProfileForWithdrawal, authUserExists } from "@/features/account/db/withdrawal";
+import { findProfileForWithdrawal } from "@/features/account/db/profiles";
 import { isWithdrawnEmail, withdrawalConfirmationLabel } from "@/utils/withdrawal";
 import type { UserActionState } from "@/features/account/types";
 
@@ -35,7 +35,7 @@ export async function withdrawUserAsAdminUsecase(
       return { error: "自分自身を退会させることはできません" };
     }
 
-    const target = await prisma.profile.findUnique({ where: { id: profileId } });
+    const target = await findProfileForWithdrawal(profileId);
     if (!target) {
       return { error: "ユーザーが見つかりません" };
     }
