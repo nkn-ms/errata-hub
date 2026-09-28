@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { scrubProfileForWithdrawal } from "@/features/account/db/withdrawal";
+import { findProfileRole } from "@/features/account/db/profiles";
 import { routes } from "@/constants/routes";
 import type { AuthState } from "@/features/account/types";
 
@@ -35,11 +35,8 @@ export async function withdrawAccountUsecase(_prevState: AuthState): Promise<Aut
   //    GitHub の「最後の Owner は組織を抜けられない」と同じ形で、**不具合ではない**。
   //    緩めるには「管理者が2人以上いれば自己降格を許す」と数える方式にするしかないが、
   //    数え方には競合の隙間ができるため、確実さを優先してこの形を選んでいる。
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  if (profile?.role === "ADMIN") {
+  const role = await findProfileRole(user.id);
+  if (role === "ADMIN") {
     return {
       error: "管理者アカウントは退会できません。先に他の管理者にロールを変更してもらってください。",
     };

@@ -142,6 +142,15 @@ export function countBooksByPublisher(publisherId: string): Promise<number> {
   return prisma.book.count({ where: { publisherId } });
 }
 
+/** 出版社名を引く（無ければ null）。監査ログに「どの出版社か」を名前で残すために使う。 */
+export async function findPublisherName(
+  id: string,
+  client: Prisma.TransactionClient = prisma
+): Promise<string | null> {
+  const publisher = await client.publisher.findUnique({ where: { id }, select: { name: true } });
+  return publisher?.name ?? null;
+}
+
 /** 1社を、監査ログにそのまま残す形で引く（無ければ null）。 */
 export function findPublisherForAuditLog(id: string, client: Prisma.TransactionClient = prisma) {
   return client.publisher.findUnique({ where: { id } });

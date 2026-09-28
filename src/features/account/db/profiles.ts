@@ -4,12 +4,13 @@ import { Prisma } from "@/generated/prisma/client";
 import { isWithdrawnEmail, WITHDRAWN_DISPLAY_NAME } from "@/utils/withdrawal";
 
 /**
- * **プロフィールの読み取り（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
+ * **プロフィールの読み書き（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⭐ **このファイルの存在理由は「email を外へ出さないこと」。** 退会したかどうかは
  *    「メールが匿名化済みドメインか」でしか判定できない（= utils/withdrawal.ts）ので、
  *    判定には email が要る。**判定をここで済ませ、結果の真偽値だけを返す**ことで、
  *    呼び出し側は email を持つ値に触れなくなる。
+ *    ⚠️ email を返すのは、管理画面用（AdminProfileRow）と、操作（usecases）が退会の確認と監査ログに使うものだけ。
  */
 
 /** 公開プロフィール（誰でも見られる範囲）。⚠️ email は含めない。 */
@@ -191,4 +192,59 @@ export async function ensureProfile(params: {
       e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
     return { ok: false, reason: isEmailConflict ? "email-conflict" : "profile" };
   }
+}
+
+
+// ────────────────────────────────────────────────────────────────────────
+// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている
+// （理由は features/report/db/reports.ts の冒頭）。戻り値は画面に出さない。
+// ────────────────────────────────────────────────────────────────────────
+
+/** 本人の表示名を変える。Profile が無ければ P2025。 */
+export async function updateDisplayName(profileId: string, displayName: string): Promise<void> {
+  await prisma.profile.update({ where: { id: profileId }, data: { displayName } });
+}
+
+/** 本人の公開リンク（GitHub / X のユーザー名）を変える。null は未設定に戻す。Profile が無ければ P2025。 */
+export async function updateProfileLinks(
+  profileId: string,
+  links: { githubUsername: string | null; xUsername: string | null }
+): Promise<void> {
+  await prisma.profile.update({ where: { id: profileId }, data: links });
+}
+
+/** ロールだけを引く（無ければ null）。 */
+export async function findProfileRole(
+  profileId: string,
+  client: Prisma.TransactionClient = prisma
+): Promise<"ADMIN" | "USER" | null> {
+  const profile = await client.profile.findUnique({ where: { id: profileId }, select: { role: true } });
+  return profile?.role ?? null;
+}
+
+/** ロールを変え、変更後のロールを返す。対象が無ければ P2025。 */
+export async function updateUserRole(
+  profileId: string,
+  role: "ADMIN" | "USER",
+  client: Prisma.TransactionClient = prisma
+): Promise<"ADMIN" | "USER"> {
+  const profile = await client.profile.update({ where: { id: profileId }, data: { role } });
+  return profile.role;
+}
+
+/** 監査ログに「誰に対する操作か」を残すため、メールを引く（無ければ null）。 */
+export async function findProfileEmail(
+  profileId: string,
+  client: Prisma.TransactionClient = prisma
+): Promise<string | null> {
+  const profile = await client.profile.findUnique({ where: { id: profileId }, select: { email: true } });
+  return profile?.email ?? null;
+}
+
+/** 代行退会の判定（退会済みか・ロール・確認入力の照合）に使う形で1人を引く（無ければ null）。 */
+export function findProfileForWithdrawal(profileId: string) {
+  return prisma.profile.findUnique({
+    where: { id: profileId },
+    select: { id: true, email: true, displayName: true, role: true },
+  });
 }

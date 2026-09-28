@@ -1,11 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { runInTransaction } from "@/services/transaction";
 import { createAuditLog } from "@/services/audit";
 import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
 import { requireAdminServerAction } from "@/services/auth";
 import type { AdminProfileRow } from "@/features/account/db/profiles";
+import { grantPublisherAccess } from "@/features/account/db/publisher-access";
 
 // ⚠️ 付与した行をそのまま返さない。**クライアントへ渡る値なので db/ が返す形に揃える**
 // （画面はアクセス権の一覧をこの型で持っていて、付与後にそこへ1件足す）。
@@ -35,19 +36,11 @@ export async function grantPublisherAccessUsecase(
 
     // 付与と監査ログを1つのトランザクションにする。行にも出所（grantedBy*）が残るが、剥奪すると行ごと
     // 消えるので、**権限が存在した事実の履歴は監査ログにしか残らない**（剥奪側と対称にする）。
-    const access = await prisma.$transaction(async (tx) => {
-      const created = await tx.publisherAccess.create({
-        // 付与の出所を行に持たせる（「なぜこの人が権限を持つのか」を出版社の画面から説明できるように）。
-        // メールも控えるのは、付与した管理者が後に退会しても記録が読めるようにするため
-        // （退会は匿名化＝ id は残るが email はスクラブされる）。
-        data: {
-          profileId,
-          publisherId: parsed.data,
-          grantedById: admin.id,
-          grantedByEmail: admin.email,
-        },
-        include: { publisher: true, profile: { select: { email: true } } },
-      });
+    const access = await runInTransaction(async (tx) => {
+      const created = await grantPublisherAccess(
+        { profileId, publisherId: parsed.data, grantedById: admin.id, grantedByEmail: admin.email },
+        tx
+      );
 
       await createAuditLog(
         {

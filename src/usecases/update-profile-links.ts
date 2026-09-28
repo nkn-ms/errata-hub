@@ -4,8 +4,8 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { routes } from "@/constants/routes";
+import { updateProfileLinks } from "@/features/account/db/profiles";
 import type { ProfileState } from "@/features/account/types";
 
 // 空文字は「未設定に戻す」として null に落とす。URL ではなくユーザー名で保存し、
@@ -61,10 +61,7 @@ export async function updateProfileLinksUsecase(
   }
 
   try {
-    await prisma.profile.update({
-      where: { id: user.id },
-      data: parsed.data,
-    });
+    await updateProfileLinks(user.id, parsed.data);
   } catch (error) {
     // Profile 行が無い（P2025）等の失敗はエラーページにせず、他アクションと同じく {error} を返す
     console.error(error);
