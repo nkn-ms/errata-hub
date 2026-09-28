@@ -312,6 +312,7 @@ src/usecases/
 `runInTransaction` で、その中で呼ぶ `features/<name>/db/` の関数には、トランザクションの中で
 DB を操作するためのオブジェクト（`tx`）を最後の引数で渡す。複数のフィーチャーにまたがる処理
 （`update-book.ts` ＝出版社の用意と書籍の更新）も、フィーチャー同士を import せずに1つのトランザクションにまとめられる。
+usecases から `prisma` を import したり、`tx.<モデル>` を直接使ったりすると lint が落ちる。
 
 ⚠️ **複数の操作が共有する関数は usecases の外に置く**（`features/<name>/` か `services/`）。
 `"use server"` のファイルは async 関数しか export できず、export した関数はブラウザから呼べる口になるため。
@@ -341,8 +342,8 @@ src/features/report/
 ⭐ **`usecases/` と `db/` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
 await するなら `db/`、ブラウザが操作中に呼ぶなら `usecases/`（Server Action）になる（読み取りでも）。
 
-⭐ **DB に触るのは `features/<name>/db/`・`usecases/`・`services/` の中だけ。`app/` は `prisma` を import しない**
-（`no-restricted-imports` で機械的に禁止。テストだけ除外＝`vi.mock` に名前が要るため）。
+⭐ **DB に触るのは `features/<name>/db/` と `services/` の中だけ。`app/` と `usecases/` は `prisma` を import しない**
+（`no-restricted-imports` で機械的に禁止）。
 共有されているかどうかは基準ではない（1画面しか使わない読みも `db/` に置く）。
 
 これは Next.js 自身のガイドに沿っている（`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）。
@@ -367,12 +368,12 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 （`import/no-restricted-paths`）。依存の向きを崩さないための例外で、監査ログの読み書き
 （`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
 
-**features の中で prisma を触ってよいのは `db/` だけ**（features の外で触ってよいのは `usecases/`・`services/`・`lib/prisma.ts`。
-features と `app/` は `no-restricted-imports` で機械的に禁止）。`components/` `utils/` `constants/` `schema.ts` `types.ts` は DB を知らない。
+**features の中で prisma を触ってよいのは `db/` だけ**（features の外で触ってよいのは `services/`・`lib/prisma.ts`。
+features・`app/`・`usecases/` は `no-restricted-imports` で機械的に禁止）。`components/` `utils/` `constants/` `schema.ts` `types.ts` は DB を知らない。
 
 ```
 features/report/
-├── db/            ← DB に触るのはここ（と usecases/）
+├── db/            ← DB に触るのはここ
 │   ├── reports.ts          投稿（公開側）
 │   ├── reports-admin.ts    投稿（管理側）
 │   ├── report-images.ts    添付画像

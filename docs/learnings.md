@@ -807,3 +807,50 @@ rm eslint.nuc.tmp.mjs
 ```
 
 `projectService: true` が型情報を読み込む指定。これが無いとルール自体が動かない。
+
+---
+
+## 複数の機能にまたがる処理の置き場所 — 手順は usecases に1か所、細部は持ち主の db/ に
+
+### 用語（先に定義）
+
+- **フィーチャー（`features/<name>/`）**: 投稿・書籍・出版社・アカウントのように、関心事ごとに縦に切ったまとまり。フィーチャー同士は import しない（lint）
+- **usecase（`usecases/<操作>.ts`）**: 利用者がやること1つ＝1ファイルの Server Action。どのフィーチャーも import できる
+- **`db/`**: 各フィーチャーの中で、DB を読み書きする関数を置く場所（Next.js のガイドが Data Access Layer と呼ぶもの）
+- **トランザクション**: 複数の書き込みを「全部成功か、全部取り消し」にまとめる仕組み。`tx` はその中で DB を操作するためのオブジェクト
+
+### きっかけ
+
+投稿の作成の中で、まだ無い書籍を作り、出版社も名前で用意する必要があった（#303）。この処理は投稿・書籍・出版社の3つのフィーチャーにまたがるが、フィーチャー同士は import できない規則なので、置ける場所が無かった。
+
+### 決めた形（#315〜#320・2026-09-28〜30）
+
+1. **操作は `usecases/` に1操作1ファイル。** usecase はどのフィーチャーも import できるので、またがる処理はここに置く
+2. **usecase が持つのは手順だけ。** 認可 → 入力の検査 → `db/` の関数を呼ぶ → 監査ログ、の順に読める形にする。トランザクションも usecase が開始する（`services/transaction.ts` の `runInTransaction`）
+3. **DB の読み書きは、データの持ち主の `db/` に置く。** トランザクションの中で呼ぶ関数は、最後の引数で `tx` を受け取る。これで、またがる処理も1つのトランザクションにまとめられる
+
+```ts
+// usecases/update-book.ts（出版社の用意と書籍の更新を、1つのトランザクションで）
+updated = await runInTransaction(async (tx) => {
+  const before = await findBookForAuditLog(id, tx);                                     // book の db/
+  if (!before) return false;
+  const publisherId = publisherName ? await ensurePublisher(publisherName, tx) : null;  // publisher の db/
+  const after = await updateBook(id, { ...book, publisherId }, tx);                     // book の db/
+  await createAuditLog({ …, before, after }, tx);
+  return true;
+});
+```
+
+⚠️ **規則は lint で守る。** usecases から `prisma` を import すると落ち、`tx.<モデル>` を直接使っても落ちる。import を禁じるだけでは、受け取った `tx` で DB を直接操作できてしまうため。
+
+### 引き継いだ3点（採らなかった app 層案の learnings＝PR#314 から）
+
+- **代償は消せず、払う場所を選ぶだけ。** 手順を1か所で読める形にした代わりに、1つの操作を細部まで追うには usecase と `db/` の2〜3ファイルを開くことになる。どの構成でも代償は残り、選べるのはどこで払うかだけ
+- **手順は1か所、細部は持ち主に。** 空欄を null にする・保存前にサニタイズする・二重の賛同を成功扱いにする、といった「そのデータをどう保存するか」は持ち主の `db/` の関数が持つ。usecase に残すのは、何をどの順で行うか
+- **境界は育つにつれて見える。** 最初から全部の置き場所は決められなかった。またがる処理が実際に出てきて（#303）、置けないことが分かった時点で層を足した
+
+### 採らなかった案
+
+- **最上位に `domain/` を作る**: 1つのフィーチャーが3か所に散る。フィーチャーの中で `components/` だけを usecases より上に置けば足りた
+- **フィーチャー同士の依存の向きを決める**: 変更のたびに向きが変わりうるうえ、向きを決めるにはドメインの知識が要る。置き場所はドメインを知らなくても決まる規則にする方針と合わない
+- **`app/` に Server Action を置く**: `app/` と `features/` の両方に操作が散る
