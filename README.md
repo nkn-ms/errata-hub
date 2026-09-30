@@ -236,9 +236,8 @@ http://localhost:3000 を開く。ローカル Studio は http://127.0.0.1:54323
 ```
 src/
 ├── app/          Next.js ルーティング（ページ・API Route）。フィーチャーの合成と、
-│              その画面でしか使わない部品を置く
-├── usecases/     利用者がやること1つ＝1ファイル。Server Action はすべてここ（下記）
-├── features/     関心事ごとのまとまり（下記）
+│              その画面でしか使わない部品・複数のフィーチャーにまたがる操作を置く
+├── features/     関心事ごとのまとまり。そのものだけで完結する操作（Server Action）もここ（下記）
 ├── components/   フィーチャーに属さない UI（下記）
 ├── constants/    横断する定数（routes, site, rate-limits など）。何も import しない
 ├── generated/    Prisma 自動生成（編集不可・gitignore）
@@ -253,20 +252,12 @@ docs/             設計・学習メモ・ER 図
 ```
 constants/ → utils/ → lib/ → services/           （shared・ドメインを知らない）
                         ↓
-            features/（components/ 以外）          （データと決まりごと）
+                    features/                      （1つのものの部品・操作・データ。features 同士はつながない）
                         ↓
-                    usecases/                      （利用者がやること＝Server Action）
-                        ↓
-              features の components/              （画面の部品）
-                        ↓
-            components/layout/ → app/            （合成層）
+            components/layout/ → app/            （合成層＝画面も、複数のものにまたがる操作も、ここで組み立てる）
 ```
 
 **一方向だけ許す。** 図の下から上へは import できない。shared はどこからでも使える。
-
-⭐ **usecases は features の中に割って入る。** 画面の部品（features の `components/`）からは呼べて、
-データと決まりごと（features のそれ以外）からは呼べない。なので置き場所の判定は
-**「画面の部品かどうか」の1つ**で済み、何の機能かを知らなくてよい。
 
 ⭐ **shared の中にも同じ順序がある。** `constants`（値だけ）→ `utils`（純粋関数）→ `lib`（外部との口）
 → `services`（DB・認証に触る）で、下から上へは import できない。おかげで**新しい共有ファイルの置き場所が
@@ -276,45 +267,55 @@ constants/ → utils/ → lib/ → services/           （shared・ドメイン�
 
 ⚠️ **`components/layout/` は shared ではなく合成層に立つ。** ヘッダーやフッターは再利用のための
 ライブラリではなく、**フィーチャーを組み立てて画面の枠を作る**もの。実際にヘッダーの
-ユーザーメニューはログアウト（`usecases/logout.ts`）を持っている。
+ユーザーメニューはログアウト（`features/account/actions/logout.ts`）を持っている。
 ここを shared として縛ると、合成のためだけに props を何段もバケツリレーすることになる。
 逆流とフィーチャー同士の直接参照は `import/no-restricted-paths`（`eslint.config.mjs`）で禁止していて、
 違反すると lint が落ちる。**規約は文書ではなく lint で守る** — ディレクトリを切っただけの規約は必ず崩れるため。
 エラー文には向きと理由が出るので、向きを覚えていなくても、間違えたその場で正しい置き場所が分かる。
 
-### usecases の中身
+### 操作（Server Action）の置き場所
+
+**そのものだけで完結する操作は `features/<name>/actions/` に、複数のものにまたがる操作は、
+それを使う画面の隣（`app/`）に置く。**
 
 ```
-src/usecases/
-├── create-report.ts          投稿する
-├── update-own-report.ts      自分の投稿を直す
-├── withdraw-own-report.ts    自分の投稿を取り下げる
-├── update-report-status.ts   投稿のステータスを変える（管理者）
-├── login.ts  logout.ts  sign-in-with-github.ts  withdraw-account.ts …
-└── …（1操作1ファイル）
+src/
+├── features/report/actions/
+│   ├── update-own-report.ts      自分の投稿を直す
+│   ├── withdraw-own-report.ts    自分の投稿を取り下げる
+│   ├── update-report-status.ts   投稿のステータスを変える（管理者）
+│   └── …（1操作1ファイル）
+├── features/account/actions/     login.ts・logout.ts・withdraw-account.ts …
+└── app/(site)/submit/
+    ├── submit-form.tsx           書籍を選ぶ UI と投稿フォームを束ねる
+    └── create-report.ts          投稿する（書籍と出版社を用意してから投稿を作る＝またがる操作）
 ```
 
-⭐ **1ファイル＝1つの Server Action。** 関数名は、ファイル名をキャメルケースにして `Usecase` を付ける
-（`create-report.ts` → `createReportUsecase`）。サブフォルダは作らない。どの関心事の操作かを決めずに済み、
-ファイルの一覧がそのまま「このアプリでできる操作の一覧」になる。
+⭐ **1ファイル＝1つの Server Action。** 関数名は、ファイル名をキャメルケースにして `Action` を付ける
+（`update-own-report.ts` → `updateOwnReportAction`）。
 
-⚠️ **`Usecase` を付けるのは、データの関数（`features/<name>/db/`）と名前をぶつけないため。**
+⚠️ **`Action` を付けるのは、データの関数（`features/<name>/db/`）と名前をぶつけないため。**
 管理者の単純な操作は、利用者の言葉でも DB の言葉でも同じ動詞（update・delete）になるので、
 言葉の選び方では分けられない。
 
-⭐ **複数のフィーチャーを組み合わせる操作もここに置く**（サーバー側の組み合わせ）。
-例えば `create-report.ts` は、書籍を用意してから投稿を作る。画面側の組み合わせは app（下記）。
+⭐ **複数のものにまたがるかどうかは、import で決まる。** features の中の操作が別のフィーチャーを
+import しようとすると lint が落ちるので、そのときは使う画面の隣（`app/`）へ移す。
+画面を組み立てる場所（`submit-form.tsx` が書籍を選ぶ UI と投稿フォームを束ねる）と、
+操作を組み立てる場所が同じになる。今は4本（投稿の作成・書誌の更新・正誤表 URL の採用・出版社アクセスの剥奪）。
+
+⚠️ **app の操作は、features の部品から直接は呼べない**（features は app を import しない）。
+部品は操作を props で受け取る。投稿フォームは作成の操作を受け取る（書籍を選ぶ UI を受け取るのと同じ形）。
 
 認可（誰が呼べるか）・回数制限・入力の検査は、各ファイルの中で行う。管理者だけの操作にも名前に印は付けない
 （誰が呼べるかは中の認可が示す＝下の「管理画面用でディレクトリを切らない」と同じ考え方）。
 
-⭐ **トランザクションを開始するのも usecases。** 開始するのは `services/transaction.ts` の
+⭐ **トランザクションを開始するのも Server Action。** 開始するのは `services/transaction.ts` の
 `runInTransaction` で、その中で呼ぶ `features/<name>/db/` の関数には、トランザクションの中で
 DB を操作するためのオブジェクト（`tx`）を最後の引数で渡す。複数のフィーチャーにまたがる処理
-（`update-book.ts` ＝出版社の用意と書籍の更新）も、フィーチャー同士を import せずに1つのトランザクションにまとめられる。
-usecases から `prisma` を import したり、`tx.<モデル>` を直接使ったりすると lint が落ちる。
+（`app/admin/books/[id]/update-book.ts` ＝出版社の用意と書籍の更新）も、1つのトランザクションにまとめられる。
+Server Action から `prisma` を import したり、`tx.<モデル>` を直接使ったりすると lint が落ちる。
 
-⚠️ **複数の操作が共有する関数は usecases の外に置く**（`features/<name>/` か `services/`）。
+⚠️ **複数の操作が共有する関数は actions の外に置く**（`features/<name>/` の db・utils か `services/`）。
 `"use server"` のファイルは async 関数しか export できず、export した関数はブラウザから呼べる口になるため。
 共有する型も、どれか1本の中ではなく `features/<name>/types.ts` に置く。
 
@@ -331,7 +332,8 @@ src/features/
 └── account/      登録・ログイン・アカウント設定・退会・ユーザー管理
 
 src/features/report/
-├── components/   画面の部品（usecases を呼べる）
+├── components/   画面の部品（actions を呼べる）
+├── actions/      このものだけで完結する操作（Server Action・1操作1ファイル）
 ├── db/           DB に触るもの（対象で名付ける）
 ├── constants/    ステータス・ラベル・文字数上限
 ├── schema.ts     入力の検査（zod）
@@ -339,10 +341,10 @@ src/features/report/
 └── utils/
 ```
 
-⭐ **`usecases/` と `db/` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
-await するなら `db/`、ブラウザが操作中に呼ぶなら `usecases/`（Server Action）になる（読み取りでも）。
+⭐ **`actions/` と `db/` を分ける軸は「読み書き」ではなく「呼ばれ方」。** ページが描画時に
+await するなら `db/`、ブラウザが操作中に呼ぶなら `actions/`（Server Action）になる（読み取りでも）。
 
-⭐ **DB に触るのは `features/<name>/db/` と `services/` の中だけ。`app/` と `usecases/` は `prisma` を import しない**
+⭐ **DB に触るのは `features/<name>/db/` と `services/` の中だけ。`app/` と `actions/` は `prisma` を import しない**
 （`no-restricted-imports` で機械的に禁止）。
 共有されているかどうかは基準ではない（1画面しか使わない読みも `db/` に置く）。
 
@@ -356,7 +358,7 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 
 1. **サーバーでしか動かない** … 先頭に `import "server-only"`。クライアントから import するとビルドが落ちる
 2. **認可を行う** … 公開情報には不要。閲覧者ごとに変わる判定は呼び出し側（`services/publisher-access.ts`）
-   ⚠️ 書き込みの認可も呼び出し側（usecases・Route Handler）が行う。公式の例は DAL の中で行うが、ここでは外に出す
+   ⚠️ 書き込みの認可も呼び出し側（Server Action・Route Handler）が行う。公式の例は DAL の中で行うが、ここでは外に出す
    （同じ関数を、認可の違う操作が呼ぶため。例: 出版社を名前で用意する関数は、投稿する人の操作と管理者の操作の両方が呼ぶ）
 3. **安全で最小の DTO を返す** … 生の行を外に出さない。⭐ 投稿の `Report`（`types.ts`）がその形で、
    退会判定に使う `email` は `db/` の中で捨てられる＝**ページは email を持つ値に触れない**
@@ -369,7 +371,7 @@ avoiding mixing them."**（混在を避けよ）と書いている。混ぜる�
 （`services/audit.ts`）のように**どのフィーチャーのものでもないもの**がここに来る。
 
 **features の中で prisma を触ってよいのは `db/` だけ**（features の外で触ってよいのは `services/`・`lib/prisma.ts`。
-features・`app/`・`usecases/` は `no-restricted-imports` で機械的に禁止）。`components/` `utils/` `constants/` `schema.ts` `types.ts` は DB を知らない。
+features と `app/` は `no-restricted-imports` で機械的に禁止）。`actions/` は `db/` の関数を呼ぶだけで、`components/` `utils/` `constants/` `schema.ts` `types.ts` は DB を知らない。
 
 ```
 features/report/
@@ -392,11 +394,11 @@ features/report/
 ⚠️ **公開と管理は別ファイルにする**（`reports.ts` と `reports-admin.ts`）。DTO を混ぜないための分割で、
 片方に足した欄がもう片方から漏れるのを防ぐ。それ以外は**大きくなるまで1ファイル**でよい。
 
-⚠️ **分ける軸は「誰が呼ぶか」であって読み／書きではない。** `usecases/` にあるのは `"use server"` が
+⚠️ **分ける軸は「誰が呼ぶか」であって読み／書きではない。** `actions/` にあるのは `"use server"` が
 要るもの＝**ブラウザが呼ぶもの**で、読み取りでもここに入る。
 
-⚠️ **`usecases/` に置いた関数はすべて外から POST できる口になる**（`"use server"` はファイル単位）。
-だからフォーム以外から呼ぶもの（Route Handler 用）は `usecases/` に置けず、`db/` に入る。
+⚠️ **`actions/` に置いた関数はすべて外から POST できる口になる**（`"use server"` はファイル単位）。
+だからフォーム以外から呼ぶもの（Route Handler 用）は `actions/` に置けず、`db/` に入る。
 
 ⚠️ **管理画面用の DTO は公開側と分ける**（`findReportById` と `findReportForAdmin`）。
 管理者に出す欄と読者に出す欄は違い、片方に足した欄がもう片方から漏れるのを防ぐため。
@@ -406,11 +408,11 @@ DDD ならドメインのふるまい）、**どの読みでも「読み取り�
 外す名前は、名前が無いより高くつく。ファイル名は層ではなく**扱う対象**で付ける
 （`reports.ts` / `withdrawal.ts` / `audit.ts` / `publisher-access.ts`）。
 
-フィーチャー同士は直接つながない。**組み合わせるのは、サーバー側なら usecases、画面側なら app。**
-画面側の例が投稿フォームで、`app/(site)/submit/submit-form.tsx` が
+フィーチャー同士は直接つながない。**組み合わせるのは app（画面も、複数のフィーチャーにまたがる操作も）。**
+例が投稿フォームで、`app/(site)/submit/submit-form.tsx` が
 書籍を選ぶ UI（`features/book`）と投稿フォーム（`features/report`）を束ね、
 選ばれた本を props で渡している。フォーム側は「本を選ぶ UI」をスロットとして受け取るだけで、
-それが何なのかを知らない。
+それが何なのかを知らない。投稿を作る操作（同じ場所の `create-report.ts`）も、同じく props で受け取る。
 
 フィーチャーの切り口は**テーブルの数ではなく「独立して存在できるか」**。
 出版社からの回答は投稿にしか付かず投稿なしには存在できないので、独立したフィーチャーにせず
@@ -433,10 +435,11 @@ src/components/
 1. **その画面の中身そのもの**（他のページに置いても意味をなさない）→ `app/` の**使う場所の隣**。
    使う画面が1つならそのディレクトリに、複数なら共通の親に置く
    （管理画面の5つの一覧が使うページ送りは `app/admin/pagination.tsx`）
-2. **ブラウザから呼ばれる操作**（Server Action）→ `usecases/` に1操作1ファイル
+2. **ブラウザから呼ばれる操作**（Server Action）→ 1操作1ファイル。そのものだけで完結するなら
+   `features/<name>/actions/`、複数のフィーチャーにまたがるなら使う画面の隣（`app/`）
 3. **ひとつの関心事に属する部品**（投稿・書籍・出版社・アカウント）→ `features/<name>/`
 4. **複数のフィーチャーを束ねて画面にする** → `app/` に置く。フィーチャー同士を直接つながない
-   （サーバー側で組み合わせる操作は 2 の `usecases/`）
+   （複数のフィーチャーにまたがる操作も、2 のとおり `app/`）
 5. **全ページの外側を作る**（ヘッダー・フッター・エラー画面・パンくず）→ `components/layout/`
 6. **ドメインもルーティングも知らない** → `components/ui/`
 7. **複数のフィーチャーが使う関数・定数** → **外部（DB・認証・fetch）に触るか**で決める。
