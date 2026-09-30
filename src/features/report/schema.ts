@@ -4,9 +4,9 @@ import { IDENTICAL_WRONG_CORRECT_MESSAGE } from "@/features/report/constants/rep
 import { sanitizeExternalUrl } from "@/utils/external-url";
 
 /**
- * **投稿の入力を検査するスキーマ。** `usecases/` から出してあるのは2つの理由から:
+ * **投稿の入力を検査するスキーマ。** `actions/` から出してあるのは2つの理由から:
  *
- * 1. `usecases/*.ts` は先頭が `"use server"` で、**async 関数しか export できない**
+ * 1. `actions/` のファイルは先頭が `"use server"` で、**async 関数しか export できない**
  *    （スキーマを export すると next build だけが落ちる。tsc と eslint は通る）。
  *    複数のアクションとテスト（validation-parity.test.ts）から読むので、外に出す必要がある
  * 2. 新規投稿・編集・追記・管理者の更新が**同じ上限と同じ条件**を共有することを1箇所で保証する
@@ -29,7 +29,7 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
 // 手入力の欄は「〜を入力してください」に揃えている（下の reportBodyShape 以降）。
 //
 // 書誌（書名・著者・出版社）は、書籍を新しく作るときに OpenBD に無い項目だけ使われる
-// （= usecases/create-report.ts の findOrCreateBook）。それでも上限は付ける: OpenBD に無い本では
+// （= app/(site)/submit/create-report.ts の findOrCreateBook）。それでも上限は付ける: OpenBD に無い本では
 // この値がそのまま保存され、公開ページに出るため。上限は実在の書誌が収まる側に余裕を持たせている
 const BookSchema = z.object({
   googleBooksId: z.string().optional(),
@@ -141,7 +141,7 @@ export type SubmittedReport = Omit<z.output<typeof ReportSchema>, "book">;
 
 export const ReportUpdateSchema = z.object({
   status: z.enum(["PENDING", "FORWARDED", "LISTED", "WILL_FIX", "FIXED", "WONT_FIX", "DISMISSED", "OTHER"]).optional(),
-  // ⚠️ 出版社からの回答はここでは受けない（PublisherComment テーブル＝ usecases/add-publisher-comment.ts）。
+  // ⚠️ 出版社からの回答はここでは受けない（PublisherComment テーブル＝ features/report/actions/add-publisher-comment.ts）。
   //    この欄は**運営者自身の説明**で、書き手が管理者ひとりだから列のままでよい
   statusNote: limited(REPORT_LIMITS.statusNote, "運営者の補足").nullable().optional(),
   fixedEdition: z.number().int().positive().nullable().optional(),
@@ -159,7 +159,7 @@ export const ReportUpdateSchema = z.object({
 }).transform((data) => {
   // 修正版・刷は「修正済み(FIXED)」でのみ意味を持つ欄。FIXED 以外へ変更するときは、
   // クライアントが何を送ってきても null に倒す。UI 側の入力欄制御だけに頼らず、ここで
-  // 不変条件を保証する（アクション直叩きでも不整合な状態を保存させない ＝ createReportUsecase が
+  // 不変条件を保証する（アクション直叩きでも不整合な状態を保存させない ＝ createReportAction が
   // 「UI と同じ条件をサーバーでも強制する」のと同じ考え方）。
   // status を含まない部分更新では現在の status が不明なので、fixed* には触れない。
   if (data.status !== undefined && data.status !== "FIXED") {

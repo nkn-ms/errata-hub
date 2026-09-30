@@ -8,7 +8,7 @@ import { authUserExists } from "@/features/account/db/withdrawal";
 
 /**
  * ロールを変更できない理由を返す（変更できるなら null）。
- * 正の砦はサーバーアクション（updateUserRoleUsecase）側。ここは理由を先に見せるための画面側の判定。
+ * 正の砦はサーバーアクション（updateUserRoleAction）側。ここは理由を先に見せるための画面側の判定。
  */
 function getRoleBlockedReason(profile: AdminProfileRow, adminId: string): string | null {
   if (profile.id === adminId) {
@@ -19,7 +19,7 @@ function getRoleBlockedReason(profile: AdminProfileRow, adminId: string): string
 
 /**
  * 出版社のアクセス権を付けられない理由を返す（付けられるなら null）。外すのはいつでもできる。
- * 正の砦はサーバーアクション（grantPublisherAccessUsecase）側。
+ * 正の砦はサーバーアクション（grantPublisherAccessAction）側。
  */
 function getGrantBlockedReason(profile: AdminProfileRow, adminId: string): string | null {
   if (profile.id === adminId) {
@@ -30,7 +30,7 @@ function getGrantBlockedReason(profile: AdminProfileRow, adminId: string): strin
 
 /**
  * 代行退会させられない理由を返す（実行できるなら null）。
- * 同じ判定はサーバーアクション（withdrawUserAsAdminUsecase）側にもあり、そちらが正の砦。
+ * 同じ判定はサーバーアクション（withdrawUserAsAdminAction）側にもあり、そちらが正の砦。
  * ここは「押せないボタンを出さない・理由を先に見せる」ための画面側の判定。
  * 退会済みかの判定は email を見るためサーバー（ここ）だけで行う。
  *

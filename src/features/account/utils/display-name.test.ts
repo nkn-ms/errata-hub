@@ -16,7 +16,7 @@ describe("toDisplayName（auth/callback で user_metadata を表示名にする�
     expect(toDisplayName("   ")).toBeNull();
   });
 
-  // ⚠️ ここが本題。updateDisplayNameUsecase は zod で弾けるが、callback は
+  // ⚠️ ここが本題。updateDisplayNameAction は zod で弾けるが、callback は
   // OAuth の途中なので弾けない（エラーにするとログインが壊れる）＝切り詰めで守る
   it("上限を超えたら切り詰める（弾かない）", () => {
     const long = "あ".repeat(PROFILE_LIMITS.displayName + 10);

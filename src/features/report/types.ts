@@ -4,9 +4,16 @@ export type { ReportType, ReportStatus, Medium };
 
 /**
  * Server Action の戻り値。`{ error }` を返して画面が出す（例外を投げない）。
- * ⚠️ 複数の usecases が返すので、どれか1本の中ではなくここに置く。
+ * ⚠️ 複数の Server Action が返すので、どれか1本の中ではなくここに置く。
  */
 export type ReportActionState = { error?: string };
+
+/**
+ * 投稿の作成の結果。画像は作成後に別途アップロードするので id を返す。
+ * 作成は書籍・出版社にまたがる操作なので app にあり（app/(site)/submit/create-report.ts）、
+ * それを受け取るフォーム（components/report-form.tsx）と共有するため、型はここに置く。
+ */
+export type CreateReportResult = { id: string; error?: undefined } | { id?: undefined; error: string };
 
 /**
  * 出版社からの回答1件（規約 第8条）。**書いた人（authorId）は含めない** — 発言の主体は

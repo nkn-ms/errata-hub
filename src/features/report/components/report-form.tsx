@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createReportUsecase } from "@/usecases/create-report";
 import type { ReportInput } from "@/features/report/schema";
+import type { CreateReportResult } from "@/features/report/types";
 import { routes } from "@/constants/routes";
 import { TYPE_LABELS, MEDIUM_LABELS } from "@/features/report/constants/report-labels";
 import { REPORT_LIMITS } from "@/features/report/constants/report-limits";
@@ -103,9 +103,14 @@ type Props = {
   bookPicker?: ReactNode;
   /** 選んだ本に既に登録されている公式の正誤表。投稿前に案内して重複投稿を減らす */
   knownErratumUrl?: string | null;
+  /**
+   * 投稿を作る操作（Server Action）。書籍と出版社の用意もする＝複数のフィーチャーにまたがるので、
+   * 組み立てる側（app）が持って渡す（app/(site)/submit/create-report.ts）。フォームは何を呼ぶかを知らない。
+   */
+  createReport: (input: ReportInput) => Promise<CreateReportResult>;
 };
 
-export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) {
+export function ReportForm({ book, bookPicker, knownErratumUrl = null, createReport }: Props) {
   const router = useRouter();
   // 投稿の中身は1つのオブジェクトで持つ（欄ごとの useState を並べない）。
   // 編集フォームと同じ形にしておくと、検証も送信用の変換も同じ関数を通せる = report-fields.tsx
@@ -117,7 +122,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
   const [images, setImages] = useState<SelectedImage[]>([]);
   // 検証を通った送信内容。ここに値が入るとフォームを畳んで確認画面に差し替える。
   // 「入力中か確認中か」を別のフラグで持たず送信内容そのもので表すのは、確認画面に出すものと
-  // createReportUsecase に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
+  // createReport に渡すものを同じ1つの値にするため（別々に組み立てると食い違う余地ができる）。
   const [pending, setPending] = useState<ReportInput | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // 圧縮はデコードを伴うので数百ms かかる。終わるまで投稿させない（未処理のまま送らないため）
@@ -220,7 +225,7 @@ export function ReportForm({ book, bookPicker, knownErratumUrl = null }: Props) 
     setError("");
 
     try {
-      const created = await createReportUsecase(input);
+      const created = await createReport(input);
 
       if (created.error !== undefined) {
         setError(created.error);

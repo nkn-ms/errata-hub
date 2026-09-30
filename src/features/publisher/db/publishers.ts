@@ -111,7 +111,7 @@ export function findPublisherOptions(): Promise<PublisherOption[]> {
 
 
 // ────────────────────────────────────────────────────────────────────────
-// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている
+// 操作（Server Action）が呼ぶもの。認可は呼び出し側の Server Action が済ませている
 // （理由は features/report/db/reports.ts の冒頭）。戻り値は画面に出さない（id と、監査ログに残す行）。
 // ────────────────────────────────────────────────────────────────────────
 

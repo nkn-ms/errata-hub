@@ -12,7 +12,7 @@ import { z } from "zod";
  * ⚠️ **`server-only` を付けない。** 型は client component も使う（ただし `parse*` を呼ぶのはサーバーだけ）。
  * ⚠️ **features/book ではなく lib に置く。** OpenBD を引く口（lib/openbd.ts）がここで応答を均すので、
  *    features には置けない（共有の層は features を import できない = eslint.config.mjs の no-restricted-paths）。
- *    書籍の検索（features/book）と投稿の作成（usecases/create-report.ts）は、ここの型を読む。
+ *    書籍の検索（features/book）と投稿の作成（app/(site)/submit/create-report.ts）は、ここの型を読む。
  * ⚠️ **DB も認可も持ち込まない。** ここは「外から来た JSON を確かめて均す」だけ。
  */
 

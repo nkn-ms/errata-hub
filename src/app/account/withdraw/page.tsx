@@ -2,13 +2,13 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { withdrawAccountUsecase } from "@/usecases/withdraw-account";
+import { withdrawAccountAction } from "@/features/account/actions/withdraw-account";
 import { routes } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 
 export default function WithdrawPage() {
-  const [state, action, pending] = useActionState(withdrawAccountUsecase, undefined);
+  const [state, action, pending] = useActionState(withdrawAccountAction, undefined);
   const [confirmed, setConfirmed] = useState(false);
 
   return (

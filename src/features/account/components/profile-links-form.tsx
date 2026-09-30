@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateProfileLinksUsecase } from "@/usecases/update-profile-links";
+import { updateProfileLinksAction } from "@/features/account/actions/update-profile-links";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 
@@ -20,7 +20,7 @@ export function ProfileLinksForm({
   currentXUsername,
   githubUsernameSuggestion,
 }: Props) {
-  const [state, action, pending] = useActionState(updateProfileLinksUsecase, undefined);
+  const [state, action, pending] = useActionState(updateProfileLinksAction, undefined);
 
   const githubDefault = currentGithubUsername ?? githubUsernameSuggestion ?? "";
   const isPrefilled = !currentGithubUsername && !!githubUsernameSuggestion;

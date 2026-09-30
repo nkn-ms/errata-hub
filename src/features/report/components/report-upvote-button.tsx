@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsUp } from "lucide-react";
 import type { ReportType } from "@/generated/prisma/client";
-import { toggleUpvoteUsecase } from "@/usecases/toggle-upvote";
+import { toggleUpvoteAction } from "@/features/report/actions/toggle-upvote";
 import { routes } from "@/constants/routes";
 import { UPVOTE_LABELS } from "@/features/report/constants/report-labels";
 import { cn } from "@/utils/cn";
@@ -40,7 +40,7 @@ export function UpvoteButton({ reportId, initialCount, initialUpvoted, viewer, t
       return;
     }
     startTransition(async () => {
-      const result = await toggleUpvoteUsecase(reportId, !upvoted);
+      const result = await toggleUpvoteAction(reportId, !upvoted);
       if (result.error !== undefined) return;
       setUpvoted(result.upvoted);
       setCount(result.count);

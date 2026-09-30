@@ -8,7 +8,7 @@ import { sanitizeExternalUrl } from "@/utils/external-url";
  * **書籍の読み書き（Data Access Layer）。** 条件と根拠は features/report/db/reports.ts の冒頭と同じ。
  *
  * ⚠️ **投稿は返さない。** 書籍と投稿は別のフィーチャーなので、両方を必要とする画面（書籍ページ）が
- *    app 層で2つを呼んで組み立てる = README「組み合わせるのは、サーバー側なら usecases、画面側なら app」。
+ *    app 層で2つを呼んで組み立てる = README「組み合わせるのは app」。
  *    ただし**件数だけは返す** — `Book.reports` は Book が持つリレーションで、
  *    数えるのに features/report のコードは要らない（メタデータと OG 画像がこれだけを使う）。
  */
@@ -127,7 +127,7 @@ export function findAllBookIsbns(): Promise<{ isbn: string; updatedAt: Date }[]>
 
 
 // ────────────────────────────────────────────────────────────────────────
-// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている
+// 操作（Server Action）が呼ぶもの。認可は呼び出し側の Server Action が済ませている
 // （理由は features/report/db/reports.ts の冒頭）。戻り値は画面に出さない（id と、監査ログに残す行）。
 // ────────────────────────────────────────────────────────────────────────
 
