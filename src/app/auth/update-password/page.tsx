@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { updatePasswordUsecase } from "@/usecases/update-password";
+import { updatePasswordAction } from "@/features/account/actions/update-password";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 
 export default function UpdatePasswordPage() {
-  const [state, action, pending] = useActionState(updatePasswordUsecase, undefined);
+  const [state, action, pending] = useActionState(updatePasswordAction, undefined);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

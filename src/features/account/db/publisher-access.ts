@@ -4,7 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 /**
  * **出版社のアクセス権（PublisherAccess）の付与と剥奪。** 管理者がユーザー管理の画面から行う。
- * 条件と根拠は features/report/db/reports.ts の冒頭と同じ（認可は呼び出し側の usecase）。
+ * 条件と根拠は features/report/db/reports.ts の冒頭と同じ（認可は呼び出し側の Server Action）。
  *
  * ⚠️ 「この人はこの投稿に出版社として回答できるか」の判定は services/publisher-access.ts
  *    （回答の操作が使う横断処理）。ここは行を足し引きするだけ。

@@ -34,7 +34,7 @@ DB に `@unique` を付けても、文字列が違えば別物扱いなので防
 
 - 正規化ロジック: [`src/utils/isbn.ts`](../src/utils/isbn.ts) の `toCanonicalIsbn(raw)`
   - ハイフン等を除去 → ISBN-10 なら ISBN-13 へ変換 → チェック数字を検証 → 不正なら `null`
-- 投稿時に通す場所: [`src/usecases/create-report.ts`](../src/usecases/create-report.ts) の `createReportUsecase`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
+- 投稿時に通す場所: [`src/app/(site)/submit/create-report.ts`](../src/app/(site)/submit/create-report.ts) の `createReportAction`（Server Action。旧 `api/feedbacks`→`api/reports` は 2026-07 に Server Actions へ移行）
   - `toCanonicalIsbn` で正規化し、不正ならエラーを返す。`prisma.book.upsert({ where: { isbn } })` で名寄せ。
 - DB: `Book.isbn` は **必須 + `@unique`**（ISBN-13 を保存）。
 
@@ -243,7 +243,7 @@ Supabase のセッション維持は「短命のアクセストークンを裏�
 |---|---|---|
 | **Route Handler** | `app/**/route.ts` の `GET` / `POST` … 関数 | App Router の言葉（**現行**） |
 | **API Route** | `pages/api/*.ts` | Pages Router の言葉（**旧称。同じもの**） |
-| **Server Action** | `"use server"` を付けた async 関数（`usecases/*.ts`） | Route Handler と**対になる**書き込み口 |
+| **Server Action** | `"use server"` を付けた async 関数（`features/<name>/actions/*.ts`。またがる操作は `app/`） | Route Handler と**対になる**書き込み口 |
 
 公式は Route Handler を「`pages` の API Routes と equivalent」と明記している。
 `docs/design.md` §7 が「API Route（Route Handler）」と併記しているのは、この新旧2つの名前を繋ぐため。
@@ -574,7 +574,7 @@ Profile を作る経路はこの callback だけ（パスワードログイン�
 GDPR の消去権が対象とするのは **PII**。**匿名化して個人と結びつかなくなったデータは GDPR の対象外**になる。
 → 退会では **PII だけ消し、コンテンツ（レポート）は匿名で残せる**。これが UGC（ユーザー投稿）サービスの定石。
 
-### このアプリの退会方針（実装済: `usecases/withdraw-account.ts` の `withdrawAccountUsecase`）
+### このアプリの退会方針（実装済: `features/account/actions/withdraw-account.ts` の `withdrawAccountAction`）
 
 1. `auth.users` を Admin API で削除（**auth 側 PII** ＝メール/メタデータとログイン情報を消す）
 2. `Profile` は**消さず PII だけスクラブ**：`email`→匿名ダミー（@unique+必須なので null 不可）、`displayName`→null（UI で「退会済みユーザー」表示）
@@ -810,12 +810,12 @@ rm eslint.nuc.tmp.mjs
 
 ---
 
-## 複数の機能にまたがる処理の置き場所 — 手順は usecases に1か所、細部は持ち主の db/ に
+## 複数の機能にまたがる処理の置き場所 — 組み立ては app で、細部は持ち主の db/ に
 
 ### 用語（先に定義）
 
 - **フィーチャー（`features/<name>/`）**: 投稿・書籍・出版社・アカウントのように、関心事ごとに縦に切ったまとまり。フィーチャー同士は import しない（lint）
-- **usecase（`usecases/<操作>.ts`）**: 利用者がやること1つ＝1ファイルの Server Action。どのフィーチャーも import できる
+- **Server Action（`<操作>.ts`）**: 利用者がやること1つ＝1ファイルの操作（`"use server"`）。そのものだけで完結するなら `features/<name>/actions/`、複数のフィーチャーにまたがるなら使う画面の隣の `app/` に置く
 - **`db/`**: 各フィーチャーの中で、DB を読み書きする関数を置く場所（Next.js のガイドが Data Access Layer と呼ぶもの）
 - **トランザクション**: 複数の書き込みを「全部成功か、全部取り消し」にまとめる仕組み。`tx` はその中で DB を操作するためのオブジェクト
 
@@ -823,14 +823,14 @@ rm eslint.nuc.tmp.mjs
 
 投稿の作成の中で、まだ無い書籍を作り、出版社も名前で用意する必要があった（#303）。この処理は投稿・書籍・出版社の3つのフィーチャーにまたがるが、フィーチャー同士は import できない規則なので、置ける場所が無かった。
 
-### 決めた形（#315〜#320・2026-09-28〜30）
+### 決めた形（2026-09-30）
 
-1. **操作は `usecases/` に1操作1ファイル。** usecase はどのフィーチャーも import できるので、またがる処理はここに置く
-2. **usecase が持つのは手順だけ。** 認可 → 入力の検査 → `db/` の関数を呼ぶ → 監査ログ、の順に読める形にする。トランザクションも usecase が開始する（`services/transaction.ts` の `runInTransaction`）
+1. **操作は1操作1ファイル。** そのものだけで完結するなら `features/<name>/actions/`、複数のフィーチャーにまたがるなら使う画面の隣（`app/`）。**またがるかどうかは import で決まる**（features の中から別のフィーチャーを import すると lint が落ちる）。画面を組み立てる場所と、操作を組み立てる場所が同じ `app/` になる
+2. **操作が持つのは手順だけ。** 認可 → 入力の検査 → `db/` の関数を呼ぶ → 監査ログ、の順に読める形にする。トランザクションも操作が開始する（`services/transaction.ts` の `runInTransaction`）
 3. **DB の読み書きは、データの持ち主の `db/` に置く。** トランザクションの中で呼ぶ関数は、最後の引数で `tx` を受け取る。これで、またがる処理も1つのトランザクションにまとめられる
 
 ```ts
-// usecases/update-book.ts（出版社の用意と書籍の更新を、1つのトランザクションで）
+// app/admin/books/[id]/update-book.ts（出版社の用意と書籍の更新を、1つのトランザクションで）
 updated = await runInTransaction(async (tx) => {
   const before = await findBookForAuditLog(id, tx);                                     // book の db/
   if (!before) return false;
@@ -841,16 +841,26 @@ updated = await runInTransaction(async (tx) => {
 });
 ```
 
-⚠️ **規則は lint で守る。** usecases から `prisma` を import すると落ち、`tx.<モデル>` を直接使っても落ちる。import を禁じるだけでは、受け取った `tx` で DB を直接操作できてしまうため。
+⚠️ **規則は lint で守る。** `db/` と `services/` の外から `prisma` を import すると落ち、`tx.<モデル>` を直接使っても落ちる。import を禁じるだけでは、受け取った `tx` で DB を直接操作できてしまうため。
 
-### 引き継いだ3点（採らなかった app 層案の learnings＝PR#314 から）
+### 一度 usecases/ を作って、戻した（#315〜#321 → 2026-09-30）
 
-- **代償は消せず、払う場所を選ぶだけ。** 手順を1か所で読める形にした代わりに、1つの操作を細部まで追うには usecase と `db/` の2〜3ファイルを開くことになる。どの構成でも代償は残り、選べるのはどこで払うかだけ
-- **手順は1か所、細部は持ち主に。** 空欄を null にする・保存前にサニタイズする・二重の賛同を成功扱いにする、といった「そのデータをどう保存するか」は持ち主の `db/` の関数が持つ。usecase に残すのは、何をどの順で行うか
-- **境界は育つにつれて見える。** 最初から全部の置き場所は決められなかった。またがる処理が実際に出てきて（#303）、置けないことが分かった時点で層を足した
+最初は、操作をすべて `usecases/`（1操作1ファイル・どのフィーチャーも import できる層）に集める形を作った。完成した直後に、上の形へ戻した。理由は3つ。
+
+- **規則が1つ減る。** usecases/ を features の中に割って入れるため、「features の中で `components/` だけが usecases より上」という例外を lint に持たせていた。上の形ならこの例外が要らない
+- **組み立ての場所が1つに揃う。** 画面を束ねるのも、またがる操作を束ねるのも `app/` になる
+- **操作がもの別にまとまる。** usecases/ では32本が1つの一覧に並んでいた
+
+`db/` の関数とトランザクションの形（上の 2・3）は、どちらの構成でもそのまま使えたので残った。
+
+### 引き継いだ3点（app で組み立てる案を最初に書いた learnings＝PR#314 から）
+
+- **代償は消せず、払う場所を選ぶだけ。** usecases/ なら操作の置き場所は1か所だが、層と例外が1つずつ増える。今の形なら層は増えないが、操作の置き場所が `features/` と `app/` の2か所に分かれる。どの構成でも代償は残り、選べるのはどこで払うかだけ
+- **手順は1か所、細部は持ち主に。** 空欄を null にする・保存前にサニタイズする・二重の賛同を成功扱いにする、といった「そのデータをどう保存するか」は持ち主の `db/` の関数が持つ。操作に残すのは、何をどの順で行うか
+- **境界は育つにつれて見える。** 最初から全部の置き場所は決められなかった。またがる処理が実際に出てきて（#303）、置けないことが分かった時点で置き場所を足した
 
 ### 採らなかった案
 
-- **最上位に `domain/` を作る**: 1つのフィーチャーが3か所に散る。フィーチャーの中で `components/` だけを usecases より上に置けば足りた
+- **`usecases/` 層**: 一度作って戻した（上）
+- **最上位に `domain/` を作る**: 1つのフィーチャーが3か所に散る
 - **フィーチャー同士の依存の向きを決める**: 変更のたびに向きが変わりうるうえ、向きを決めるにはドメインの知識が要る。置き場所はドメインを知らなくても決まる規則にする方針と合わない
-- **`app/` に Server Action を置く**: `app/` と `features/` の両方に操作が散る

@@ -3,8 +3,8 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { AdminAddendumList } from "./addendum-list";
 
 // Server Action はネットワーク越しの呼び出しになるため、テストではモジュールごとモックする
-vi.mock("@/usecases/delete-report-addendum", () => ({
-  deleteReportAddendumUsecase: vi.fn(),
+vi.mock("@/features/report/actions/delete-report-addendum", () => ({
+  deleteReportAddendumAction: vi.fn(),
 }));
 
 afterEach(cleanup);

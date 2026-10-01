@@ -27,13 +27,13 @@ type AuditParams = {
  *    「ログだから安全」ではない。名前はログでも中身は**説明義務のある業務記録**なので、
  *    観測目的の best-effort なログ（console 等）と同じ扱いにしない。
  *
- * ⚠️ **管理操作の書き込みは原則すべてトランザクションに入れる**（`usecases/` の書籍・出版社・投稿・ユーザーの管理操作）。
+ * ⚠️ **管理操作の書き込みは原則すべてトランザクションに入れる**（書籍・出版社・投稿・ユーザーの管理操作＝Server Action）。
  *    目的は「操作は成立したのに記録だけが無い」状態を作らないこと。
- *    ⇒ 呼び出し側の usecase がトランザクションを開始し（services/transaction.ts の runInTransaction）、
+ *    ⇒ 呼び出し側の Server Action がトランザクションを開始し（services/transaction.ts の runInTransaction）、
  *      `tx` をこの関数に渡す。
- *      手本は usecases/update-book.ts の updateBookUsecase（複数のフィーチャーにまたがるトランザクション）。
+ *      手本は app/admin/books/[id]/update-book.ts の updateBookAction（複数のフィーチャーにまたがるトランザクション）。
  *
- * ⚠️ 例外は**退会の2か所**（usecases/withdraw-account.ts の withdrawAccountUsecase / usecases/withdraw-user-as-admin.ts の withdrawUserAsAdminUsecase）。
+ * ⚠️ 例外は**退会の2か所**（features/account/actions/withdraw-account.ts の withdrawAccountAction / features/account/actions/withdraw-user-as-admin.ts の withdrawUserAsAdminAction）。
  *    Supabase の admin API（外部）をまたぐのでトランザクションに入れられず、
  *    「退会は成立させ、記録の失敗は console.error に留める」方向に倒してある（各所のコメント参照）。
  */

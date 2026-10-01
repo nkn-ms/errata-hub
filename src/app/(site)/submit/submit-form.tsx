@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { BookSearch } from "@/features/book/components/book-search";
-import { findErratumUrlByIsbnUsecase } from "@/usecases/find-erratum-url-by-isbn";
+import { findErratumUrlByIsbnAction } from "@/features/book/actions/find-erratum-url-by-isbn";
 import { BOOK_LABEL_ID, ReportForm } from "@/features/report/components/report-form";
+import { createReportAction } from "./create-report";
 
 // 投稿フォームは「投稿」と「書籍」の2つのフィーチャーにまたがる。
 // どちらか一方に押し込むとフィーチャー同士が直接つながるので、**合成はここ（app 層）で行う**。
@@ -36,6 +37,7 @@ export function SubmitForm({ initialBook, initialErratumUrl }: Props) {
     <ReportForm
       book={book}
       knownErratumUrl={knownErratumUrl}
+      createReport={createReportAction}
       bookPicker={
         preselected ? undefined : (
           <BookSearch
@@ -47,7 +49,7 @@ export function SubmitForm({ initialBook, initialErratumUrl }: Props) {
               setBook(selected);
               setKnownErratumUrl(null);
               if (selected.isbn) {
-                const { erratumUrl } = await findErratumUrlByIsbnUsecase(selected.isbn);
+                const { erratumUrl } = await findErratumUrlByIsbnAction(selected.isbn);
                 setKnownErratumUrl(erratumUrl);
               }
             }}

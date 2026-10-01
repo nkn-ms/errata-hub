@@ -28,13 +28,14 @@ const STACK = [
 // ディレクトリ構成。**実際の src の形から起こした図**で、飾りで足したディレクトリは無い。
 // 注釈は1行に収める（折り返すとツリーの縦線と揃わなくなるため）。
 const TREE = `src/
-├── app/                  画面と HTTP リクエストの受け付け口（URL がそのままフォルダ）
+├── app/                  画面と HTTP リクエストの受け付け口（URL がそのままフォルダ）。
+│                         複数の機能にまたがる操作も、使う画面の隣に置く
 │   ├── (site)/             公開ページ
 │   ├── admin/              管理画面
 │   └── api/                Route Handler（HTTP で直接受ける必要がある4本だけ）
-├── usecases/             利用者の操作1つ＝1ファイルの Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
 ├── features/             機能ごとのまとまり（下は「投稿」の例）
 │   └── report/
+│       ├── actions/        この機能だけで完結する操作。1つ1ファイルの Server Action（フォームの送信先をサーバー上の関数に直接向ける仕組み）
 │       ├── db/             DB を読み書きする。ここと services 以外からは DB を操作しない
 │       ├── components/     この機能でしか使わない画面部品
 │       ├── constants/      ラベル・文字数上限
@@ -144,8 +145,9 @@ export default function TechPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">ディレクトリ構成</h2>
         <p className="mb-3 text-sm text-gray-600">
-          機能ごとに縦に切り（<code className="font-mono text-xs">features/</code>）、利用者の操作は
-          1つ1ファイルで <code className="font-mono text-xs">usecases/</code> に並べています。
+          機能ごとに縦に切り（<code className="font-mono text-xs">features/</code>）、利用者の操作（Server Action）も
+          1つ1ファイルで、その機能の <code className="font-mono text-xs">actions/</code> に置いています。
+          複数の機能にまたがる操作だけは、画面と同じく <code className="font-mono text-xs">app/</code> で組み立てます。
           DB を読み書きしてよいのは各機能の <code className="font-mono text-xs">db/</code> と、機能をまたぐ処理（
           <code className="font-mono text-xs">services/</code>）だけで、画面や操作のコードから DB の
           クライアントを読み込もうとすると lint エラーで落ちます。

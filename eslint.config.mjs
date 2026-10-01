@@ -4,16 +4,14 @@ import nextTs from "eslint-config-next/typescript";
 
 // import/no-restricted-paths の違反時に出す文（zone は下の設定）。
 const DIRECTION =
-  "依存の向きは constants → utils → lib → services → features（components/ 以外）→ usecases → features の components/ → app の1本だけ。";
-const SHARED_MESSAGE = `共有の層（constants・utils・lib・services・components/ui）は features と usecases を import しない（読むと共有でなくなる）。${DIRECTION}`;
+  "依存の向きは constants → utils → lib → services → features → app の1本だけ（features 同士はつながない）。";
+const SHARED_MESSAGE = `共有の層（constants・utils・lib・services・components/ui）は features を import しない（読むと共有でなくなる）。${DIRECTION}`;
 const CONSTANTS_MESSAGE = `constants は値だけを置く層なので、utils・lib・services を import しない。${DIRECTION}`;
 const UTILS_MESSAGE = `utils は外部（DB・認証・fetch）に触らない純粋関数の層なので、lib・services を import しない。${DIRECTION}`;
 const LIB_MESSAGE = `lib は外部との口そのもの（クライアントの生成）なので、services を import しない。${DIRECTION}`;
-const FEATURES_APP_MESSAGE = `features は app（ルーティング）を import しない。画面を組み立てるのは app の側。${DIRECTION}`;
-const USECASES_MESSAGE = `usecases は画面（app・components・features の components/）を import しない。画面から呼ばれる側なので、呼ぶ側を知らない。${DIRECTION}`;
-const FEATURE_DATA_MESSAGE = `features の components/ 以外（db・constants・utils・schema・types）は、usecases と画面の部品を import しない。usecases から呼ばれる側なので、呼ぶ側を知らない。${DIRECTION}`;
+const FEATURES_APP_MESSAGE = `features は app（ルーティング）を import しない。画面も、複数の features にまたがる Server Action も、組み立てるのは app の側。${DIRECTION}`;
 const FEATURES_MESSAGE =
-  "フィーチャー同士（report・book・publisher・account）は import しない。複数のフィーチャーを組み合わせるのは usecases（サーバー側）と app（画面側）だけ。";
+  "フィーチャー同士（report・book・publisher・account）は import しない。複数のフィーチャーを組み合わせるのは app だけ（またがる Server Action も、それを使う画面の隣に置く）。";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -38,19 +36,19 @@ const eslintConfig = defineConfig([
         "error",
         {
           zones: [
-            // shared がフィーチャーと usecases を知ってはいけない（逆流すると shared でなくなる）。
+            // shared がフィーチャーを知ってはいけない（逆流すると shared でなくなる）。
             // 実例: utils/image-compress.ts が constants/report-images を読んでいた＝
             // 名前は shared でも中身は report の道具だった。
             //
             // ⚠️ `components/layout` は対象外。ヘッダーやフッターは shared のライブラリではなく
             //    **フィーチャーを組み立てて画面の枠を作る合成層**で、app/ と同じ側に立つ。
-            //    実例: ヘッダーのユーザーメニューはログアウト（usecases/logout.ts）を持つ。
+            //    実例: ヘッダーのユーザーメニューはログアウト（features/account/actions/logout.ts）を持つ。
             //    ここを禁じると、合成のためだけに props を2段バケツリレーすることになる。
-            { target: "./src/components/ui", from: ["./src/features", "./src/usecases"], message: SHARED_MESSAGE },
-            { target: "./src/constants", from: ["./src/features", "./src/usecases"], message: SHARED_MESSAGE },
-            { target: "./src/lib", from: ["./src/features", "./src/usecases"], message: SHARED_MESSAGE },
-            { target: "./src/services", from: ["./src/features", "./src/usecases"], message: SHARED_MESSAGE },
-            { target: "./src/utils", from: ["./src/features", "./src/usecases"], message: SHARED_MESSAGE },
+            { target: "./src/components/ui", from: "./src/features", message: SHARED_MESSAGE },
+            { target: "./src/constants", from: "./src/features", message: SHARED_MESSAGE },
+            { target: "./src/lib", from: "./src/features", message: SHARED_MESSAGE },
+            { target: "./src/services", from: "./src/features", message: SHARED_MESSAGE },
+            { target: "./src/utils", from: "./src/features", message: SHARED_MESSAGE },
 
             // 共有層の内側にも順序を入れる（2026-09-17）。各ディレクトリは「何に依存してよいか」で定義する:
             //   constants（値だけ）→ utils（純粋関数）→ lib（外部との口）→ services（DB・認証に触る横断処理）
@@ -67,21 +65,11 @@ const eslintConfig = defineConfig([
             { target: "./src/lib", from: "./src/services", message: LIB_MESSAGE },
 
             // フィーチャーがルーティング層を知ってはいけない。
-            // 逆向き（app → features）は自由。app は合成層なので、フィーチャーを束ねて画面を作る。
+            // 逆向き（app → features）は自由。app は合成層で、フィーチャーを束ねて画面を作り、
+            // 複数のフィーチャーにまたがる Server Action もここに置く。
             { target: "./src/features", from: "./src/app", message: FEATURES_APP_MESSAGE },
 
-            // usecases（ブラウザから呼ばれる操作）は、画面の部品より下・データと決まりごとより上に立つ。
-            // 同じ features の中で components/ だけが usecases より上にいるので、判定は
-            // **「画面の部品かどうか」の1つ**で決まる（何の機能かを知らなくてよい）。
-            { target: "./src/usecases", from: ["./src/components", "./src/app"], message: USECASES_MESSAGE },
-            { target: "./src/usecases", from: "./src/features/*/components/**/*", message: USECASES_MESSAGE },
-            {
-              target: ["./src/features/*/!(components)/**/*", "./src/features/*/*.ts"],
-              from: ["./src/usecases/**/*", "./src/features/*/components/**/*"],
-              message: FEATURE_DATA_MESSAGE,
-            },
-
-            // フィーチャー同士は直接つながない。組み合わせるのは usecases（サーバー側）と app（画面側）。
+            // フィーチャー同士は直接つながない。組み合わせるのは app（画面も、またがる Server Action も）。
             // ⚠️ フィーチャーを足したら、その分の zone をここに足すこと。
             //    書き忘れると、そのフィーチャーだけ越境し放題になる。
             { target: "./src/features/report", from: "./src/features", except: ["./report"], message: FEATURES_MESSAGE },
@@ -110,7 +98,7 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/prisma",
               message:
-                "features の中で DB に触るのは features/<name>/db/ だけ。db/ に目的で名前を付けたファイルを作ること（操作の手順は usecases/ に置く）。",
+                "features の中で DB に触るのは features/<name>/db/ だけ。db/ に目的で名前を付けたファイルを作ること（操作は actions/ に置く）。",
             },
           ],
         },
@@ -119,31 +107,20 @@ const eslintConfig = defineConfig([
   },
 
   {
-    // usecases は DB に直接触らない。usecase が持つのは手順（認可 → 検査 → db の関数を呼ぶ → 監査ログ）と
-    // トランザクションの開始だけで、DB の読み書きは持ち主の features/<name>/db/ に置く。
+    // トランザクションのクライアント（tx）を直接使ってよいのは、DB に触る場所（features/<name>/db/ と services/）だけ。
+    // Server Action（features/<name>/actions/ と、app に置くまたがる操作）は、tx を db の関数に渡すだけにする。
     //
-    // ⚠️ import の禁止だけでは足りない。runInTransaction から受け取った tx を使えば、prisma を
-    //    import しなくても DB を直接操作できてしまう。なので `tx.<モデル>` の直書きも禁じる
-    //    （tx は db の関数に渡すだけ）。変数名が tx であることに頼った判定なので、別名にすると抜ける。
-    files: ["src/usecases/**"],
+    // ⚠️ prisma の import を禁じるだけでは足りない。runInTransaction から受け取った tx を使えば、
+    //    prisma を import しなくても DB を直接操作できてしまう。変数名が tx であることに頼った判定なので、
+    //    別名にすると抜ける。
+    files: ["src/**"],
+    ignores: ["src/features/*/db/**", "src/services/**", "src/generated/**"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "@/lib/prisma",
-              message:
-                "usecases から DB に直接触らない。DB の読み書きは features/<name>/db/ に関数を作って呼ぶ（トランザクションは services/transaction.ts の runInTransaction で開始する）。",
-            },
-          ],
-        },
-      ],
       "no-restricted-syntax": [
         "error",
         {
           selector: "MemberExpression[object.name='tx']",
-          message: "usecases の中で tx.<モデル> を直接使わない。tx は features/<name>/db/ の関数に渡すだけにする。",
+          message: "tx.<モデル> を直接使わない。DB の読み書きは features/<name>/db/ の関数に置き、tx はその関数に渡すだけにする。",
         },
       ],
     },
@@ -165,7 +142,7 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/prisma",
               message:
-                "ページから DB を直接叩かない。features/<name>/db/ に置いて、そこから DTO を受け取ること。",
+                "app（画面と、またがる Server Action）から DB を直接叩かない。features/<name>/db/ の関数を呼び、画面はそこから DTO を受け取ること。",
             },
           ],
         },

@@ -19,7 +19,7 @@ export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
 //
 // ⚠️ **PublisherAccess が「ユーザー」なのは誤記ではない。** この操作の targetId には
 // PublisherAccess の行ではなく **Profile の id**（権限を与えられた人）が入っている
-// = usecases/grant-publisher-access.ts / revoke-publisher-access.ts。
+// = features/account/actions/grant-publisher-access.ts / app/admin/users/[id]/revoke-publisher-access.ts。
 // 型名をそのまま出していた頃は「PublisherAccess の ID だ」と読まれ、実際に取り違えが起きた。
 export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   Report: "投稿",

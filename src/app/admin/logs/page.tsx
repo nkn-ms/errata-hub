@@ -45,7 +45,7 @@ function Disclosure({ summary, full }: { summary: string; full: string }) {
  * 記録に残した「誰に対する操作か」のメール。無ければ null。
  *
  * 出版社アクセスの付与・剥奪だけが持つ（`targetId` が Profile の id で、ID のままでは読めないため
- * = usecases/grant-publisher-access.ts・revoke-publisher-access.ts）。**古い記録は持っていない**ので、その場合は ID の表示に落とす。
+ * = features/account/actions/grant-publisher-access.ts・app/admin/users/[id]/revoke-publisher-access.ts）。**古い記録は持っていない**ので、その場合は ID の表示に落とす。
  * AuditLog は90日で消えるため、この分岐が要るのも最大90日。
  */
 function targetEmailOf(before: Prisma.JsonValue | null, after: Prisma.JsonValue | null): string | null {

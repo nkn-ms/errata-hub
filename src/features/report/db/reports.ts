@@ -8,7 +8,7 @@ import type { SubmittedReport, SubmittedReportBody } from "@/features/report/sch
 
 /**
  * **投稿の読み書き（Data Access Layer）。** 読み取りはページ（サーバーコンポーネント）が描画のために
- * await し、書き込みは usecases（ブラウザから呼ばれる操作）が呼ぶ。
+ * await し、書き込みは Server Action（ブラウザから呼ばれる操作）が呼ぶ。
  *
  * 読み取りが満たすべき条件は3つで、Next.js のガイドがそのまま挙げているもの
  * （`node_modules/next/dist/docs/01-app/02-guides/data-security.md`）:
@@ -16,7 +16,7 @@ import type { SubmittedReport, SubmittedReportBody } from "@/features/report/sch
  *   2. 認可を行う … 公開情報なのでここでは不要。閲覧者ごとに変わる判定は呼び出し側（services/publisher-access.ts）
  *   3. **安全で最小の DTO を返す** … 生の行ではなく `Report`（= types.ts）を返す。下の ⚠️ を参照
  *
- * ⚠️ **書き込みの認可は、呼び出し側（usecases と Route Handler）が済ませてから呼ぶ**（ここでは確かめない）。
+ * ⚠️ **書き込みの認可は、呼び出し側（Server Action と Route Handler）が済ませてから呼ぶ**（ここでは確かめない）。
  *    同じガイドの例は書き込みの認可も DAL の中で行うが、ここでは外に出す。同じ関数を、認可の違う操作が
  *    呼ぶため（例: features/publisher/db/publishers.ts の ensurePublisher は、投稿する人の操作と
  *    管理者の操作の両方から呼ばれる）。操作した人は引数で受け取る（db/ は cookie を読まない）。
@@ -125,7 +125,7 @@ export async function findReportsByUser(userId: string): Promise<Report[]> {
  *
  * ⭐ **書籍と一緒に1回で引かないのは、フィーチャーを跨がないため。** 書籍は features/book が持ち、
  * 投稿は features/report が持つ。両方を必要とする書籍ページ（app 層）が2つを呼んで組み立てる
- * ＝「組み合わせるのは、サーバー側なら usecases、画面側なら app」（README）。
+ * ＝「組み合わせるのは app」（README）。
  *
  * ⚠️ 書籍の UUID ではなく ISBN で受ける。呼び出し側に内部 ID を渡さずに済み、
  *    問い合わせも1回で足りる（`Book.isbn` は unique）。渡す ISBN は正規形にしておくこと。
@@ -150,8 +150,8 @@ export async function hasUpvoted(reportId: string, profileId: string): Promise<b
 
 
 // ────────────────────────────────────────────────────────────────────────
-// 操作（usecases）が呼ぶもの。認可は呼び出し側の usecase が済ませている（理由はこのファイルの冒頭）。
-// 戻り値の行は、そのまま画面へ返さない（usecase が要る欄だけを選んで返す）。
+// 操作（Server Action）が呼ぶもの。認可は呼び出し側の Server Action が済ませている（理由はこのファイルの冒頭）。
+// 戻り値の行は、そのまま画面へ返さない（Server Action が要る欄だけを選んで返す）。
 // ⚠️ 管理者だけの操作は reports-admin.ts、消す操作は report-deletion.ts。
 // ────────────────────────────────────────────────────────────────────────
 

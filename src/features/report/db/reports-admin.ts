@@ -13,7 +13,7 @@ import { latestDate } from "@/utils/latest-date";
  * client component へ渡していた = #292 で修正）。
  *
  * 画面が読むものの認可は app/admin/layout.tsx の requireAdminPage() が担う。
- * 操作（usecases）が呼ぶものは、その usecase が済ませる（理由は reports.ts の冒頭）。
+ * 操作（Server Action）が呼ぶものは、その Server Action が済ませる（理由は reports.ts の冒頭）。
  */
 
 /** 投稿一覧（管理）の1行。 */
@@ -156,7 +156,7 @@ export type AdminReport = {
   note: string | null;
   fixedEdition: number | null;
   fixedPrinting: number | null;
-  /** 投稿者が申告した正誤表 URL（採用は管理者の操作 = usecases/adopt-reported-erratum-url.ts）。 */
+  /** 投稿者が申告した正誤表 URL（採用は管理者の操作 = app/admin/reports/[id]/adopt-reported-erratum-url.ts）。 */
   reportedErratumUrl: string | null;
   createdAt: Date;
   book: {

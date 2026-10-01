@@ -1,0 +1,50 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { runInTransaction } from "@/services/transaction";
+import { requireAdminServerAction } from "@/services/auth";
+import { createAuditLog } from "@/services/audit";
+import { AUDIT_ACTION, TARGET_TYPE } from "@/constants/audit";
+import { routes } from "@/constants/routes";
+import type { PublisherState } from "@/features/publisher/types";
+import { parsePublisherForm } from "@/features/publisher/schema";
+import { findPublisherForAuditLog, toMessage, updatePublisher } from "@/features/publisher/db/publishers";
+
+export async function updatePublisherAction(
+  id: string,
+  _prev: PublisherState,
+  formData: FormData
+): Promise<PublisherState> {
+  const admin = await requireAdminServerAction();
+
+  const parsed = parsePublisherForm(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  try {
+    // 更新と監査ログを1つのトランザクションにする（理由は features/report/actions/delete-report.ts の deleteReportAction）。
+    await runInTransaction(async (tx) => {
+      const before = await findPublisherForAuditLog(id, tx);
+      const after = await updatePublisher(id, parsed.data, tx);
+
+      // 「誰が連絡先やメモを書き換えたか」を後から説明できるよう、変更前後を残す
+      await createAuditLog(
+        {
+          userId: admin.id,
+          userEmail: admin.email,
+          action: AUDIT_ACTION.UPDATE_PUBLISHER,
+          targetType: TARGET_TYPE.PUBLISHER,
+          targetId: id,
+          before: (before ?? null) as unknown as Record<string, unknown> | null,
+          after: after as unknown as Record<string, unknown>,
+        },
+        tx
+      );
+    });
+  } catch (error) {
+    return { error: toMessage(error, "出版社の更新に失敗しました") };
+  }
+
+  redirect(routes.admin.publishers);
+}

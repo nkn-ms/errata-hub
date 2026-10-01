@@ -7,14 +7,14 @@ import { storagePathFromPublicUrl } from "@/features/report/utils/report-images"
 
 // 投稿と、その一部（画像・追記・出版社の回答）を消す操作が使う処理
 // （投稿者の取り下げ・管理者の削除・画像1枚・追記1件・回答1件）。
-// 認可とステータスの確認は呼び出し側の usecase が行う（理由は reports.ts の冒頭）。
+// 認可とステータスの確認は呼び出し側の Server Action が行う（理由は reports.ts の冒頭）。
 
 // 削除対象の読み出し。監査ログの before に使う値なので、削除と同じトランザクションの中で読む。
 // ⚠️ ただし読んでから消すまでの間の他の変更は防げない（Postgres の既定の READ COMMITTED では、
 //    SELECT は行をロックしない）。その間に足された画像は before に載らず、Storage に辿れないファイルが
 //    残りうる。起きるにはアップロードと削除がほぼ同時に重なる必要があるので、行ロック（FOR UPDATE）は入れていない。
 // ⚠️ 追記と出版社の回答も Cascade で一緒に消えるので、本文ごと読んで before に残す
-//    （1件ずつ消すときの deleteReportAddendumUsecase / deletePublisherCommentUsecase と揃える）。
+//    （1件ずつ消すときの deleteReportAddendumAction / deletePublisherCommentAction と揃える）。
 //    画像は投稿本体の分も追記の分も images に入っている（どちらの行も reportId を持つ）。
 export function findReportForDeletion(id: string, client: Prisma.TransactionClient = prisma) {
   return client.report.findUnique({
@@ -24,7 +24,7 @@ export function findReportForDeletion(id: string, client: Prisma.TransactionClie
       addenda: { orderBy: { createdAt: "asc" } },
       publisherComments: {
         orderBy: { createdAt: "asc" },
-        // 出版社は名前も残す（90日で消える AuditLog から後で引き直せないため = deletePublisherCommentUsecase）
+        // 出版社は名前も残す（90日で消える AuditLog から後で引き直せないため = deletePublisherCommentAction）
         include: { publisher: { select: { name: true } } },
       },
     },

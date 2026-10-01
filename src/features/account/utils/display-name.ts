@@ -3,7 +3,7 @@ import { PROFILE_LIMITS } from "@/features/account/constants";
 /**
  * user_metadata の値を Profile.displayName として使える形にする（auth/callback 専用）。
  *
- * ⚠️ **表示名のサーバー検証を迂回できる唯一の入口がここ。** updateDisplayNameUsecase は
+ * ⚠️ **表示名のサーバー検証を迂回できる唯一の入口がここ。** updateDisplayNameAction は
  * zod で上限を強制するが、`user_metadata` は Supabase の signUp API を直接叩けば任意の値にでき、
  * OAuth の氏名（full_name）やアカウント名（user_name）も長さが保証されない。
  *

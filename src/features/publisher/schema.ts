@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { normalizeEmailDomain, isValidEmailDomain } from "@/features/publisher/utils/email-domain";
 
-// 出版社の登録・更新フォームの検査（usecases/create-publisher.ts・update-publisher.ts が使う）。
+// 出版社の登録・更新フォームの検査（features/publisher/actions/create-publisher.ts・features/publisher/actions/update-publisher.ts が使う）。
 const PublisherSchema = z.object({
   name: z.string().min(1, "出版社名を入力してください"),
   email: z.string().email("有効なメールアドレスを入力してください").or(z.literal("")),
